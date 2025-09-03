@@ -1,0 +1,39 @@
+server:
+  port: 3000
+  address: 0.0.0.0 # 외부(LAN) 에서 접근 허용
+
+spring:
+  datasource:
+    driver-class-name: oracle.jdbc.OracleDriver
+    url: jdbc:oracle:thin:@//localhost:1521/xe
+    username: c##idev
+    password: 1234
+  jpa:
+    hibernate:
+      ddl-auto: update            
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+    open-in-view: false
+
+  devtools:
+    restart:
+      enabled: true 
+    livereload:
+      enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui/index.html
+    display-request-duration: true
+    try-it-out-enabled: true
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    root: info
+    org.springframework.web: debug
+    org.springframework.security: debug
+    org.hibernate.SQL: debug

@@ -1,0 +1,23 @@
+CREATE TABLE customers (
+    id VARCHAR2(100) PRIMARY KEY NOT NULL,
+    password VARCHAR2(255) NOT NULL,
+    weight NUMBER(4, 1),
+    age NUMBER(3),
+    gender CHAR(1) CHECK (gender IN ('M', 'F')),
+    height NUMBER(3)
+);
+
+
+DROP TABLE CUSTOMERS;
+DROP TABLE BODY;
+DROP TABLE foodInfo;
+DROP TABLE CUSTOMERS;
+DROP TABLE GOAL;
+
+
+commit;
+SELECT * FROM customers;
+SELECT * FROM goal;
+SELECT * FROM foodInfo;
+
+SELECT * FROM V$VERSION;
