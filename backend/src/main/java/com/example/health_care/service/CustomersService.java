@@ -22,7 +22,6 @@ public class CustomersService implements UserDetailsService {
     private final CustomersRepository customersRepository;
     private final PasswordEncoder passwordEncoder;
 
-    // DietCare 아이디어 반영: 이메일 정규화(소문자/trim) 후 중복 체크 및 저장
     @Transactional
     public CustomersEntity signup(SignupRequest req) {
         final String email = normalizeEmail(req.getId());
@@ -35,7 +34,7 @@ public class CustomersService implements UserDetailsService {
 
         CustomersEntity user = CustomersEntity.builder()
                 .id(email)
-                .password(passwordEncoder.encode(req.getPassword())) // 비밀번호 해시
+                .password(passwordEncoder.encode(req.getPassword()))
                 .weight(req.getWeight())
                 .age(req.getAge())
                 .gender(req.getGender())

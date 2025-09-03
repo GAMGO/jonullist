@@ -30,7 +30,7 @@ export default function SignupScreen({ navigation }) {
     else setEmailErr('');
   };
 
-  // ✅ 최대 8자만 허용(8자 미만은 허용, 경고 없음)
+  // 비밀번호 최대 8자만 허용
   const onPasswordChange = (v) => {
     if (v.length > 8) {
       setPassErr('비밀번호는 최대 8자리까지만 입력 가능합니다.');
@@ -41,7 +41,7 @@ export default function SignupScreen({ navigation }) {
     setPassword(v);
   };
 
-  // 디바운스 존재확인
+  // 이메일 중복 체크 (디바운스)
   const tRef = useRef(null);
   useEffect(() => {
     if (!id || emailErr) { setDupErr(''); return; }
@@ -70,7 +70,6 @@ export default function SignupScreen({ navigation }) {
     if (emailErr || dupErr) {
       return Alert.alert('이메일 확인', emailErr || dupErr);
     }
-    // ✅ 더 이상 "정확히 8자리" 강제하지 않음(최대 8자만 제한)
 
     const payload = {
       id: id.trim(),
@@ -127,7 +126,6 @@ export default function SignupScreen({ navigation }) {
         />
         {!!passErr && <Text style={{ color: '#ef4444' }}>{passErr}</Text>}
 
-        {/* 나머지 입력 */}
         <TextInput value={age} onChangeText={setAge} placeholder="Age" keyboardType="numeric"
           style={{ borderWidth: 1, borderColor: '#ddd', borderRadius: 10, padding: 12 }}/>
         <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -146,6 +144,16 @@ export default function SignupScreen({ navigation }) {
         <TouchableOpacity onPress={onSubmit} disabled={loading}
           style={{ backgroundColor: loading ? '#93c5fd' : '#10b981', padding: 14, borderRadius: 10 }}>
           <Text style={{ color: '#fff', textAlign: 'center' }}>{loading ? 'Submitting…' : 'Create Account'}</Text>
+        </TouchableOpacity>
+
+        {/* 🔹 회원가입 없이 로그인으로 돌아가기 */}
+        <TouchableOpacity
+          onPress={() => navigation.replace('Login')}
+          style={{ padding: 12, alignItems: 'center' }}
+        >
+          <Text style={{ color: '#2563eb', fontWeight: '700' }}>
+            로그인 화면으로 돌아가기
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { apiPost } from "../config/api";
+import { apiPost, setAuthToken, clearAuthToken } from "../config/api";
 
 const AuthContext = createContext(null);
 
@@ -11,10 +11,11 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     (async () => {
-      const t = await AsyncStorage.getItem("token");
+      const t = await AsyncStorage.getItem("token"); // "Bearer xxx" 혹은 raw
       const u = await AsyncStorage.getItem("user");
       if (t && u) {
         setToken(t);
+        setAuthToken(t); // 헤더 반영(중복 접두사는 api.js에서 가드)
         setUser(JSON.parse(u));
       }
       setReady(true);
@@ -29,9 +30,10 @@ export function AuthProvider({ children }) {
       const userData = { id: res.id };
       await AsyncStorage.setItem("user", JSON.stringify(userData));
       setToken(bearer);
+      setAuthToken(bearer);
       setUser(userData);
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   };
@@ -48,15 +50,22 @@ export function AuthProvider({ children }) {
       });
       const ok = await login(form.id, form.password);
       return ok;
-    } catch (error) {
+    } catch {
       return false;
     }
   };
 
   const logout = async () => {
-    await AsyncStorage.multiRemove(["token", "user"]);
-    setToken(null);
-    setUser(null);
+    try {
+      await apiPost("/api/auth/logout", {}); // 서버 블랙리스트 등록
+    } catch (e) {
+      if (__DEV__) console.warn("logout fallback:", String(e?.message || e));
+    } finally {
+      await AsyncStorage.multiRemove(["token", "user"]);
+      clearAuthToken();
+      setToken(null);
+      setUser(null);
+    }
   };
 
   const value = useMemo(

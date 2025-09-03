@@ -31,7 +31,7 @@ function normalizeOrigin(v) {
 }
 
 const EXTRA = getExtra();
-// ★ 기본 포트를 3000으로
+// ★ 기본 포트 3000
 const ENV_ORIGIN = normalizeOrigin(process.env.EXPO_PUBLIC_API_ORIGIN || EXTRA.apiOrigin || null);
 const ENV_PORT = Number(process.env.EXPO_PUBLIC_API_PORT ?? EXTRA.apiPort ?? 3000);
 
@@ -40,14 +40,9 @@ function getDevOrigin() {
   const expoHost = getHostFromExpo();
   const metroHost = getHostFromScriptURL();
   let host;
-  if (isPrivateIp(expoHost)) {
-    host = expoHost;
-  } else if (isPrivateIp(metroHost)) {
-    host = metroHost;
-  } else {
-    if (Platform.OS === 'android') host = '10.0.2.2';
-    else host = 'localhost';
-  }
+  if (isPrivateIp(expoHost)) host = expoHost;
+  else if (isPrivateIp(metroHost)) host = metroHost;
+  else host = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
   return `http://${host}:${ENV_PORT}`;
 }
 
@@ -58,13 +53,16 @@ export const API_BASE_DEBUG = ORIGIN;
 
 const join = (base, path) => `${String(base).replace(/\/+$/, '')}/${String(path).replace(/^\/+/, '')}`;
 
-let CURRENT_TOKEN = null;
+let CURRENT_TOKEN = null; // "Bearer xxx.yyy.zzz" or raw
 export function setAuthToken(t) { CURRENT_TOKEN = t || null; }
 export function clearAuthToken() { CURRENT_TOKEN = null; }
 
 function withAuthHeaders(init) {
   const base = init?.headers || {};
-  return CURRENT_TOKEN ? { ...base, Authorization: `Bearer ${CURRENT_TOKEN}` } : base;
+  if (!CURRENT_TOKEN) return base;
+  // 혹시 raw 토큰이 들어와도 한 번만 접두사 붙이도록 가드
+  const auth = CURRENT_TOKEN.startsWith('Bearer ') ? CURRENT_TOKEN : `Bearer ${CURRENT_TOKEN}`;
+  return { ...base, Authorization: auth };
 }
 
 export async function apiGet(path, init) {

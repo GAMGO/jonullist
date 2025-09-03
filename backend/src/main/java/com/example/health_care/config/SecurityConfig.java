@@ -49,8 +49,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // ⚠️ PasswordEncoder 빈은 PasswordConfig로 이동 (순환의존 방지)
-
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration cfg) throws Exception {
         return cfg.getAuthenticationManager();

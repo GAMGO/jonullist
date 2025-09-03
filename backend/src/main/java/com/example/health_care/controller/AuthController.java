@@ -1,7 +1,9 @@
 package com.example.health_care.controller;
 
 import java.net.URI;
+import java.time.LocalDateTime;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -15,11 +17,13 @@ import org.springframework.web.bind.annotation.*;
 import com.example.health_care.dto.ExistsResponse;
 import com.example.health_care.dto.LoginRequest;
 import com.example.health_care.dto.LoginResponse;
+import com.example.health_care.dto.LogoutResponse;
 import com.example.health_care.dto.SignupRequest;
 import com.example.health_care.dto.SignupResponse;
 import com.example.health_care.entity.CustomersEntity;
 import com.example.health_care.security.JwtTokenProvider;
 import com.example.health_care.service.CustomersService;
+import com.example.health_care.service.TokenBlacklistService;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -37,6 +41,7 @@ public class AuthController {
     private final CustomersService customersService;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @PostMapping("/signup")
     public ResponseEntity<SignupResponse> signup(@Valid @RequestBody SignupRequest request) {
@@ -62,7 +67,7 @@ public class AuthController {
         }
     }
 
-    // 이메일 존재 여부 체크 (+ 잘못된 이메일 형식이면 400)
+    // 이메일 존재 여부 체크 (잘못된 형식이면 400)
     @GetMapping("/exists")
     public ResponseEntity<ExistsResponse> exists(
             @RequestParam("id")
@@ -71,5 +76,31 @@ public class AuthController {
             String id) {
         boolean exists = customersService.exists(id);
         return ResponseEntity.ok(new ExistsResponse(exists));
+    }
+
+    // 로그아웃 → 토큰 블랙리스트 등록
+    @PostMapping("/logout")
+    public ResponseEntity<LogoutResponse> logout(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (header == null || !header.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(LogoutResponse.builder().message("Missing Bearer token").build());
+        }
+        String token = header.substring(7);
+
+        if (!jwtTokenProvider.validateToken(token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(LogoutResponse.builder().message("Invalid token").build());
+        }
+        if (tokenBlacklistService.isBlacklisted(token)) {
+            return ResponseEntity.ok(LogoutResponse.builder().message("Already logged out").build());
+        }
+
+        String userId = jwtTokenProvider.getUsernameFromToken(token);
+        LocalDateTime exp = jwtTokenProvider.getExpiry(token);
+        if (exp == null) exp = LocalDateTime.now().plusHours(24);
+
+        tokenBlacklistService.blacklist(token, userId, exp, "logout");
+        return ResponseEntity.ok(LogoutResponse.builder().message("ok").build());
     }
 }
