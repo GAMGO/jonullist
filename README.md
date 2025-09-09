@@ -31,7 +31,6 @@ npx expo install expo-camera expo-image-manipulator expo-speech
 npx expo install react-native-gesture-handler react-native-reanimated
 npx expo install expo-font
 npx expo install react-native-webview
-npm i @react-native-voice/voice
 - npx expo start
 
 
