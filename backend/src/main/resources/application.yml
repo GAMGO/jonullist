@@ -1,6 +1,6 @@
 server:
   port: 3000
-  address: 0.0.0.0 # 외부(LAN) 에서 접근 허용
+  address: 0.0.0.0  # 외부 접근 허용
 
 spring:
   datasource:
@@ -16,7 +16,6 @@ spring:
         format_sql: true
         show_sql: true
     open-in-view: false
-
   devtools:
     restart:
       enabled: true 
@@ -37,3 +36,10 @@ logging:
     org.springframework.web: debug
     org.springframework.security: debug
     org.hibernate.SQL: debug
+
+# API
+nutri:
+  base-url: http://api.data.go.kr
+  endpoint: /openapi/tn_pubr_public_nutri_info_api
+  service-key-decoding: 21d9850b3a76b8e1f1a221c6199dc3feab9e97bfb7998a76ec1ce78c3dd15f75 # 인증키값
+  service-key-encoding: ""

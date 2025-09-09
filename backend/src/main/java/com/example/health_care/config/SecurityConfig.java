@@ -11,7 +11,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.filter.CorsFilter; // (원본 그대로 유지)
 
 import com.example.health_care.security.JwtAuthenticationFilter;
 
@@ -35,7 +34,8 @@ public class SecurityConfig {
                         "/api/ping", // 헬스 체크
                         "/api/auth/**", // 로그인/회원가입 등
                         "/error", // 스프링 기본 에러 엔드포인트
-                        "/api/recover/**" // >>> [ADDED] 비밀번호 복구(시작/검증/재설정) 공개 엔드포인트
+                        "/api/recover/**" ,// >>> [ADDED] 비밀번호 복구(시작/검증/재설정) 공개 엔드포인트
+                        "/api/food/debug/**"
         };
 
         @Bean
@@ -56,6 +56,7 @@ public class SecurityConfig {
                                                 .permitAll()
                                                 .requestMatchers("/api/auth/logout", "/body", "/api/profile")
                                                 .authenticated() // 로그아웃, 바디프로필, 프로필 추가
+                                                .requestMatchers("/api/food/public/**").permitAll()
                                                 .anyRequest().authenticated())
                                 // 폼/베이직 로그인 비활성
                                 .httpBasic(b -> b.disable())

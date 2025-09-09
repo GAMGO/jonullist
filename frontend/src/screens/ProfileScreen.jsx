@@ -1,4 +1,3 @@
-// >>> [UPDATED] FILE: src/screens/ProfileScreen.jsx
 import React, { useEffect, useState, useCallback } from 'react'
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, View, Text, TextInput, Pressable, StyleSheet, ImageBackground } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -8,7 +7,7 @@ import { useAuth } from '../context/AuthContext'
 import { ORIGIN } from '../config/api'
 import { useFonts } from 'expo-font'
 import { useNavigation } from '@react-navigation/native'
-import { useI18n } from '../i18n/I18nContext'  // ✅ i18n
+import { useI18n } from '../i18n/I18nContext'
 
 const FONT = 'DungGeunMo'
 
@@ -20,10 +19,10 @@ TextInput.defaultProps.allowFontScaling = false
 TextInput.defaultProps.maxFontSizeMultiplier = 1
 
 export default function ProfileScreen() {
-  const { t } = useI18n() // ✅
+  const { t } = useI18n()
   const [fontsLoaded] = useFonts({ [FONT]: require('../../assets/fonts/DungGeunMo.otf') })
   if (fontsLoaded) {
-    if (!Text.defaultProps.style) Text.defaultProps.style = { fontFamily: FONT }
+    if (!Text.defaultProps.style) Text.defaultProps.style = { fontFamily: FONT, includeFontPadding: true }
     if (!TextInput.defaultProps.style) TextInput.defaultProps.style = { fontFamily: FONT }
   }
 
@@ -260,7 +259,7 @@ export default function ProfileScreen() {
         <Text style={[styles.screenTitle, { top: insets.top + 8 }]}>{t('PROFILE_TITLE')}</Text>
         <View style={[styles.center, { paddingTop: insets.top + 96 }]}>
           <ActivityIndicator />
-          <Text style={{ marginTop: 8, color: '#fff', fontFamily: FONT }}>{t('LOADING')}</Text>
+          <Text style={{ marginTop: 8, color: '#fff', fontFamily: FONT, fontSize: 14, lineHeight: 18, includeFontPadding: true }}>{t('LOADING')}</Text>
         </View>
       </ImageBackground>
     )
@@ -284,8 +283,6 @@ export default function ProfileScreen() {
                 <Pressable onPress={() => { setErrAccount(''); setOkAccount(''); setEditingAccount(true) }} style={styles.primaryBtn}>
                   <Text style={styles.primaryBtnText}>{t('EDIT')}</Text>
                 </Pressable>
-
-                {/* 복구 질문 설정 */}
                 <Pressable onPress={() => nav.navigate('RecoverySetup')} style={styles.ghostBtn}>
                   <Text style={styles.ghostBtnText}>{t('RECOVERY_SETUP')}</Text>
                 </Pressable>
@@ -410,12 +407,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#000',
     fontSize: 26,
+    lineHeight: 32,
     textShadowColor: 'rgba(255,255,255,0.28)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
     zIndex: 10,
     fontFamily: FONT,
     fontWeight: 'normal',
+    includeFontPadding: true,
   },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   container: { paddingHorizontal: 16, gap: 16 },
@@ -432,22 +431,31 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
   },
-  cardTitle: { fontSize: 18, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.06)', fontFamily: FONT, fontWeight: 'normal' },
+  cardTitle: {
+    fontSize: 18,
+    lineHeight: 22,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+    fontFamily: FONT,
+    fontWeight: 'normal',
+    includeFontPadding: true,
+  },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
-  label: { color: '#111827', fontFamily: FONT, fontWeight: 'normal' },
-  value: { color: '#111827', fontFamily: FONT, fontWeight: 'normal' },
-  input: { borderWidth: 1, borderColor: 'rgba(0,0,0,0.12)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.9)', fontFamily: FONT },
+  label: { color: '#111827', fontFamily: FONT, fontWeight: 'normal', fontSize: 16, lineHeight: 20, includeFontPadding: true },
+  value: { color: '#111827', fontFamily: FONT, fontWeight: 'normal', fontSize: 16, lineHeight: 20, includeFontPadding: true },
+  input: { borderWidth: 1, borderColor: 'rgba(0,0,0,0.12)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.9)', fontFamily: FONT, fontSize: 16, lineHeight: 20 },
   row: { flexDirection: 'row', gap: 10, marginTop: 6 },
   row2: { flexDirection: 'row', gap: 12 },
   segmentWrap: { flexDirection: 'row', gap: 8 },
   segmentBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(0,0,0,0.15)', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.9)' },
   segmentBtnActive: { backgroundColor: '#111827', borderColor: '#111827' },
-  segmentText: { color: '#111827', fontFamily: FONT, fontWeight: 'normal' },
-  segmentTextActive: { color: '#fff', fontFamily: FONT, fontWeight: 'normal' },
+  segmentText: { color: '#111827', fontFamily: FONT, fontWeight: 'normal', fontSize: 16, lineHeight: 20, includeFontPadding: true },
+  segmentTextActive: { color: '#fff', fontFamily: FONT, fontWeight: 'normal', fontSize: 16, lineHeight: 20, includeFontPadding: true },
   primaryBtn: { flex: 1, backgroundColor: '#111827', paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
-  primaryBtnText: { color: '#fff', fontFamily: FONT, fontWeight: 'normal' },
+  primaryBtnText: { color: '#fff', fontFamily: FONT, fontWeight: 'normal', fontSize: 16, lineHeight: 20, includeFontPadding: true },
   ghostBtn: { flex: 1, borderWidth: 1, borderColor: 'rgba(0,0,0,0.15)', paddingVertical: 12, borderRadius: 10, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.9)' },
-  ghostBtnText: { color: '#111827', fontFamily: FONT, fontWeight: 'normal' },
-  error: { color: '#dc2626', marginTop: 6, fontFamily: FONT },
-  ok: { color: '#16a34a', marginTop: 6, fontFamily: FONT },
+  ghostBtnText: { color: '#111827', fontFamily: FONT, fontWeight: 'normal', fontSize: 16, lineHeight: 20, includeFontPadding: true },
+  error: { color: '#dc2626', marginTop: 6, fontFamily: FONT, fontSize: 14, lineHeight: 18, includeFontPadding: true },
+  ok: { color: '#16a34a', marginTop: 6, fontFamily: FONT, fontSize: 14, lineHeight: 18, includeFontPadding: true },
 })

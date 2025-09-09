@@ -128,7 +128,8 @@ public class JwtTokenProvider {
         try {
             Claims c = Jwts.parser().verifyWith(getSecretKey()).build()
                     .parseSignedClaims(token).getPayload();
-            if (!"PW_RESET".equals(c.get("typ"))) return null;
+            if (!"PW_RESET".equals(c.get("typ")))
+                return null;
             return c.getSubject();
         } catch (Exception e) {
             return null;

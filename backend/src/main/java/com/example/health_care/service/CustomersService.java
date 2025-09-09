@@ -36,7 +36,7 @@ public class CustomersService implements UserDetailsService {
         private final BodyRepository bodyRepository;
         private final GoalRepository goalRepository;
         private final RecordRepository recordRepository;
-        
+
         @Transactional
         public CustomersEntity signup(SignupRequest req) {
                 log.debug("[SIGNUP:SERVICE] existsById? id={}", req.getId()); // log 확인
@@ -69,7 +69,6 @@ public class CustomersService implements UserDetailsService {
 
                 return savedUser;
         }
-
         @Override
         public UserDetails loadUserByUsername(String id) throws UsernameNotFoundException {
                 CustomersEntity user = customersRepository.findById(id)
@@ -81,7 +80,6 @@ public class CustomersService implements UserDetailsService {
                                 .roles("USER")
                                 .build();
         }
-
         @Transactional(readOnly = true)
         public CustomersProfileDTO getCustomerProfile(String customerId) {
                 // 1. 고객 기본 정보 조회
@@ -127,62 +125,64 @@ public class CustomersService implements UserDetailsService {
         }
 
         @Transactional
-    public void updateProfileAndSaveGoal(String customerId, UpdateAccountRequest req) {
-        // 1. 고객 엔티티를 찾아서 업데이트
-        CustomersEntity customer = customersRepository.findById(customerId)
-                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+        public void updateProfileAndSaveGoal(String customerId, UpdateAccountRequest req) {
+                // 1. 고객 엔티티를 찾아서 업데이트
+                CustomersEntity customer = customersRepository.findById(customerId)
+                                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
 
-        // DTO에서 받은 데이터로 Customers 테이블의 정보 업데이트
-        Optional.ofNullable(req.getWeight()).ifPresent(customer::setWeight);
-        Optional.ofNullable(req.getHeight()).ifPresent(customer::setHeight);
-        Optional.ofNullable(req.getAge()).ifPresent(customer::setAge);
-        Optional.ofNullable(req.getGender()).ifPresent(customer::setGender);
+                // DTO에서 받은 데이터로 Customers 테이블의 정보 업데이트
+                Optional.ofNullable(req.getWeight()).ifPresent(customer::setWeight);
+                Optional.ofNullable(req.getHeight()).ifPresent(customer::setHeight);
+                Optional.ofNullable(req.getAge()).ifPresent(customer::setAge);
+                Optional.ofNullable(req.getGender()).ifPresent(customer::setGender);
 
-        // 2. 비밀번호 변경
-        if (req.getNewPassword() != null && !req.getNewPassword().isBlank()) {
-            customer.setPassword(passwordEncoder.encode(req.getNewPassword()));
+                // 2. 비밀번호 변경
+                if (req.getNewPassword() != null && !req.getNewPassword().isBlank()) {
+                        customer.setPassword(passwordEncoder.encode(req.getNewPassword()));
+                }
+
+                customersRepository.save(customer);
+
+                // 3. 목표 정보가 DTO에 포함된 경우
+                if (req.getTargetWeight() != null || req.getTargetCalories() != null) {
+                        // ⭐ 1. GOAL 테이블에 새로운 목표 기록을 생성하고 저장
+                        GoalEntity goalEntity = GoalEntity.builder()
+                                        .customer(customer)
+                                        .targetWeight(req.getTargetWeight())
+                                        .targetCalories(req.getTargetCalories())
+                                        .recordDate(new Date()) // record_date를 사용하여 목표 생성
+                                        .build();
+                        goalRepository.save(goalEntity);
+
+                        // ⭐ 2. BODY 테이블에 현재 신체 정보와 목표를 함께 기록
+                        BodyEntity bodyEntity = BodyEntity.builder()
+                                        .customer(customer)
+                                        .weight(req.getWeight())
+                                        .height(req.getHeight())
+                                        .age(req.getAge())
+                                        .gender(req.getGender())
+                                        .targetWeight(req.getTargetWeight())
+                                        .targetCalories(req.getTargetCalories())
+                                        .recordDate(new Date())
+                                        .build();
+                        bodyRepository.save(bodyEntity);
+
+                        // ⭐ 3. RECORD 테이블에 초기 목표 기록
+                        RecordEntity recordEntity = RecordEntity.builder()
+                                        .customer(customer)
+                                        .recordDate(new Date())
+                                        .targetWeight(req.getTargetWeight())
+                                        .targetCalories(req.getTargetCalories())
+                                        // 아침/점심/저녁 칼로리 정보는 아직 없으므로 NULL로 둡니다.
+                                        .caloriesM(null)
+                                        .caloriesL(null)
+                                        .caloriesD(null)
+                                        .build();
+                        recordRepository.save(recordEntity);
+                }
         }
 
-        customersRepository.save(customer);
-
-        // 3. 목표 정보가 DTO에 포함된 경우
-        if (req.getTargetWeight() != null || req.getTargetCalories() != null) {
-            // ⭐ 1. GOAL 테이블에 새로운 목표 기록을 생성하고 저장
-            GoalEntity goalEntity = GoalEntity.builder()
-                    .customer(customer)
-                    .targetWeight(req.getTargetWeight())
-                    .targetCalories(req.getTargetCalories())
-                    .build();
-            goalRepository.save(goalEntity);
-
-            // ⭐ 2. BODY 테이블에 현재 신체 정보와 목표를 함께 기록
-            BodyEntity bodyEntity = BodyEntity.builder()
-                    .customer(customer)
-                    .weight(req.getWeight())
-                    .height(req.getHeight())
-                    .age(req.getAge())
-                    .gender(req.getGender())
-                    .targetWeight(req.getTargetWeight())
-                    .targetCalories(req.getTargetCalories())
-                    .recordDate(new Date())
-                    .build();
-            bodyRepository.save(bodyEntity);
-
-            // ⭐ 3. RECORD 테이블에 초기 목표 기록
-            RecordEntity recordEntity = RecordEntity.builder()
-                    .customer(customer)
-                    .recordDate(new Date())
-                    .targetWeight(req.getTargetWeight())
-                    .targetCalories(req.getTargetCalories())
-                    // 아침/점심/저녁 칼로리 정보는 아직 없으므로 NULL로 둡니다.
-                    .caloriesM(null)
-                    .caloriesL(null)
-                    .caloriesD(null)
-                    .build();
-            recordRepository.save(recordEntity);
-        }
-    }
-         // >>> [ADDED] 복구/프로필 등에서 공용으로 쓰는 비밀번호 변경 유틸
+        // >>> [ADDED] 복구/프로필 등에서 공용으로 쓰는 비밀번호 변경 유틸
         @Transactional
         public void updatePassword(String customerId, String newPassword) {
                 CustomersEntity user = customersRepository.findById(customerId)
