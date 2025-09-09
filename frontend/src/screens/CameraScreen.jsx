@@ -108,6 +108,7 @@ export default function CameraScreen() {
     }
   }
 
+
   const resetShot = () => {
     setShotUri(null);
     setFood(null);
