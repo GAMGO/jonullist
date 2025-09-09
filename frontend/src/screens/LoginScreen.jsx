@@ -11,15 +11,15 @@ import {
 } from 'react-native'
 import { useAuth } from '../context/AuthContext'
 import { useFonts } from 'expo-font'
-import { useI18n } from '../i18n/I18nContext' // >>> [ADDED]
-import { useNavigation } from '@react-navigation/native' // >>> [ADDED]
+import { useI18n } from '../i18n/I18nContext'
+import { useNavigation } from '@react-navigation/native'
 
 const FONT = 'DungGeunMo'
 
-export default function LoginScreen({ navigation: navProp }) {
-  const navigation = useNavigation() // >>> [ADDED]
-  const { t } = useI18n() // >>> [ADDED]
-  const { login, needsGoalSetup } = useAuth()
+export default function LoginScreen() {
+  const navigation = useNavigation()
+  const { t } = useI18n()
+  const { login } = useAuth()
   const [id, setId] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -59,29 +59,15 @@ export default function LoginScreen({ navigation: navProp }) {
     }
     try {
       setLoading(true)
-
       const res = await login(id.trim(), password)
-      const ok =
-        res === true ||
-        res === 'ok' ||
-        (res && typeof res === 'object' && (res.ok === true || res.success === true))
+      const ok = res === true || res === 'ok' || (res && typeof res === 'object' && (res.ok === true || res.success === true))
       if (!ok) {
-        const errMsg =
-          (res && typeof res === 'object' && (res.message || res.error)) ||
-          (typeof res === 'string' ? res : undefined)
+        const errMsg = (res && typeof res === 'object' && (res.message || res.error)) || (typeof res === 'string' ? res : undefined)
         throw new Error(normalizeLoginError(errMsg))
       }
-
-      if (needsGoalSetup) {
-        navigation.reset({ index: 0, routes: [{ name: 'Goal' }] })
-      } else {
-        navigation.reset({ index: 0, routes: [{ name: 'Home' }] })
-      }
     } catch (e) {
-
       const msg = normalizeLoginError(e?.message ?? e)
       Alert.alert('로그인 실패', msg)
-
     } finally {
       setLoading(false)
     }
@@ -162,9 +148,8 @@ export default function LoginScreen({ navigation: navProp }) {
           </Text>
         </TouchableOpacity>
 
-        {/* >>> [ADDED] 비밀번호 찾기 진입 */}
         <TouchableOpacity
-          onPress={() => navigation.navigate('Recover')}
+          onPress={() => navigation.navigate('RecoverySetup')}
           style={{ alignItems: 'center', padding: 10 }}
         >
           <Text style={{ fontFamily: FONT, color: '#2563eb' }}>{t('RECOVERY')}</Text>

@@ -1,157 +1,298 @@
-const GEMINI_API_KEY = "AIzaSyC5syZA0D3aq1QZSHczFQTSVV8bBQHeCSs";
+import { apiGet } from "../config/api"
+import * as FileSystem from "expo-file-system"
+import Tesseract from "tesseract.js"
 
-function toBase64Async(uri) {
-  return new Promise((resolve, reject) => {
-    fetch(uri)
-      .then(res => res.blob())
-      .then(blob => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(String(reader.result).split(",")[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      })
-      .catch(reject);
-  });
-}
+const GEMINI_API_KEY = "AIzaSyC5syZA0D3aq1QZSHczFQTSVV8bBQHeCSs"
 
-function hasHangul(str) {
-  return /[가-힣]/.test(String(str || ""));
+/* ───── 공통 유틸 ───── */
+async function toBase64Async(uri) {
+  return FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 })
 }
+const round = n => Math.round(Number(n) || 0)
+const safeInt = (v, def = 0) => (Number.isFinite(+v) ? round(+v) : def)
+const clamp = (n, min, max) => Math.max(min, Math.min(max, Number.isFinite(n) ? n : min))
 
 function extractText(data) {
-  const p = data?.candidates?.[0]?.content?.parts;
-  if (!Array.isArray(p)) return "";
-  return p.map(x => x?.text).filter(Boolean).join("\n");
+  const p = data?.candidates?.[0]?.content?.parts
+  if (!Array.isArray(p)) return ""
+  return p.map(x => x?.text).filter(Boolean).join("\n")
 }
-
 function stripToJson(text) {
-  if (!text) return "";
-  let t = String(text).replace(/```json|```/g, "").trim();
-  const s = t.indexOf("{");
-  const e = t.lastIndexOf("}");
-  if (s !== -1 && e !== -1 && e > s) t = t.slice(s, e + 1);
-  return t;
+  if (!text) return ""
+  let t = String(text).replace(/```json|```/g, "").trim()
+  const s = t.indexOf("{"), e = t.lastIndexOf("}")
+  if (s !== -1 && e !== -1 && e > s) t = t.slice(s, e + 1)
+  return t
+}
+function safeParse(text) {
+  try { return JSON.parse(stripToJson(text)) } catch { return null }
 }
 
-function safeParse(text) {
+/* ───── 프롬프트 (3종) ───── */
+// 0) 분류
+function classifyPrompt() {
+  return `
+너는 음식 사진 1장을 보고 아래 JSON으로만 응답한다.
+{
+  "dish": "한글 음식명",
+  "context": "packaged" | "prepared"
+}`.trim()
+}
+
+// 1) 가공식품 전용
+function packagedPrompt() {
+  return `
+너는 "포장 식품 라벨 분석기"다. 사진 1장을 보고 라벨의 수치를 최대한 활용하여 아래 JSON으로만 응답한다.
+규칙:
+- dish는 전면 표기의 제품명을 한글로 간단히.
+- 먼저 라벨 텍스트에서 칼로리를 직접 산출한다. 없을 경우 per100g 정보를 채워 둔다(후속 계산용).
+- portion.grams는 net_weight_g > serving_size_g > 100 우선.
+- 모든 수치는 정수 반올림.
+
+출력(JSON만):
+{
+  "dish": "한글 음식명",
+  "context": "packaged",
+  "portion": { "unit": "봉지" | "개" | "g", "count": 정수(>=1), "grams": 정수(>0) },
+  "panel": {
+    "net_weight_g": 정수,
+    "serving_size_g": 정수,
+    "servings_per_container": 정수,
+    "calories_per_serving": 정수,
+    "per100g": { "calories": 정수, "protein": 정수, "fat": 정수, "carbs": 정수 }
+  },
+  "per100g": { "calories": 정수, "protein": 정수, "fat": 정수, "carbs": 정수 },
+  "output": { "portion_grams": 정수(1~2000), "calories": 정수 }
+}`.trim()
+}
+
+// 2) 조리식품 전용 (용기/부피/밀도 추정 + 100g 기준 채움)
+function preparedPrompt() {
+  return `
+너는 "조리식품 1인분 g 추정 + 100g당 영양 추정기"다. 사진 1장을 보고 아래 JSON으로만 응답한다.
+규칙:
+- dish는 한글 간단명(예: 김치찌개, 순두부찌개, 비빔밥, 라면, 불고기덮밥 등).
+- portion.grams는 용기(뚝배기/그릇/접시/일회용 용기 크기), 가득/절반, 재료 밀도를 고려하여 추정한다.
+  (뚝배기: 소 350~450ml, 중 500~700ml 가정. 국/찌개 1.0g/ml, 밥/면 0.9~1.05g/ml, 죽/스프 0.9g/ml.)
+- per100g.* 는 해당 음식의 일반적인 평균값을 정수로 제공한다(못 찾으면 calories만 정수 근사).
+- 최종 output.calories = per100g.calories × (portion.grams / 100) (정수 반올림).
+- 오직 JSON만.
+
+출력(JSON만):
+{
+  "dish": "한글 음식명",
+  "context": "prepared",
+  "portion": { "unit": "인분", "count": 1, "grams": 정수(150~900 권장) },
+  "per100g": { "calories": 정수, "protein": 정수, "fat": 정수, "carbs": 정수 },
+  "output": { "portion_grams": 정수, "calories": 정수 }
+}`.trim()
+}
+
+/* ───── Gemini 호출 ───── */
+async function callGemini(base64, text) {
+  const body = {
+    contents: [{ parts: [{ text }, { inlineData: { mimeType: "image/jpeg", data: base64 } }] }],
+    generationConfig: { temperature: 0.1 }
+  }
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
+  )
+  if (!res.ok) {
+    const t = await res.text().catch(() => "")
+    throw new Error(`Gemini 실패: ${res.status} ${t}`)
+  }
+  const data = await res.json()
+  return extractText(data)
+}
+
+/* ───── Tesseract OCR ───── */
+async function ocrWithTesseract(uri) {
   try {
-    return JSON.parse(stripToJson(text));
-  } catch {
-    try {
-      const only = String(text).split("\n").filter(l => /["{}\[\]:]/.test(l)).join("\n");
-      return JSON.parse(only);
-    } catch {
-      return null;
+    const base64 = await toBase64Async(uri)
+    const dataUrl = `data:image/jpeg;base64,${base64}`
+    const { data: { text } } = await Tesseract.recognize(
+      dataUrl, "kor+eng",
+      { logger: m => __DEV__ && console.log("[tesseract]", m?.status || m) }
+    )
+    return String(text || "")
+  } catch (e) {
+    if (__DEV__) console.warn("[tesseract] error:", e?.message || e)
+    return ""
+  }
+}
+
+/* ───── 가공식품 라벨 파싱(간단) ───── */
+function parseNutritionFromText(src) {
+  const text = String(src || "").replace(/\r/g, " ").replace(/\n+/g, " ").toLowerCase()
+  const gi = (m, i = 1, d = 0) => (m && m[i] ? safeInt(m[i], d) : d)
+
+  const mulA = text.match(/(\d{1,4})\s*g\s*[x×*]\s*(\d{1,3})/)
+  const mulB = text.match(/(\d{1,3})\s*(?:개|봉|팩)\s*[x×*]\s*(\d{1,4})\s*g/)
+  const mul = mulA ? gi(mulA,1)*gi(mulA,2) : (mulB ? gi(mulB,1)*gi(mulB,2) : 0)
+
+  const netWeight =
+    gi(text.match(/(?:총\s*내용량|내용량|순\s*중량|net\s*wt)[:\s]*?(\d{2,5})\s*g/)) || (mul > 0 ? mul : 0)
+  const servingSize =
+    gi(text.match(/(?:1회\s*(?:제공량|분량)|serving\s*size)[:\s]*?(\d{1,4})\s*g/)) ||
+    gi(text.match(/(\d{1,4})\s*g[^0-9]{0,12}(?:칼로리|열량|에너지|kcal)/))
+  const servingsPerContainer =
+    gi(text.match(/총\s*(\d{1,3})\s*(?:회|서빙|servings)/)) ||
+    (netWeight && servingSize ? Math.max(1, round(netWeight / Math.max(1, servingSize))) : 0)
+  const calPerServing =
+    gi(text.match(/(?:1회\s*(?:제공량|분량)|per\s*serving)[^0-9]{0,12}(\d{2,4})\s*kcal/)) ||
+    gi(text.match(/(?:열량|칼로리|에너지)[^0-9]{0,10}(\d{2,4})\s*kcal/))
+  const per100Cal = gi(text.match(/100\s*(?:g|그램)[^0-9]{0,10}(\d{2,4})\s*kcal/))
+
+  return {
+    panel: {
+      net_weight_g: clamp(netWeight, 0, 3000),
+      serving_size_g: clamp(servingSize, 0, 2000),
+      servings_per_container: clamp(servingsPerContainer, 0, 60),
+      calories_per_serving: clamp(calPerServing, 0, 2000),
+      per100g: { calories: clamp(per100Cal, 0, 900), protein: 0, fat: 0, carbs: 0 }
     }
   }
 }
 
-function clamp(n, min, max) {
-  if (!Number.isFinite(n)) return min;
-  return Math.max(min, Math.min(max, n));
-}
-
-function round(n) {
-  return Math.round(Number(n) || 0);
-}
-
-function energyFromMacros(p, f, c) {
-  return 4 * p + 9 * f + 4 * c;
-}
-
-function reconcileTotals({ portion_grams, per100g }) {
-  const pg = clamp(round(portion_grams), 1, 2000);
-  const per = {
-    calories: clamp(round(per100g?.calories), 0, 900),
-    protein: clamp(round(per100g?.protein), 0, 100),
-    fat: clamp(round(per100g?.fat), 0, 100),
-    carbs: clamp(round(per100g?.carbs), 0, 150),
-  };
-  const factor = pg / 100;
-  const protein = round(per.protein * factor);
-  const fat = round(per.fat * factor);
-  const carbs = round(per.carbs * factor);
-  let calories = round(energyFromMacros(protein, fat, carbs));
-  calories = clamp(calories, 0, 2500);
-  return { portion_grams: pg, calories, protein, fat, carbs, per100g: per };
-}
-
-function coerceShape(obj) {
-  const dish = typeof obj?.dish === "string" ? obj.dish.trim() : "";
-  const portion_grams = Number.isFinite(+obj?.portion_grams) ? +obj.portion_grams : 0;
-  const per100g = {
-    calories: Number.isFinite(+obj?.per100g?.calories) ? +obj.per100g.calories : 0,
-    protein: Number.isFinite(+obj?.per100g?.protein) ? +obj.per100g.protein : 0,
-    fat: Number.isFinite(+obj?.per100g?.fat) ? +obj.per100g.fat : 0,
-    carbs: Number.isFinite(+obj?.per100g?.carbs) ? +obj.per100g.carbs : 0,
-  };
-  return { dish, portion_grams, per100g };
-}
-
-function validShape(s) {
-  if (!s) return false;
-  if (!s.dish || !hasHangul(s.dish)) return false;
-  if (!Number.isFinite(s.portion_grams) || s.portion_grams <= 0) return false;
-  const p = s.per100g || {};
-  return ["calories", "protein", "fat", "carbs"].every(k => Number.isFinite(p[k]));
-}
-
-function prompt(strict = false) {
-  const base = `너는 영양 추정기다. 음식 사진을 보고 JSON으로만 응답해.
-규칙:
-- 키: dish(한국어 음식명), portion_grams(1~2000 정수, 1회 제공량 g), per100g(100g 당 수치: calories, protein, fat, carbs 모두 정수)
-- dish는 반드시 한글 표기만 사용(외래어도 한글, 예: 파스타, 피자, 타코)
-- per100g 수치는 일반적인 영양 데이터 상식 범위로 추정
-- 설명·단위·코멘트·마크다운 금지. JSON만 출력.
-
-형식:
-{
-  "dish": "김치볶음밥",
-  "portion_grams": 350,
-  "per100g": { "calories": 180, "protein": 4, "fat": 6, "carbs": 27 }
-}`;
-  const extra = strict ? `\n추가: dish에 알파벳이 포함되면 안 된다. 숫자는 모두 정수만 사용.` : "";
-  return base + extra;
-}
-
-async function callGemini(base64, text) {
-  const body = {
-    contents: [
-      { parts: [{ text }, { inlineData: { mimeType: "image/jpeg", data: base64 } }] }
-    ],
-    generationConfig: { temperature: 0.1 }
-  };
-  const res = await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=" + GEMINI_API_KEY,
-    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
-  );
-  if (!res.ok) {
-    const t = await res.text().catch(() => "");
-    throw new Error(`Gemini 호출 실패: ${res.status} ${t}`);
+/* ───── 스키마/계산 ───── */
+function coerceSchema(obj) {
+  const dish = String(obj?.dish || "").trim()
+  const context = (obj?.context === "packaged" || obj?.context === "prepared") ? obj.context : "prepared"
+  const portion = {
+    unit: obj?.portion?.unit || (context === "prepared" ? "인분" : "개"),
+    count: safeInt(obj?.portion?.count, 1),
+    grams: clamp(safeInt(obj?.portion?.grams, 0), 1, 2000)
   }
-  const data = await res.json();
-  return extractText(data);
+  const panel = obj?.panel || null
+  const per100g = obj?.per100g || { calories: 0, protein: 0, fat: 0, carbs: 0 }
+  const output = obj?.output || { portion_grams: portion.grams, calories: 0 }
+  return { dish, context, portion, panel, per100g, output }
+}
+function computeCalories(schema) {
+  const s = coerceSchema(schema)
+  const grams = s.portion.grams
+  let cal = 0
+  if (s.context === "packaged") {
+    if (s.panel?.calories_per_serving && s.panel?.serving_size_g) {
+      const servings = Math.max(1, round(grams / s.panel.serving_size_g))
+      cal = round(s.panel.calories_per_serving * servings)
+    } else if (s.per100g?.calories) {
+      cal = round(s.per100g.calories * (grams / 100))
+    }
+  } else {
+    if (s.per100g?.calories) {
+      cal = round(s.per100g.calories * (grams / 100))
+    }
+  }
+  return { dish: s.dish || "알 수 없음", portion_grams: grams, calories: clamp(cal, 0, 2500) }
 }
 
-export async function analyzeFoodImageWithGemini(uri) {
-  const base64 = await toBase64Async(uri);
-  let t = await callGemini(base64, prompt(false));
-  let parsed = safeParse(t);
-  let shaped = coerceShape(parsed);
-  if (!validShape(shaped)) {
-    t = await callGemini(base64, prompt(true));
-    parsed = safeParse(t);
-    shaped = coerceShape(parsed);
-  }
-  if (!validShape(shaped)) {
-    return { dish: "알 수 없음", calories: 0, protein: 0, fat: 0, carbs: 0 };
-  }
-  const totals = reconcileTotals(shaped);
-  return {
-    dish: shaped.dish,
-    calories: totals.calories,
-    protein: totals.protein,
-    fat: totals.fat,
-    carbs: totals.carbs
-  };
+/* ───── 영양학 API (100g 기준) ───── */
+async function searchFoodByName(name, page = 1, perPage = 10) {
+  const path = `/api/food/public/search?name=${encodeURIComponent(name)}&page=${page}&perPage=${perPage}`
+  return apiGet(path) // -> [{ foodNm, enerc }]  // enerc = kcal/100g 가정
 }
+function pickBestMatch(name, list) {
+  if (!Array.isArray(list) || list.length === 0) return null
+  const q = String(name || "").replace(/\s+/g, "").toLowerCase()
+  return list.find(x => String(x.foodNm || "").replace(/\s+/g, "").toLowerCase().includes(q)) || list[0]
+}
+async function apiCaloriesPer100g(name) {
+  try {
+    const list = await searchFoodByName(name, 1, 10)
+    const item = pickBestMatch(name, list)
+    if (item && Number.isFinite(+item.enerc)) return { name: item.foodNm || name, per100: round(+item.enerc) }
+  } catch {}
+  return null
+}
+
+/* ───── 단계별 파이프라인 ───── */
+// 0) 분류
+async function classifyImage(uri) {
+  const base64 = await toBase64Async(uri)
+  const text = await callGemini(base64, classifyPrompt())
+  const parsed = safeParse(text)
+  return parsed || { dish: "알 수 없음", context: "prepared" }
+}
+
+// 1) 가공식품: (1) 라벨에서 직접 칼로리 → (2) API(100g) 계산
+async function analyzePackaged(uri, hintDish) {
+  // 1-1. OCR + 라벨 구조화 시도 (Gemini)
+  const base64 = await toBase64Async(uri)
+  const txt = await callGemini(base64, packagedPrompt())
+  const parsed = safeParse(txt)
+
+  // 1-2. OCR(테서랙트) 백업 파싱
+  let panel = parsed?.panel
+  let per100g = parsed?.per100g
+  let portion = parsed?.portion
+  let dish = parsed?.dish || hintDish || "가공식품"
+
+  if (!panel || (!panel.calories_per_serving && !per100g?.calories)) {
+    const ocrRaw = await ocrWithTesseract(uri)
+    const p2 = parseNutritionFromText(ocrRaw)
+    panel = panel || p2.panel
+    per100g = per100g || p2.panel?.per100g
+    if (!portion || !portion.grams) {
+      const grams = p2.panel.net_weight_g || p2.panel.serving_size_g || 100
+      portion = { unit: "봉지", count: 1, grams }
+    }
+  }
+  const grams = portion?.grams || panel?.net_weight_g || 100
+  // 1-3. 라벨 수치로 직접 계산
+  const direct = computeCalories({ dish, context: "packaged", portion: { unit: "봉지", count: 1, grams }, panel, per100g })
+  if (direct.calories > 0) return { dish: direct.dish, calories: direct.calories }
+
+  // 1-4. API(100g)로 계산
+  const api = await apiCaloriesPer100g(dish)
+  if (api) {
+    const calories = round(api.per100 * (grams / 100))
+    if (calories > 0) return { dish: api.name, calories }
+  }
+  return { dish, calories: 0 }
+}
+
+// 2) 조리식품: (1) Gemini가 grams 추정 → (2) API(100g) 계산 → (3) 실패 시 Gemini 추정치 출력
+async function analyzePrepared(uri, hintDish) {
+  const base64 = await toBase64Async(uri)
+  const txt = await callGemini(base64, preparedPrompt())
+  const parsed = safeParse(txt)
+
+  const dish = parsed?.dish || hintDish || "조리식품"
+  const grams = clamp(safeInt(parsed?.portion?.grams, 300), 1, 2000)
+  // 2-2. API(100g) 계산
+  const api = await apiCaloriesPer100g(dish)
+  if (api) {
+    const calories = round(api.per100 * (grams / 100))
+    if (calories > 0) return { dish: api.name, calories }
+  }
+  // 2-3. API 없으면 Gemini 추정 per100g 사용
+  const fromGem = computeCalories({
+    dish, context: "prepared",
+    portion: { unit: "인분", count: 1, grams },
+    per100g: parsed?.per100g || { calories: 0, protein: 0, fat: 0, carbs: 0 }
+  })
+  return { dish: fromGem.dish, calories: fromGem.calories }
+}
+
+/* ───── 공개 API ───── */
+export async function analyzeFoodImage(uri) {
+  try {
+    const { dish, context } = await classifyImage(uri)
+
+    if (context === "packaged") {
+      return await analyzePackaged(uri, dish)
+    } else {
+      const r = await analyzePrepared(uri, dish)
+      if (r.calories > 0) return r
+      // 혹시 편의식/반조리로 라벨이 보이는 경우 폴백
+      return await analyzePackaged(uri, dish)
+    }
+  } catch (e) {
+    if (__DEV__) console.warn("[analyzeFoodImage] error:", e?.message || e)
+    return { dish: "알 수 없음", calories: 0 }
+  }
+}
+
+export default { analyzeFoodImage }

@@ -117,11 +117,6 @@ export default function HomeScreen() {
     <Pressable onPress={onPress ?? (() => nav.navigate(to))} style={{ alignItems: 'center', width: ICON_SIZE + 8 }}>
       <View style={{ position: 'relative' }}>
         <Image source={iconSrc} style={{ width: ICON_SIZE, height: ICON_SIZE, resizeMode: 'contain' }} />
-        {showBadge ? (
-          <View style={{ position: 'absolute', right: -4, top: -4, width: 20, height: 20, borderRadius: 10, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: '#fff', fontFamily: FONT, fontSize: 14 }}>*</Text>
-          </View>
-        ) : null}
       </View>
       <Text style={styles.labelText} numberOfLines={1} allowFontScaling={false}>{label}</Text>
     </Pressable>
@@ -160,7 +155,7 @@ export default function HomeScreen() {
         <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 24 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center' }}>
             <IconLabeled iconSrc={require('../../assets/icons/profile.png')} label={t('PROFILE')} to="Profile" />
-            <IconLabeled iconSrc={require('../../assets/icons/quest.png')} label={t('QUEST')} to="Quest" showBadge={questNew} />
+            <IconLabeled iconSrc={require('../../assets/icons/quest.png')} label={t('BURNING')} to="Burning" showBadge={questNew} />
             <IconLabeled iconSrc={require('../../assets/icons/quest.png')} label={t('RANKING')} to="Ranking" />
             <IconLabeled iconSrc={require('../../assets/icons/setting.png')} label={t('SETTINGS')} to="Settings" />
           </View>
