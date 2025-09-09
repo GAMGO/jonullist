@@ -4,7 +4,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator, Image, Alert, StyleShe
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { CameraView, useCameraPermissions } from "expo-camera"
 import * as ImageManipulator from "expo-image-manipulator"
-import { analyzeFoodImageWithGemini } from "../api/gemini"
+import { analyzeFoodImage } from "../api/gemini"
 import { API_BASE_DEBUG } from "../config/api"
 import { addCalories } from "../utils/calorieStorage"
 import { useNavigation } from "@react-navigation/native"

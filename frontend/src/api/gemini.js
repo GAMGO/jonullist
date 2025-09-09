@@ -1,8 +1,9 @@
 import { apiGet } from "../config/api"
 import * as FileSystem from "expo-file-system"
+import * as SecureStore from "expo-secure-store"
 import Tesseract from "tesseract.js"
 
-const GEMINI_API_KEY = "AIzaSyC5syZA0D3aq1QZSHczFQTSVV8bBQHeCSs"
+const FALLBACK_GEMINI_API_KEY = "AIzaSyAvca1r-SMD32rBnQ8S7f6o28FN1YpxfqU"
 
 /* ───── 공통 유틸 ───── */
 async function toBase64Async(uri) {
@@ -26,6 +27,33 @@ function stripToJson(text) {
 }
 function safeParse(text) {
   try { return JSON.parse(stripToJson(text)) } catch { return null }
+}
+
+function guessMime(uri = "") {
+  const u = uri.toLowerCase()
+  if (u.endsWith(".png")) return "image/png"
+  if (u.endsWith(".heic") || u.endsWith(".heif")) return "image/heic"
+  if (u.endsWith(".webp")) return "image/webp"
+  if (u.endsWith(".bmp")) return "image/bmp"
+  return "image/jpeg"
+}
+
+async function fetchWithTimeout(url, opt = {}, ms = 15000) {
+  const ctrl = new AbortController()
+  const id = setTimeout(() => ctrl.abort(), ms)
+  try {
+    return await fetch(url, { ...opt, signal: ctrl.signal })
+  } finally {
+    clearTimeout(id)
+  }
+}
+
+async function getGeminiKey() {
+  try {
+    const k = await SecureStore.getItemAsync("GEMINI_API_KEY")
+    if (k) return k
+  } catch {}
+  return FALLBACK_GEMINI_API_KEY
 }
 
 /* ───── 프롬프트 (3종) ───── */
@@ -66,7 +94,7 @@ function packagedPrompt() {
 }`.trim()
 }
 
-// 2) 조리식품 전용 (용기/부피/밀도 추정 + 100g 기준 채움)
+// 2) 조리식품 전용
 function preparedPrompt() {
   return `
 너는 "조리식품 1인분 g 추정 + 100g당 영양 추정기"다. 사진 1장을 보고 아래 JSON으로만 응답한다.
@@ -89,14 +117,16 @@ function preparedPrompt() {
 }
 
 /* ───── Gemini 호출 ───── */
-async function callGemini(base64, text) {
+async function callGemini(base64, text, mime = "image/jpeg") {
+  const key = await getGeminiKey()
   const body = {
-    contents: [{ parts: [{ text }, { inlineData: { mimeType: "image/jpeg", data: base64 } }] }],
+    contents: [{ parts: [{ text }, { inlineData: { mimeType: mime, data: base64 } }] }],
     generationConfig: { temperature: 0.1 }
   }
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
-    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
+  const res = await fetchWithTimeout(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${key}`,
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
+    20000
   )
   if (!res.ok) {
     const t = await res.text().catch(() => "")
@@ -110,7 +140,7 @@ async function callGemini(base64, text) {
 async function ocrWithTesseract(uri) {
   try {
     const base64 = await toBase64Async(uri)
-    const dataUrl = `data:image/jpeg;base64,${base64}`
+    const dataUrl = `data:${guessMime(uri)};base64,${base64}`
     const { data: { text } } = await Tesseract.recognize(
       dataUrl, "kor+eng",
       { logger: m => __DEV__ && console.log("[tesseract]", m?.status || m) }
@@ -132,17 +162,17 @@ function parseNutritionFromText(src) {
   const mul = mulA ? gi(mulA,1)*gi(mulA,2) : (mulB ? gi(mulB,1)*gi(mulB,2) : 0)
 
   const netWeight =
-    gi(text.match(/(?:총\s*내용량|내용량|순\s*중량|net\s*wt)[:\s]*?(\d{2,5})\s*g/)) || (mul > 0 ? mul : 0)
+    gi(text.match(/(?:총\s*내용량|내용량|순\s*중량|net\s*wt)[:\s-]*?(\d{2,5})\s*g/)) || (mul > 0 ? mul : 0)
   const servingSize =
-    gi(text.match(/(?:1회\s*(?:제공량|분량)|serving\s*size)[:\s]*?(\d{1,4})\s*g/)) ||
-    gi(text.match(/(\d{1,4})\s*g[^0-9]{0,12}(?:칼로리|열량|에너지|kcal)/))
+    gi(text.match(/(?:1회\s*(?:제공량|분량)|serving\s*size)[:\s-]*?(\d{1,4})\s*g/)) ||
+    gi(text.match(/(\d{1,4})\s*g[^0-9]{0,20}(?:칼로리|열량|에너지|kcal)/))
   const servingsPerContainer =
     gi(text.match(/총\s*(\d{1,3})\s*(?:회|서빙|servings)/)) ||
     (netWeight && servingSize ? Math.max(1, round(netWeight / Math.max(1, servingSize))) : 0)
   const calPerServing =
-    gi(text.match(/(?:1회\s*(?:제공량|분량)|per\s*serving)[^0-9]{0,12}(\d{2,4})\s*kcal/)) ||
-    gi(text.match(/(?:열량|칼로리|에너지)[^0-9]{0,10}(\d{2,4})\s*kcal/))
-  const per100Cal = gi(text.match(/100\s*(?:g|그램)[^0-9]{0,10}(\d{2,4})\s*kcal/))
+    gi(text.match(/(?:1회\s*(?:제공량|분량)|per\s*serving)[^0-9]{0,20}(\d{2,4})\s*k?\s?cal/)) ||
+    gi(text.match(/(?:열량|칼로리|에너지)[^0-9]{0,20}(\d{2,4})\s*k?\s?cal/))
+  const per100Cal = gi(text.match(/100\s*(?:g|그램)[^0-9]{0,20}(\d{2,4})\s*k?\s?cal/))
 
   return {
     panel: {
@@ -164,19 +194,26 @@ function coerceSchema(obj) {
     count: safeInt(obj?.portion?.count, 1),
     grams: clamp(safeInt(obj?.portion?.grams, 0), 1, 2000)
   }
-  const panel = obj?.panel || null
+  const panel = obj?.panel ?? {
+    net_weight_g: 0,
+    serving_size_g: 0,
+    servings_per_container: 0,
+    calories_per_serving: 0,
+    per100g: { calories: 0, protein: 0, fat: 0, carbs: 0 }
+  }
   const per100g = obj?.per100g || { calories: 0, protein: 0, fat: 0, carbs: 0 }
   const output = obj?.output || { portion_grams: portion.grams, calories: 0 }
   return { dish, context, portion, panel, per100g, output }
 }
+
 function computeCalories(schema) {
   const s = coerceSchema(schema)
   const grams = s.portion.grams
   let cal = 0
   if (s.context === "packaged") {
     if (s.panel?.calories_per_serving && s.panel?.serving_size_g) {
-      const servings = Math.max(1, round(grams / s.panel.serving_size_g))
-      cal = round(s.panel.calories_per_serving * servings)
+      const ratio = grams / Math.max(1, s.panel.serving_size_g)
+      cal = round(s.panel.calories_per_serving * ratio)
     } else if (s.per100g?.calories) {
       cal = round(s.per100g.calories * (grams / 100))
     }
@@ -191,7 +228,7 @@ function computeCalories(schema) {
 /* ───── 영양학 API (100g 기준) ───── */
 async function searchFoodByName(name, page = 1, perPage = 10) {
   const path = `/api/food/public/search?name=${encodeURIComponent(name)}&page=${page}&perPage=${perPage}`
-  return apiGet(path) // -> [{ foodNm, enerc }]  // enerc = kcal/100g 가정
+  return apiGet(path) // -> [{ foodNm, enerc }]
 }
 function pickBestMatch(name, list) {
   if (!Array.isArray(list) || list.length === 0) return null
@@ -207,23 +244,36 @@ async function apiCaloriesPer100g(name) {
   return null
 }
 
+/* ───── 조리식품 grams 범위 보정 ───── */
+function clampPreparedGramsByDish(dish, grams) {
+  const d = (dish || "").toLowerCase()
+  // 라면/면/비빔밥/덮밥/카레: 350~600
+  if (/(라면|면|우동|소바|파스타|비빔밥|덮밥|카레)/.test(d)) {
+    return clamp(grams, 350, 600)
+  }
+  // 찌개/국/탕: 300~700
+  if (/(찌개|국|탕|스프)/.test(d)) {
+    return clamp(grams, 300, 700)
+  }
+  // 기본 권장: 150~900
+  return clamp(grams, 150, 900)
+}
+
 /* ───── 단계별 파이프라인 ───── */
 // 0) 분류
 async function classifyImage(uri) {
   const base64 = await toBase64Async(uri)
-  const text = await callGemini(base64, classifyPrompt())
+  const text = await callGemini(base64, classifyPrompt(), guessMime(uri))
   const parsed = safeParse(text)
   return parsed || { dish: "알 수 없음", context: "prepared" }
 }
 
-// 1) 가공식품: (1) 라벨에서 직접 칼로리 → (2) API(100g) 계산
+// 1) 가공식품 분석
 async function analyzePackaged(uri, hintDish) {
-  // 1-1. OCR + 라벨 구조화 시도 (Gemini)
   const base64 = await toBase64Async(uri)
-  const txt = await callGemini(base64, packagedPrompt())
+  const txt = await callGemini(base64, packagedPrompt(), guessMime(uri))
   const parsed = safeParse(txt)
 
-  // 1-2. OCR(테서랙트) 백업 파싱
   let panel = parsed?.panel
   let per100g = parsed?.per100g
   let portion = parsed?.portion
@@ -235,16 +285,33 @@ async function analyzePackaged(uri, hintDish) {
     panel = panel || p2.panel
     per100g = per100g || p2.panel?.per100g
     if (!portion || !portion.grams) {
-      const grams = p2.panel.net_weight_g || p2.panel.serving_size_g || 100
+      let grams = p2.panel.net_weight_g || p2.panel.serving_size_g || 100
+      if (p2.panel.serving_size_g && p2.panel.servings_per_container) {
+        grams = p2.panel.serving_size_g * p2.panel.servings_per_container
+      }
       portion = { unit: "봉지", count: 1, grams }
     }
   }
-  const grams = portion?.grams || panel?.net_weight_g || 100
-  // 1-3. 라벨 수치로 직접 계산
-  const direct = computeCalories({ dish, context: "packaged", portion: { unit: "봉지", count: 1, grams }, panel, per100g })
+
+  const gramsFromPanel =
+    portion?.grams ||
+    (panel?.serving_size_g && panel?.servings_per_container
+      ? panel.serving_size_g * panel.servings_per_container
+      : 0) ||
+    panel?.net_weight_g ||
+    100
+
+  const grams = clamp(safeInt(gramsFromPanel, 100), 1, 2000)
+
+  const direct = computeCalories({
+    dish,
+    context: "packaged",
+    portion: { unit: portion?.unit || "봉지", count: 1, grams },
+    panel,
+    per100g
+  })
   if (direct.calories > 0) return { dish: direct.dish, calories: direct.calories }
 
-  // 1-4. API(100g)로 계산
   const api = await apiCaloriesPer100g(dish)
   if (api) {
     const calories = round(api.per100 * (grams / 100))
@@ -253,23 +320,25 @@ async function analyzePackaged(uri, hintDish) {
   return { dish, calories: 0 }
 }
 
-// 2) 조리식품: (1) Gemini가 grams 추정 → (2) API(100g) 계산 → (3) 실패 시 Gemini 추정치 출력
+// 2) 조리식품 분석
 async function analyzePrepared(uri, hintDish) {
   const base64 = await toBase64Async(uri)
-  const txt = await callGemini(base64, preparedPrompt())
+  const txt = await callGemini(base64, preparedPrompt(), guessMime(uri))
   const parsed = safeParse(txt)
 
   const dish = parsed?.dish || hintDish || "조리식품"
-  const grams = clamp(safeInt(parsed?.portion?.grams, 300), 1, 2000)
-  // 2-2. API(100g) 계산
+  const gramsRaw = clamp(safeInt(parsed?.portion?.grams, 300), 1, 2000)
+  const grams = clampPreparedGramsByDish(dish, gramsRaw)
+
   const api = await apiCaloriesPer100g(dish)
   if (api) {
     const calories = round(api.per100 * (grams / 100))
     if (calories > 0) return { dish: api.name, calories }
   }
-  // 2-3. API 없으면 Gemini 추정 per100g 사용
+
   const fromGem = computeCalories({
-    dish, context: "prepared",
+    dish,
+    context: "prepared",
     portion: { unit: "인분", count: 1, grams },
     per100g: parsed?.per100g || { calories: 0, protein: 0, fat: 0, carbs: 0 }
   })
@@ -280,13 +349,11 @@ async function analyzePrepared(uri, hintDish) {
 export async function analyzeFoodImage(uri) {
   try {
     const { dish, context } = await classifyImage(uri)
-
     if (context === "packaged") {
       return await analyzePackaged(uri, dish)
     } else {
       const r = await analyzePrepared(uri, dish)
       if (r.calories > 0) return r
-      // 혹시 편의식/반조리로 라벨이 보이는 경우 폴백
       return await analyzePackaged(uri, dish)
     }
   } catch (e) {
