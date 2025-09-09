@@ -58,8 +58,10 @@ function AppStack({ initialRouteName = 'Home' }) {
       <Stack.Screen name="Ranking" component={RankingScreen} />
       <Stack.Screen name="RecoverySetup" component={RecoverySetup} />
       <Stack.Screen name="HealthyCatch" component={HealthyCatchGameScreen} options={{ headerShown: false }} />
+
       <Stack.Screen name="TACoach" component={TACoach} options={{ headerShown: true, title: '' }} />
       <Stack.Screen name="VoicePicker" component={VoicePickerScreen} options={{ title: '보이스 선택' }} />
+
     </Stack.Navigator>
   )
 }

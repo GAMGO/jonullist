@@ -39,9 +39,13 @@
     "react-native-gesture-handler": "~2.24.0",
     "react-native-localize": "^3.5.2",
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     "react-native-reanimated": "~3.17.4",
 >>>>>>> 10cd2116374fc5e17b22e2782513285021348764
+=======
+    "react-native-reanimated": "~3.17.4",
+>>>>>>> a252d6f3ae64b7442c7e712d91e931d5314b4a03
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
     "react-native-web": "^0.20.0",

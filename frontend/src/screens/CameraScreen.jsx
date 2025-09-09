@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useLayoutEffect } from "react"
 import { View, Text, TouchableOpacity, ActivityIndicator, Image, Alert, StyleSheet, Animated, ScrollView } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
@@ -7,6 +8,7 @@ import { analyzeFoodImageWithGemini } from "../api/gemini"
 import { API_BASE_DEBUG } from "../config/api"
 import { addCalories } from "../utils/calorieStorage"
 import { useNavigation } from "@react-navigation/native"
+
 
 export default function CameraScreen() {
   const cameraRef = useRef(null);
@@ -105,7 +107,6 @@ export default function CameraScreen() {
       setBusy(false)
     }
   }
-  
 
 
   const resetShot = () => {
