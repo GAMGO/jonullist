@@ -1,6 +1,7 @@
 package com.example.health_care.service;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.security.core.userdetails.UserDetails;
@@ -69,6 +70,7 @@ public class CustomersService implements UserDetailsService {
 
                 return savedUser;
         }
+
         @Override
         public UserDetails loadUserByUsername(String id) throws UsernameNotFoundException {
                 CustomersEntity user = customersRepository.findById(id)
@@ -80,6 +82,7 @@ public class CustomersService implements UserDetailsService {
                                 .roles("USER")
                                 .build();
         }
+
         @Transactional(readOnly = true)
         public CustomersProfileDTO getCustomerProfile(String customerId) {
                 // 1. 고객 기본 정보 조회
@@ -190,4 +193,16 @@ public class CustomersService implements UserDetailsService {
                 user.setPassword(passwordEncoder.encode(newPassword));
                 customersRepository.save(user);
         }
+
+        // 체중 히스토리 조회 메소드
+        @Transactional(readOnly = true)
+        public List<BodyEntity> getBodyHistory(String customerId) {
+                // 1단계: 이메일로 CUSTOMERS 엔티티 조회 (idx 얻기)
+                CustomersEntity customer = customersRepository.findById(customerId)
+                                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+
+                // 2단계: 얻은 idx로 BODY 테이블 조회
+                return bodyRepository.findByCustomer_IdxOrderByRecordDateDesc(customer.getIdx());
+        }
+
 }
