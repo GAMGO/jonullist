@@ -52,4 +52,4 @@ gemini:
   api:
     key: AIzaSyAvca1r-SMD32rBnQ8S7f6o28FN1YpxfqU # Gemini API KEY 
 tesseract:
-  datapath: src/main/resources/tessdata 
+  datapath: src/main/resources/tessdata
