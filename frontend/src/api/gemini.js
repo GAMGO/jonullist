@@ -1,9 +1,7 @@
-import { apiGet } from "../config/api"
+import { apiGet, apiPost } from "../config/api"
 import * as FileSystem from "expo-file-system"
 import * as SecureStore from "expo-secure-store"
 import Tesseract from "tesseract.js"
-
-const FALLBACK_GEMINI_API_KEY = "AIzaSyAvca1r-SMD32rBnQ8S7f6o28FN1YpxfqU"
 
 /* ───── 공통 유틸 ───── */
 async function toBase64Async(uri) {
@@ -38,102 +36,16 @@ function guessMime(uri = "") {
   return "image/jpeg"
 }
 
-async function fetchWithTimeout(url, opt = {}, ms = 15000) {
-  const ctrl = new AbortController()
-  const id = setTimeout(() => ctrl.abort(), ms)
+/* ───── 백엔드 API 호출 ───── */
+async function callBackendGeminiApi(base64, action) {
   try {
-    return await fetch(url, { ...opt, signal: ctrl.signal })
-  } finally {
-    clearTimeout(id)
+    // config/api.js의 apiPost 함수를 사용하여 백엔드 호출
+    const response = await apiPost("/api/gemini/analyze-food", { base64Image: base64, action });
+    return response;
+  } catch (e) {
+    if (__DEV__) console.warn("[callBackendGeminiApi] error:", e?.message || e)
+    throw new Error(`백엔드 API 호출 실패: ${e.message}`);
   }
-}
-
-async function getGeminiKey() {
-  try {
-    const k = await SecureStore.getItemAsync("GEMINI_API_KEY")
-    if (k) return k
-  } catch {}
-  return FALLBACK_GEMINI_API_KEY
-}
-
-/* ───── 프롬프트 (3종) ───── */
-// 0) 분류
-function classifyPrompt() {
-  return `
-너는 음식 사진 1장을 보고 아래 JSON으로만 응답한다.
-{
-  "dish": "한글 음식명",
-  "context": "packaged" | "prepared"
-}`.trim()
-}
-
-// 1) 가공식품 전용
-function packagedPrompt() {
-  return `
-너는 "포장 식품 라벨 분석기"다. 사진 1장을 보고 라벨의 수치를 최대한 활용하여 아래 JSON으로만 응답한다.
-규칙:
-- dish는 전면 표기의 제품명을 한글로 간단히.
-- 먼저 라벨 텍스트에서 칼로리를 직접 산출한다. 없을 경우 per100g 정보를 채워 둔다(후속 계산용).
-- portion.grams는 net_weight_g > serving_size_g > 100 우선.
-- 모든 수치는 정수 반올림.
-
-출력(JSON만):
-{
-  "dish": "한글 음식명",
-  "context": "packaged",
-  "portion": { "unit": "봉지" | "개" | "g", "count": 정수(>=1), "grams": 정수(>0) },
-  "panel": {
-    "net_weight_g": 정수,
-    "serving_size_g": 정수,
-    "servings_per_container": 정수,
-    "calories_per_serving": 정수,
-    "per100g": { "calories": 정수, "protein": 정수, "fat": 정수, "carbs": 정수 }
-  },
-  "per100g": { "calories": 정수, "protein": 정수, "fat": 정수, "carbs": 정수 },
-  "output": { "portion_grams": 정수(1~2000), "calories": 정수 }
-}`.trim()
-}
-
-// 2) 조리식품 전용
-function preparedPrompt() {
-  return `
-너는 "조리식품 1인분 g 추정 + 100g당 영양 추정기"다. 사진 1장을 보고 아래 JSON으로만 응답한다.
-규칙:
-- dish는 한글 간단명(예: 김치찌개, 순두부찌개, 비빔밥, 라면, 불고기덮밥 등).
-- portion.grams는 용기(뚝배기/그릇/접시/일회용 용기 크기), 가득/절반, 재료 밀도를 고려하여 추정한다.
-  (뚝배기: 소 350~450ml, 중 500~700ml 가정. 국/찌개 1.0g/ml, 밥/면 0.9~1.05g/ml, 죽/스프 0.9g/ml.)
-- per100g.* 는 해당 음식의 일반적인 평균값을 정수로 제공한다(못 찾으면 calories만 정수 근사).
-- 최종 output.calories = per100g.calories × (portion.grams / 100) (정수 반올림).
-- 오직 JSON만.
-
-출력(JSON만):
-{
-  "dish": "한글 음식명",
-  "context": "prepared",
-  "portion": { "unit": "인분", "count": 1, "grams": 정수(150~900 권장) },
-  "per100g": { "calories": 정수, "protein": 정수, "fat": 정수, "carbs": 정수 },
-  "output": { "portion_grams": 정수, "calories": 정수 }
-}`.trim()
-}
-
-/* ───── Gemini 호출 ───── */
-async function callGemini(base64, text, mime = "image/jpeg") {
-  const key = await getGeminiKey()
-  const body = {
-    contents: [{ parts: [{ text }, { inlineData: { mimeType: mime, data: base64 } }] }],
-    generationConfig: { temperature: 0.1 }
-  }
-  const res = await fetchWithTimeout(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${key}`,
-    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
-    20000
-  )
-  if (!res.ok) {
-    const t = await res.text().catch(() => "")
-    throw new Error(`Gemini 실패: ${res.status} ${t}`)
-  }
-  const data = await res.json()
-  return extractText(data)
 }
 
 /* ───── Tesseract OCR ───── */
@@ -263,7 +175,7 @@ function clampPreparedGramsByDish(dish, grams) {
 // 0) 분류
 async function classifyImage(uri) {
   const base64 = await toBase64Async(uri)
-  const text = await callGemini(base64, classifyPrompt(), guessMime(uri))
+  const text = await callBackendGeminiApi(base64, "classify")
   const parsed = safeParse(text)
   return parsed || { dish: "알 수 없음", context: "prepared" }
 }
@@ -271,7 +183,7 @@ async function classifyImage(uri) {
 // 1) 가공식품 분석
 async function analyzePackaged(uri, hintDish) {
   const base64 = await toBase64Async(uri)
-  const txt = await callGemini(base64, packagedPrompt(), guessMime(uri))
+  const txt = await callBackendGeminiApi(base64, "packaged")
   const parsed = safeParse(txt)
 
   let panel = parsed?.panel
@@ -323,7 +235,7 @@ async function analyzePackaged(uri, hintDish) {
 // 2) 조리식품 분석
 async function analyzePrepared(uri, hintDish) {
   const base64 = await toBase64Async(uri)
-  const txt = await callGemini(base64, preparedPrompt(), guessMime(uri))
+  const txt = await callBackendGeminiApi(base64, "prepared")
   const parsed = safeParse(txt)
 
   const dish = parsed?.dish || hintDish || "조리식품"
