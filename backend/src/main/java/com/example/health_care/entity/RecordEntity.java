@@ -39,9 +39,14 @@ public class RecordEntity {
     @Column(name = "caloriesd")
     private Long caloriesD;
 
+    // 기존 아침,점심,저녁 데이터가 들어가는 필드
+    @Column(name = "meal_details")
+    private String mealDetails;
+
     @Column(name = "target_weight")
     private Double targetWeight;
 
     @Column(name = "target_calories")
     private Integer targetCalories;
+
 }

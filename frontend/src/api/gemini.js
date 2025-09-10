@@ -3,6 +3,7 @@ import * as FileSystem from "expo-file-system"
 import * as SecureStore from "expo-secure-store"
 import Tesseract from "tesseract.js"
 
+
 const FALLBACK_GEMINI_API_KEY = "AIzaSyAvca1r-SMD32rBnQ8S7f6o28FN1YpxfqU"
 
 /* ───── 공통 유틸 ───── */

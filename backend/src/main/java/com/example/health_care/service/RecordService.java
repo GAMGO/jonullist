@@ -34,7 +34,7 @@ public class RecordService {
 
         // 최신 목표 정보를 가져와서 RECORD 테이블에 함께 저장
         Optional<GoalEntity> latestGoal = goalRepository.findTopByCustomer_IdxOrderByIdxDesc(customer.getIdx());
-
+        
         RecordEntity recordEntity = RecordEntity.builder()
                 .customer(customer)
                 .recordDate(new Date())

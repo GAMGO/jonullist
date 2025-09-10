@@ -4,7 +4,7 @@ commit;
 -- 각 테이블 조회
 SELECT * FROM customers;
 SELECT * FROM goal;
-SELECT * FROM foodInfo;
+SELECT * FROM food_Info;
 -- SQL 버전보기
 SELECT * FROM V$VERSION;
 
