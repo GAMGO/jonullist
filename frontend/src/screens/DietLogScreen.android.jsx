@@ -45,17 +45,18 @@ export default function DietLogScreen() {
         morning: prev[dateKey]?.morning ?? [],
         lunch:   prev[dateKey]?.lunch   ?? [],
         dinner:  prev[dateKey]?.dinner  ?? [],
-        [mealType]: [ ...(prev[dateKey]?.[mealType] ?? []), newEntry ],
+        // [mealType]: [ ...(prev[dateKey]?.[mealType] ?? []), newEntry ], ✅ => 위에 인자가 entry라서 변경했어요
+        [mealType]: [ ...(prev[dateKey]?.[mealType] ?? []), entry ],
       },
     }));
    
     // 백엔드로 전송 준비
     try {
-      await apiPost('/diet/save', {
+      await apiPost('/api/diet/save', {
         date: dateKey,
         type: mealType,
         food: entry.food,
-        calorie: entry.calorie,
+        calories: entry.calories,
       });
     } catch (err) {
       console.error('❌ 백엔드 전송 실패', err && err.message ? err.message : err);
@@ -165,7 +166,7 @@ const styles = StyleSheet.create({
 
   // 날짜 버튼
   dateButton: {
-    paddingVertical: 20, paddingHorizontal: 20, alignItems: 'left', marginBottom: 16
+    paddingVertical: 70, paddingHorizontal: 20, alignItems: 'left', marginBottom: 16
   },
   dateText: { fontSize: 20, color: '#333' },
 

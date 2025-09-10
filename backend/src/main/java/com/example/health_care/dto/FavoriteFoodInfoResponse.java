@@ -1,17 +1,18 @@
-// 공공 데이터 API 용 foodDTO
-
 package com.example.health_care.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class FoodDTO {
-    private String foodNm;   // 음식명
-    private Double enerc;    // 열량(kcal)
+public class FavoriteFoodInfoResponse {
+    private Long idx;
+    private String food;
+    private Long calories;
+    private LocalDateTime createdAt;
 }
