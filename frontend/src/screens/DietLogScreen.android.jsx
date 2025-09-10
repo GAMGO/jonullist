@@ -52,9 +52,7 @@ export default function DietLog() {
   // **총 칼로리 계산
   const meals = mealsByDate[dateKey] || { morning: [], lunch: [], dinner: [] };
   const totalCalories =
-    meals.morning.reduce((sum, m) => sum + m.calorie, 0) +
-    meals.lunch.reduce((sum, m) => sum + m.calorie, 0) +
-    meals.dinner.reduce((sum, m) => sum + m.calorie, 0);
+    meals.morning.concat(meals.lunch, meals.dinner).reduce((sum, m) => sum + m.calorie, 0);
 
   return (
     <View style={styles.container}>
@@ -69,31 +67,28 @@ export default function DietLog() {
       />
 
       <View style={styles.mealTypeContainer}>
-        <Button title="아침" onPress={() => setMealType('morning')} />
-        <Button title="점심" onPress={() => setMealType('lunch')} />
-        <Button title="저녁" onPress={() => setMealType('dinner')} />
         <View style={styles.mealButtonWrap}>
           <Button title="아침" onPress={() => setMealType('morning')} />
-          <Pressable onPress={() => nav.navigate('Camera', { type: 'morning' })}>
-            <Image source={require('../../assets/icons/camera.png')} style={styles.cameraIcon} />
+          <Pressable onPress={()=> nav.navigate('Camera', {type: 'mornig'})}>
+            <Text style={styles.cameraButton}>📷</Text>
           </Pressable>
         </View>
-
+          
         <View style={styles.mealButtonWrap}>
           <Button title="점심" onPress={() => setMealType('lunch')} />
-          <Pressable onPress={() => nav.navigate('Camera', { type: 'lunch' })}>
-            <Image source={require('../../assets/icons/camera.png')} style={styles.cameraIcon} />
+          <Pressable onPress={()=> nav.navigate('Camera', {type: 'lunch'})}>
+            <Text style={styles.cameraButton}>📷</Text>
           </Pressable>
         </View>
-
+          
         <View style={styles.mealButtonWrap}>
           <Button title="저녁" onPress={() => setMealType('dinner')} />
-          <Pressable onPress={() => nav.navigate('Camera', { type: 'dinner' })}>
-            <Image source={require('../../assets/icons/camera.png')} style={styles.cameraIcon} />
+          <Pressable onPress={()=> nav.navigate('Camera', {type: 'dinner'})}>
+            <Text style={styles.cameraButton}>📷</Text>
           </Pressable>
         </View>
       </View>
-
+     
       <TextInput
         placeholder="음식 이름"
         value={food}

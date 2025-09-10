@@ -1,25 +1,14 @@
-import React, { useRef, useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ActivityIndicator,
-  Image,
-  Alert,
-  StyleSheet,
-  Animated,
-  ScrollView,
-} from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
-import { CameraView, useCameraPermissions } from "expo-camera";
-import * as ImageManipulator from "expo-image-manipulator";
-import { analyzeFoodImage } from "../api/gemini";
-import { API_BASE_DEBUG } from "../config/api";
-import { addCalories } from "../utils/calorieStorage";
-import { useNavigation } from "@react-navigation/native";
+
+import React, { useRef, useState, useLayoutEffect } from "react"
+import { View, Text, TouchableOpacity, ActivityIndicator, Image, Alert, StyleSheet, Animated, ScrollView } from "react-native"
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
+import { CameraView, useCameraPermissions } from "expo-camera"
+import * as ImageManipulator from "expo-image-manipulator"
+import { analyzeFoodImage } from "../api/gemini"
+import { API_BASE_DEBUG } from "../config/api"
+import { addCalories } from "../utils/calorieStorage"
+import { useNavigation } from "@react-navigation/native"
+
 
 export default function CameraScreen() {
   const cameraRef = useRef(null);
@@ -32,14 +21,17 @@ export default function CameraScreen() {
   const scale = useRef(new Animated.Value(1)).current;
   const nav = useNavigation();
 
-  const pressIn = () =>
-    Animated.spring(scale, { toValue: 0.92, useNativeDriver: true }).start();
-  const pressOut = () =>
-    Animated.spring(scale, {
-      toValue: 1,
-      friction: 3,
-      useNativeDriver: true,
-    }).start();
+  useLayoutEffect(() => {
+    nav.setOptions({
+      headerBackTitleVisible: false,  // ← 글자 제거
+      headerTintColor: '#fff'
+     
+    });
+  }, [nav]);
+
+  const pressIn = () => Animated.spring(scale, { toValue: 0.92, useNativeDriver: true }).start()
+  const pressOut = () => Animated.spring(scale, { toValue: 1, friction: 3, useNativeDriver: true }).start()
+
 
   async function saveFoodStat({ dish, calories }) {
     try {
@@ -105,12 +97,17 @@ export default function CameraScreen() {
       //
       setFood(result);
     } catch (e) {
-      setError(e?.message ?? "분석 중 문제가 발생했어요.");
-      Alert.alert("오류", e?.message ?? "분석 중 문제가 발생했어요.");
-    } finally {
-      setBusy(false);
+      // Gemini 429 한도 초과 예외 처리
+      if (e?.message?.includes("429") || e?.message?.includes("quota")) {
+        setError("⚠️ 오늘 사용 가능한 분석 요청 횟수를 모두 소진했습니다. \n내일 다시 시도하시거나, 요금제를 업그레이드 해주세요.")
+      } else {
+        setError("분석 중 문제가 발생했어요. 잠시 후 다시 시도해주세요.")
+      } 
+    }finally {
+      setBusy(false)
     }
-  };
+  }
+
 
   const resetShot = () => {
     setShotUri(null);
@@ -130,7 +127,7 @@ export default function CameraScreen() {
             pointerEvents="none"
           >
             <Text style={styles.cameraTitle}>CAMERA</Text>
-            <Text style={styles.topHint}>접시가 중앙에 오도록 맞춰주세요</Text>
+            <Text style={styles.topHint}>음식이 중앙에 오도록 맞춰주세요</Text>
           </SafeAreaView>
           <View style={styles.guideWrap} pointerEvents="none">
             <View style={styles.guideBox} />
@@ -259,19 +256,9 @@ const styles = StyleSheet.create({
   cameraTitle: { fontSize: 28, color: "#fff", letterSpacing: 2 },
   topHint: { color: "#fff", fontSize: 12, opacity: 0.8, marginTop: 4 },
   guideWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
-  guideBox: {
-    width: 220,
-    height: 220,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.6)",
-    borderRadius: 16,
-  },
-  bottomBar: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    paddingHorizontal: 40,
-  },
+  guideBox: { width: 300, height: 300, borderWidth: 2, borderColor: "rgba(255,255,255,0.4)", borderRadius: 16 },
+  bottomBar: { flexDirection: "row", justifyContent: "space-around", alignItems: "center", paddingHorizontal: 40 },
+
   roundBtnPlaceholder: { width: 44, height: 44 },
   shutter: {
     width: 72,
