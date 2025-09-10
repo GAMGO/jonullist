@@ -4,7 +4,7 @@ import * as SecureStore from "expo-secure-store"
 import Tesseract from "tesseract.js"
 
 
-const FALLBACK_GEMINI_API_KEY = "AIzaSyAvca1r-SMD32rBnQ8S7f6o28FN1YpxfqU"
+const FALLBACK_GEMINI_API_KEY = "AIzaSyAYOaMtLUoVJyaIMVYe6a_kK7FcSrt7epo"
 
 /* ───── 공통 유틸 ───── */
 async function toBase64Async(uri) {
