@@ -1,5 +1,5 @@
 import React, { useState, useLayoutEffect } from 'react';
-import { View, Text, Button, FlatList, StyleSheet, Pressable, SafeAreaView, Platform } from 'react-native';
+import { View, Text, Button, FlatList, StyleSheet, Pressable, SafeAreaView, Platform, ImageBackground } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { apiPost } from '../config/api';    // 기록된 데이터 백엔드 연결용 
 import { useNavigation } from '@react-navigation/native';
@@ -24,7 +24,7 @@ export default function DietLogScreen() {
 
   const [mealType, setMealType] = useState('morning');     
   const [food, setFood] = useState('');
-  const [calorie, setCalorie] = useState('');
+  const [calories, setCalories] = useState('');
 
   // 로컬 기준 날짜(yyyy-mm-dd)
   const dateKey = [
@@ -45,17 +45,17 @@ export default function DietLogScreen() {
         morning: prev[dateKey]?.morning ?? [],
         lunch:   prev[dateKey]?.lunch   ?? [],
         dinner:  prev[dateKey]?.dinner  ?? [],
-        [mealType]: [ ...(prev[dateKey]?.[mealType] ?? []), newEntry ],
+        [mealType]: [ ...(prev[dateKey]?.[mealType] ?? []), entry ],
       },
     }));
    
     // 백엔드로 전송 준비
     try {
-      await apiPost('/diet/save', {
+      await apiPost('/api/diet/save', {
         date: dateKey,
         type: mealType,
         food: entry.food,
-        calorie: entry.calorie,
+        calories: entry.calories,
       });
     } catch (err) {
       console.error('❌ 백엔드 전송 실패', err && err.message ? err.message : err);
@@ -65,7 +65,7 @@ export default function DietLogScreen() {
   // **총 칼로리 계산
   const totalCalories = React.useMemo(() => {
     return [...meals.morning, ...meals.lunch, ...meals.dinner]
-      .reduce((sum, m) => sum + (m.calorie || 0), 0);
+      .reduce((sum, m) => sum + (m.calories || 0), 0);
   }, [meals.morning, meals.lunch, meals.dinner]);
 
   // 섹션 렌더러
@@ -102,7 +102,7 @@ export default function DietLogScreen() {
         keyExtractor={(_, i) => `${type}-${i}`}
         renderItem={({ item }) => (
           <Text style={styles.item}>
-            {item.food} - {item.calorie} kcal
+            {item.food} - {item.calories} kcal
           </Text>
         )}
         ListEmptyComponent={<Text style={styles.empty}>아직 기록이 없어요.</Text>}
@@ -114,6 +114,14 @@ export default function DietLogScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+
+      <ImageBackground
+        source={require('../../assets/background/dietLog.png')} 
+        style={{flex:1}}
+        resizeMode="cover">
+
+          <View style={styles.overlay}></View>
+
       <View style={styles.container}>
 
         {/* 날짜 선택 */}
@@ -138,7 +146,7 @@ export default function DietLogScreen() {
                   themeVariant="light"
                   onChange={(event, date) => {
                     if (date) setSelectedDate(date);
-                    if (Platform.OS === 'android') setShowPicker(false);
+                    if (Platform.OS === 'ios') setShowPicker(false);
                   }}
                   style={{ backgroundColor: '#fff', alignSelf: 'center', width: 360 }}
                 />
@@ -154,7 +162,8 @@ export default function DietLogScreen() {
 
         {/* 총 칼로리 */}
         <Text style={styles.total}>🔥 총 칼로리: {totalCalories} kcal</Text>
-      </View>
+        </View>
+      </ImageBackground>
     </SafeAreaView>
   );
 }
@@ -178,9 +187,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: '#eee'
   },
   pickerBody: {
-    height: Platform.OS === 'ios' ? (parseFloat(String(Platform.Version)) >= 14 ? 360 : 216) : undefined
+    height: Platform.OS === 'android' ? (parseFloat(String(Platform.Version)) >= 14 ? 360 : 216) : undefined
   },
-  toolbarBtn: { fontSize: 16, color: '#007AFF' },
+  toolbarBtn: { fontSize: 16, color: '#tomato' },
   toolbarTitle: { fontSize: 16, fontWeight: '600', color: '#333' },
 
   // 섹션
@@ -198,7 +207,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8,
     borderRadius: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#ddd'
   },
-  primaryBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  primaryBtnText: { color: '#000', fontSize: 14, fontWeight: '600' },
   secondaryBtn: {
     backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8,
     borderRadius: 8, borderWidth: 1, borderColor: '#ddd'

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useLayoutEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, FlatList, Alert, Platform, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, FlatList, Alert, Platform, SafeAreaView, StatusBar } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
@@ -9,7 +9,6 @@ export default function DirectInputScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { onAdd, dateKey, mealType } = route.params || {};
-
   const [food, setFood] = useState('');
   const [calories, setCalories] = useState('');
   const [favs, setFavs] = useState([]); // [{food, calories}]
@@ -80,7 +79,7 @@ export default function DirectInputScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight:0 }}>
       <View style={styles.container}>
         <Text style={styles.meta}>📅 {dateKey} • 🍽 {mealType === 'morning' ? '아침' : mealType === 'lunch' ? '점심' : '저녁'}</Text>
 
@@ -143,13 +142,14 @@ export default function DirectInputScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#fff' },
+  container: {
+    flex: 1, paddingHorizontal: 20, backgroundColor: '#fff', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight +20:20 },
   meta: { fontSize: 14, color: '#666', marginBottom: 12 },
 
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   input: {
     borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: Platform.OS === 'ios' ? 12 : 8,
+    paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 80 : 20,
     backgroundColor: '#fff', fontSize: 16,
   },
 
