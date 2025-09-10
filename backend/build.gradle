@@ -45,7 +45,8 @@ dependencies {
     // Oracle JDBC
     runtimeOnly 'com.oracle.database.jdbc:ojdbc11:23.4.0.24.05'
 
-
+    // GEMINI HTTP 통신을 위한 Spring Webflux와 Reactor Netty를 사용
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
     // Devtools
     developmentOnly 'org.springframework.boot:spring-boot-devtools'

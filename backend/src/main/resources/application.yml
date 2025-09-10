@@ -43,3 +43,5 @@ nutri:
   endpoint: /openapi/tn_pubr_public_nutri_info_api
   service-key-decoding: 21d9850b3a76b8e1f1a221c6199dc3feab9e97bfb7998a76ec1ce78c3dd15f75 # 인증키값
   service-key-encoding: ""
+
+gemini.api.key : AIzaSyC5syZA0D3aq1QZSHczFQTSVV8bBQHeCSs # Gemini API KEY
