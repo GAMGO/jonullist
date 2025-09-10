@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useLayoutEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, FlatList, Alert, Platform, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, FlatList, Alert, Platform, SafeAreaView, StatusBar } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
@@ -9,10 +9,9 @@ export default function DirectInputScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { onAdd, dateKey, mealType } = route.params || {};
-
   const [food, setFood] = useState('');
-  const [calorie, setCalorie] = useState('');
-  const [favs, setFavs] = useState([]); // [{food, calorie}]
+  const [calories, setCalories] = useState('');
+  const [favs, setFavs] = useState([]); // [{food, calories}]
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -43,17 +42,17 @@ export default function DirectInputScreen() {
   };
 
   const addToFavs = async () => {
-    const kcal = Number(calorie);
+    const kcal = Number(calories);
     if (!food.trim() || !Number.isFinite(kcal) || kcal <= 0) {
       Alert.alert('입력 확인', '음식명과 유효한 칼로리를 입력해주세요.');
       return;
     }
-    const exists = favs.some(f => f.food === food.trim() && Number(f.calorie) === kcal);
+    const exists = favs.some(f => f.food === food.trim() && Number(f.calories) === kcal);
     if (exists) {
       Alert.alert('이미 있음', '이미 즐겨찾기에 있어요.');
       return;
     }
-    const next = [{ food: food.trim(), calorie: kcal }, ...favs].slice(0, 50);
+    const next = [{ food: food.trim(), calories: kcal }, ...favs].slice(0, 50);
     await saveFavs(next);
     Alert.alert('즐겨찾기', '즐겨찾기에 저장했어요.');
   };
@@ -65,22 +64,22 @@ export default function DirectInputScreen() {
 
   const pickFav = (f) => {
     setFood(f.food);
-    setCalorie(String(f.calorie));
+    setCalories(String(f.calories));
   };
 
   const saveEntry = () => {
-    const kcal = Number(calorie);
+    const kcal = Number(calories);
     if (!food.trim() || !Number.isFinite(kcal) || kcal <= 0) {
       Alert.alert('입력 확인', '음식명과 유효한 칼로리를 입력해주세요.');
       return;
     }
-    const entry = { food: food.trim(), calorie: kcal };
+    const entry = { food: food.trim(), calories: kcal };
     if (typeof onAdd === 'function') onAdd(entry); // DietLog로 반영
     navigation.goBack();
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight:0 }}>
       <View style={styles.container}>
         <Text style={styles.meta}>📅 {dateKey} • 🍽 {mealType === 'morning' ? '아침' : mealType === 'lunch' ? '점심' : '저녁'}</Text>
 
@@ -96,8 +95,8 @@ export default function DirectInputScreen() {
           />
           <TextInput
             placeholder="kcal"
-            value={calorie}
-            onChangeText={setCalorie}
+            value={calories}
+            onChangeText={setCalories}
             keyboardType="numeric"
             style={[styles.input, { width: 100, textAlign: 'right' }]}
             placeholderTextColor="#999"
@@ -124,13 +123,13 @@ export default function DirectInputScreen() {
               style={styles.favItem}
               onPress={() => pickFav(item)}
               onLongPress={() => {
-                Alert.alert('삭제', `"${item.food} (${item.calorie}kcal)" 즐겨찾기를 삭제할까요?`, [
+                Alert.alert('삭제', `"${item.food} (${item.calories}kcal)" 즐겨찾기를 삭제할까요?`, [
                   { text: '취소' },
                   { text: '삭제', style: 'destructive', onPress: () => removeFav(index) },
                 ]);
               }}
             >
-              <Text style={styles.favText}>{item.food} · {item.calorie} kcal</Text>
+              <Text style={styles.favText}>{item.food} · {item.calories} kcal</Text>
               <Text style={styles.favDelHint}>길게 눌러 삭제</Text>
             </Pressable>
           )}
@@ -143,13 +142,14 @@ export default function DirectInputScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#fff' },
+  container: {
+    flex: 1, paddingHorizontal: 20, backgroundColor: '#fff', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight +20:20 },
   meta: { fontSize: 14, color: '#666', marginBottom: 12 },
 
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   input: {
     borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: Platform.OS === 'ios' ? 12 : 8,
+    paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 80 : 20,
     backgroundColor: '#fff', fontSize: 16,
   },
 
