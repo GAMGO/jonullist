@@ -2,8 +2,7 @@ import { apiGet } from "../config/api"
 import * as FileSystem from "expo-file-system"
 import * as SecureStore from "expo-secure-store"
 
-const FALLBACK_GEMINI_API_KEY = "AIzaSyAvca1r-SMD32rBnQ8S7f6o28FN1YpxfqU"
-import { API_BASE_DEBUG } from "../config/api"
+const FALLBACK_GEMINI_API_KEY = "AIzaSyAYOaMtLUoVJyaIMVYe6a_kK7FcSrt7epo"
 
 /* ───── 공통 유틸 ───── */
 async function toBase64Async(uri) {
