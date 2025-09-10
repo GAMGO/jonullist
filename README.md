@@ -32,6 +32,8 @@ npx expo install react-native-gesture-handler react-native-reanimated
 npx expo install expo-font
 npx expo install react-native-webview
 npm i @react-native-voice/voice
+npm install tesseract.js
+npx expo install expo-file-system
 - npx expo start
 
 
