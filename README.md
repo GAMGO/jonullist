@@ -20,8 +20,7 @@ frontend install (assets 안에 사진은 중요한 거라 냅두시면 됩니�
 - npx expo install react-native-screens react-native-safe-area-context
 - npx expo install expo-camera expo-image-manipulator
 - npx expo install @react-native-async-storage/async-storage
-- npx expo install expo-secure-store
-- npm i base-64
+- npx expo install expo-secure-store npm i base-64
 - npx expo install expo-location @react-native-async-storage/async-storage
 - npm install @react-native-community/datetimepicker
 - npx expo install expo-localization
@@ -31,7 +30,9 @@ frontend install (assets 안에 사진은 중요한 거라 냅두시면 됩니�
 - npx expo install react-native-gesture-handler react-native-reanimated
 - npx expo install expo-font
 - npx expo install react-native-webview
-- npx expo start
+- npm i @react-native-voice/voice
+- npm install tesseract.js
+- npx expo install expo-file-system
 
 
 #### 사진 인식 및 분석 API
