@@ -190,7 +190,11 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#fff' },
   container: { flex: 1, paddingHorizontal: 20, paddingTop: Constants.statusBarHeight + 30, backgroundColor: '#fff' },
 
-  dateButton: { paddingVertical: 20, paddingHorizontal: 20, alignItems: 'flex-start', marginBottom: 16 }, // 'left' -> 'flex-start'
+  // 날짜 버튼
+  dateButton: {
+    paddingVertical: 70, paddingHorizontal: 20, alignItems: 'left', marginBottom: 16
+  },
+
   dateText: { fontSize: 20, color: '#333' },
 
   pickerOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end', zIndex: 999 },
