@@ -1,5 +1,5 @@
 import React, { useState, useLayoutEffect } from 'react';
-import { View, Text, Button, FlatList, StyleSheet, Pressable, SafeAreaView, Platform } from 'react-native';
+import { View, Text, Button, FlatList, StyleSheet, Pressable, SafeAreaView, Platform, ImageBackground } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { apiPost } from '../config/api';    // 기록된 데이터 백엔드 연결용 
 import { useNavigation } from '@react-navigation/native';
@@ -114,6 +114,14 @@ export default function DietLogScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+
+      <ImageBackground
+        source={require('../../assets/background/dietLog.png')} 
+        style={{flex:1}}
+        resizeMode="cover">
+
+          <View style={styles.overlay}></View>
+
       <View style={styles.container}>
 
         {/* 날짜 선택 */}
@@ -154,7 +162,8 @@ export default function DietLogScreen() {
 
         {/* 총 칼로리 */}
         <Text style={styles.total}>🔥 총 칼로리: {totalCalories} kcal</Text>
-      </View>
+        </View>
+      </ImageBackground>
     </SafeAreaView>
   );
 }
