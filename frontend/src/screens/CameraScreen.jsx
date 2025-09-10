@@ -23,8 +23,12 @@ export default function CameraScreen() {
 
   useLayoutEffect(() => {
     nav.setOptions({
+      headerShown: true,
+      headerTintColor: '#fff',
       headerBackTitleVisible: false,  // ← 글자 제거
-      headerTintColor: '#fff'
+      headerBackTitle: "",
+      headerTransparent: true,
+      headerStyle: {backgroundColor: "transparent"}
      
     });
   }, [nav]);
@@ -126,7 +130,7 @@ export default function CameraScreen() {
             style={styles.topOverlay}
             pointerEvents="none"
           >
-            <Text style={styles.cameraTitle}>CAMERA</Text>
+            {/* <Text style={styles.cameraTitle}>CAMERA</Text> */}
             <Text style={styles.topHint}>음식이 중앙에 오도록 맞춰주세요</Text>
           </SafeAreaView>
           <View style={styles.guideWrap} pointerEvents="none">
@@ -253,8 +257,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     zIndex: 10,
   },
-  cameraTitle: { fontSize: 28, color: "#fff", letterSpacing: 2 },
-  topHint: { color: "#fff", fontSize: 12, opacity: 0.8, marginTop: 4 },
+  topHint: { color: "#fff", fontSize: 12, opacity: 0.8, marginTop: 80 },
   guideWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
   guideBox: { width: 300, height: 300, borderWidth: 2, borderColor: "rgba(255,255,255,0.4)", borderRadius: 16 },
   bottomBar: { flexDirection: "row", justifyContent: "space-around", alignItems: "center", paddingHorizontal: 40 },
@@ -276,7 +279,7 @@ const styles = StyleSheet.create({
   },
   resultWrap: { flex: 1, backgroundColor: "#000" },
   resultContent: { padding: 16, paddingTop: 56 },
-  thumb: { width: "100%", height: 220, borderRadius: 10, marginBottom: 12 },
+  thumb: { width: "100%", height: 400, borderRadius: 10, marginBottom: 12 },
   card: { backgroundColor: "#111", borderRadius: 12, padding: 16 },
   cardTitle: { fontSize: 18, color: "#fff", marginBottom: 8 },
   foodRow: { fontSize: 16, color: "#fff", marginBottom: 8 },
