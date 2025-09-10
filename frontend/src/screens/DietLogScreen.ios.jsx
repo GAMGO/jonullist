@@ -10,9 +10,9 @@ export default function DietLogScreen() {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerTitle: '🥗 식단 기록',
+      headerTitle: '식단 기록',
       headerTitleAlign: 'center',
-      headerTintColor: '#000',
+      headerTintColor: '#fff',
     });
   },  [navigation]);
 
@@ -113,20 +113,23 @@ export default function DietLogScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
 
       <ImageBackground
         source={require('../../assets/background/dietLog.png')} 
         style={{flex:1}}
         resizeMode="cover">
 
-          <View style={styles.overlay}></View>
+        <View style={styles.darkOverlay}></View>
+
+    <SafeAreaView style={styles.safeArea}>
+
+    
 
       <View style={styles.container}>
 
         {/* 날짜 선택 */}
         <Pressable style={styles.dateButton} onPress={() => setShowPicker(true)}>
-          <Text style={styles.dateText}>📅 {dateKey}</Text>
+          <Text style={styles.dateText}>Date: [{dateKey}]</Text>
         </Pressable>
 
         {showPicker && (
@@ -161,22 +164,23 @@ export default function DietLogScreen() {
         <MealSection label="저녁" type="dinner" />
 
         {/* 총 칼로리 */}
-        <Text style={styles.total}>🔥 총 칼로리: {totalCalories} kcal</Text>
+        <Text style={styles.total}>Total : {totalCalories} kcal</Text>
         </View>
-      </ImageBackground>
-    </SafeAreaView>
+        </SafeAreaView>
+    </ImageBackground>
+    
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#fff' },
-  container: { flex: 1, padding: 20, backgroundColor: '#fff' },
+  safeArea: { flex: 1, backgroundColor: 'transparent' },
+  container: { flex: 1, padding: 20, backgroundColor: '#transparent' },
 
   // 날짜 버튼
   dateButton: {
     paddingVertical: 20, paddingHorizontal: 20, alignItems: 'left', marginBottom: 16
   },
-  dateText: { fontSize: 20, color: '#333' },
+  dateText: { fontSize: 24, color: '#fff' },
 
   // 피커
   pickerOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end', zIndex: 999 },
@@ -194,12 +198,12 @@ const styles = StyleSheet.create({
 
   // 섹션
   section: {
-    borderWidth: 1, borderColor: '#eee', borderRadius: 12, padding: 22, marginBottom: 14, backgroundColor: '#fafafa'
+    borderWidth: 4, borderColor: '#eee', borderRadius: 12, padding: 22, height: 130, marginBottom: 15, backgroundColor: 'rgba(255,255,255,0.8)'
   },
   sectionHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8
   },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#333' },
+  sectionTitle: { fontSize: 22, fontWeight: '700', color: '#333' },
   headerActions: { flexDirection: 'row', gap: 8 },
 
   // 버튼
@@ -216,5 +220,5 @@ const styles = StyleSheet.create({
 
   item: { fontSize: 16, marginVertical: 6, color: '#333' },
   empty: { fontSize: 14, color: '#999', paddingTop: 4 },
-  total: { fontSize: 20, fontWeight: 'bold', marginTop: 8, color: 'tomato' },
+  total: { fontSize: 30, fontWeight: 'bold', marginTop: 30, color: '#fff', textAlign: 'right' },
 });
