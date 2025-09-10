@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
 
   // 날짜 버튼
   dateButton: {
-    paddingVertical: 20, paddingHorizontal: 20, alignItems: 'left', marginBottom: 16
+    paddingVertical: 70, paddingHorizontal: 20, alignItems: 'left', marginBottom: 16
   },
   dateText: { fontSize: 20, color: '#333' },
 

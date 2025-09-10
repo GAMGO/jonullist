@@ -11,4 +11,7 @@ public interface BodyRepository extends JpaRepository<BodyEntity, Long> {
     Optional<BodyEntity> findTopByCustomer_IdxOrderByIdxDesc(Long customerIdx);
     // 이력 전체 (최신순)
     List<BodyEntity> findByCustomer_IdxOrderByIdxDesc(Long customerIdx);
+
+    // 체중 히스토리 조회 (최신순)
+    List<BodyEntity> findByCustomer_IdxOrderByRecordDateDesc(Long customerIdx);
 }
