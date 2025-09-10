@@ -1,93 +1,133 @@
-// DataScreen.jsx
 import React, { useEffect, useMemo, useState } from 'react'
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Alert } from 'react-native'
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Alert, Dimensions } from 'react-native'
 import { Calendar } from 'react-native-calendars'
-import { apiGet } from '../config/api' // 프로젝트에 이미 있는 헬퍼 사용 (JWT 등 포함 가정)
+import { LineChart } from 'react-native-chart-kit'
+import { apiGet } from '../config/api'
+
+const W = Dimensions.get('window').width
+const num = v => (Number.isFinite(+v) ? +v : 0)
+const iso = d => (d instanceof Date ? d.toISOString().slice(0,10) : String(d ?? '').slice(0,10))
+const pretty = dISO => {
+  if (!dISO) return ''
+  const [y,m,d] = dISO.split('-')
+  return `${m}.${d}`
+}
+
+/** 차트 Infinity 방지:
+ * - 데이터 없거나 1개 → 복제
+ * - 두 값이 같으면 양쪽에 살짝 패딩
+ */
+function sanitizePair(a, b) {
+  let x = [num(a), num(b)]
+  if (x.length < 2) x = [x[0] ?? 0, x[0] ?? 0]
+  if (x[0] === x[1]) {
+    const pad = Math.max(1, Math.abs(x[0]) * 0.01)
+    x = [x[0] - pad, x[1] + pad]
+  }
+  return x
+}
 
 export default function DataScreen() {
-  const todayISO = new Date().toISOString().slice(0, 10)
+  const todayISO = iso(new Date())
   const [selected, setSelected] = useState(todayISO)
 
-  const [loadingBody, setLoadingBody] = useState(true)
-  const [loadingCalToday, setLoadingCalToday] = useState(true)
-  const [loadingCalSelected, setLoadingCalSelected] = useState(true)
+  // 몸무게/칼로리 (오늘, 선택일)
+  const [wToday, setWToday] = useState(null)
+  const [wSel, setWSel] = useState(null)
+  const [kToday, setKToday] = useState(null)
+  const [kSel, setKSel] = useState(null)
 
-  const [currentWeight, setCurrentWeight] = useState(null)
-  const [todayCalories, setTodayCalories] = useState(null)
-  const [selectedCalories, setSelectedCalories] = useState(null)
+  // 로딩
+  const [loadingWToday, setLoadingWToday] = useState(true)
+  const [loadingWSel, setLoadingWSel] = useState(true)
+  const [loadingKToday, setLoadingKToday] = useState(true)
+  const [loadingKSel, setLoadingKSel] = useState(true)
 
-  // ---- API helpers ----
-  async function fetchCurrentBody() {
+  // ─── API: 현재 몸무게 (/body) ───
+  async function fetchWeightToday() {
     try {
-      setLoadingBody(true)
-      // /body (GoalController#getCustomerInfo)
-      const res = await apiGet('/body')
-      // 백엔드 DTO 필드명이 무엇이든 안전하게 캡처
-      const w =
-        res?.weight ??
-        res?.currentWeight ??
-        res?.body?.weight ??
-        res?.profile?.weight ??
-        null
-      setCurrentWeight(Number.isFinite(+w) ? +w : null)
+      setLoadingWToday(true)
+      const res = await apiGet('/body') // CustomersProfileDTO
+      const w = res?.weight ?? res?.currentWeight ?? res?.body?.weight ?? res?.profile?.weight
+      setWToday(Number.isFinite(+w) ? +w : 0)
     } catch (e) {
       console.warn('GET /body 실패', e)
-      Alert.alert('알림', '현재 몸무게 조회에 실패했어요.')
+      Alert.alert('알림', '현재 몸무게 조회 실패')
+      setWToday(0)
     } finally {
-      setLoadingBody(false)
+      setLoadingWToday(false)
     }
   }
 
-  async function fetchCalories(dateISO, setState, setLoading) {
-    try {
-      setLoading(true)
-      // /api/diet/get?date=YYYY-MM-DD
-      const rec = await apiGet(`/api/diet/get?date=${dateISO}`)
-      // RecordEntity가 어떤 모양이든 안전하게 합산/추출
-      // 1) totalCalories 필드가 있으면 사용
-      let c =
-        rec?.totalCalories ??
-        rec?.calories ??
-        rec?.kcal ??
-        null
+  // ─── API: 선택일 몸무게 (히스토리에서 선택일≤가장 최근) /body/history ───
+  function readBodyDate(e){
+    const raw = e?.date ?? e?.measuredAt ?? e?.day ?? e?.createdDate ?? e?.created_at ?? e?.regDate
+    if (!raw) return null
+    const s = String(raw)
+    return s.length >= 10 ? s.slice(0,10) : null
+  }
+  function readBodyWeight(e){
+    return num(e?.weight ?? e?.kg ?? e?.bodyWeight ?? e?.value)
+  }
+  function pickWeightAtOrBefore(history = [], dateISO) {
+    const target = new Date(dateISO + 'T23:59:59')
+    let best = null
+    for (const it of history) {
+      const d = readBodyDate(it)
+      const w = readBodyWeight(it)
+      if (!d || !Number.isFinite(w)) continue
+      const dd = new Date(d + 'T00:00:00')
+      if (dd <= target) {
+        if (!best || dd > best.date) best = { date: dd, weight: w }
+      }
+    }
+    return best?.weight ?? 0
+  }
+  async function fetchWeightSelected(dateISO){
+    try{
+      setLoadingWSel(true)
+      const history = await apiGet('/body/history') // List<BodyEntity>
+      const w = Array.isArray(history) ? pickWeightAtOrBefore(history, dateISO) : 0
+      setWSel(w)
+    }catch(e){
+      console.warn('GET /body/history 실패', e)
+      setWSel(0)
+    }finally{
+      setLoadingWSel(false)
+    }
+  }
 
-      // 2) 만약 식사 항목 배열 형태라면 합산 (morning/lunch/dinner 등)
+  // ─── API: 칼로리 (/api/diet/get?date=YYYY-MM-DD) ───
+  async function fetchCalories(dateISO, setState, setLoading){
+    try{
+      setLoading(true)
+      const rec = await apiGet(`/api/diet/get?date=${dateISO}`) // RecordEntity
+      let c = rec?.totalCalories ?? rec?.calories ?? rec?.kcal
       if (c == null) {
-        const arr =
-          rec?.items ??
-          rec?.records ??
-          rec?.dietList ??
-          rec?.diets ??
-          null
+        const arr = rec?.items ?? rec?.records ?? rec?.dietList ?? rec?.diets
         if (Array.isArray(arr)) {
-          c = arr.reduce((sum, it) => {
-            const v = it?.calories ?? it?.kcal ?? 0
-            return sum + (Number.isFinite(+v) ? +v : 0)
-          }, 0)
+          c = arr.reduce((s, it) => s + num(it?.calories ?? it?.kcal), 0)
         }
       }
-
       setState(Number.isFinite(+c) ? Math.round(+c) : 0)
-    } catch (e) {
+    }catch(e){
       console.warn('GET /api/diet/get 실패', e)
-      // 기록 없으면 0으로 본다
       setState(0)
-    } finally {
+    }finally{
       setLoading(false)
     }
   }
 
-  // ---- effects ----
+  // 최초 로드: 오늘값들
   useEffect(() => {
-    fetchCurrentBody()
+    fetchWeightToday()
+    fetchCalories(todayISO, setKToday, setLoadingKToday)
   }, [])
 
+  // 선택일 바뀔 때: 선택일 몸무게/칼로리
   useEffect(() => {
-    fetchCalories(todayISO, setTodayCalories, setLoadingCalToday)
-  }, [todayISO])
-
-  useEffect(() => {
-    fetchCalories(selected, setSelectedCalories, setLoadingCalSelected)
+    fetchWeightSelected(selected)
+    fetchCalories(selected, setKSel, setLoadingKSel)
   }, [selected])
 
   const markedDates = useMemo(() => ({
@@ -95,9 +135,16 @@ export default function DataScreen() {
     [todayISO]: selected === todayISO ? {} : { marked: true, dotColor: '#10B981' }
   }), [selected, todayISO])
 
+  // 차트 데이터(2점: 오늘 vs 선택일) – Infinity 방지 보정
+  const weightPair = sanitizePair(wToday ?? 0, wSel ?? 0)
+  const kcalPair   = sanitizePair(kToday ?? 0, kSel ?? 0)
+
+  const wLabels = [pretty(todayISO), pretty(selected)]
+  const kLabels = [pretty(todayISO), pretty(selected)]
+
   return (
     <ScrollView style={s.container} contentContainerStyle={{ paddingBottom: 24 }}>
-      <Text style={s.title}>👀 한눈에</Text>
+      <Text style={s.title}>한눈에</Text>
 
       {/* 캘린더 */}
       <Calendar
@@ -111,113 +158,109 @@ export default function DataScreen() {
         style={s.calendar}
       />
 
-      {/* 비교 카드들 */}
-      <View style={s.cards}>
-        {/* 현재 몸무게 */}
-        <Card label="몸무게(현재)">
-          {loadingBody ? (
-            <ActivityIndicator />
-          ) : (
-            <BigValue value={fmtNumber(currentWeight)} suffix=" kg" />
-          )}
-          <Hint>※ /body에서 최신 몸무게만 조회</Hint>
-        </Card>
-
-        {/* 칼로리: 오늘 vs 선택일 */}
-        <Card label="칼로리 비교 (오늘 ↔ 선택일)">
-          <Row>
-            <Cell title="오늘">
-              {loadingCalToday ? <ActivityIndicator /> : <BigValue value={fmtNumber(todayCalories)} suffix=" kcal" />}
-            </Cell>
-            <VLine />
-            <Cell title="선택일">
-              {loadingCalSelected ? <ActivityIndicator /> : <BigValue value={fmtNumber(selectedCalories)} suffix=" kcal" />}
-            </Cell>
-          </Row>
-
-          {/* 차이(Δ) 표시 */}
-          {!loadingCalToday && !loadingCalSelected && (
+      {/* 몸무게 비교 */}
+      <View style={s.card}>
+        <Text style={s.cardTitle}>몸무게 (kg)</Text>
+        {(loadingWToday || loadingWSel) ? (
+          <ActivityIndicator />
+        ) : (
+          <>
+            <LineChart
+              data={{ labels: wLabels, datasets: [{ data: weightPair }] }}
+              width={W - 32}
+              height={200}
+              yAxisSuffix="kg"
+              chartConfig={chartConfigDark}
+              bezier
+              withInnerLines
+              withOuterLines={false}
+              style={s.chart}
+            />
             <Delta
-              left={todayCalories ?? 0}
-              right={selectedCalories ?? 0}
               leftLabel="오늘"
               rightLabel="선택일"
+              leftRaw={wToday ?? 0}
+              rightRaw={wSel ?? 0}
+              unit="kg"
             />
-          )}
-        </Card>
+          </>
+        )}
       </View>
 
-      <Text style={s.tip}>캘린더에서 날짜를 탭하면 선택일 칼로리가 갱신돼.</Text>
-      <Text style={s.tip}>몸무게는 현재값만 보여줘. (히스토리 필요하면 /body에 날짜별 조회 엔드포인트 추가 추천)</Text>
+      {/* 칼로리 비교 */}
+      <View style={s.card}>
+        <Text style={s.cardTitle}>칼로리 (kcal)</Text>
+        {(loadingKToday || loadingKSel) ? (
+          <ActivityIndicator />
+        ) : (
+          <>
+            <LineChart
+              data={{ labels: kLabels, datasets: [{ data: kcalPair }] }}
+              width={W - 32}
+              height={200}
+              yAxisSuffix="kcal"
+              chartConfig={chartConfigBlue}
+              bezier
+              withInnerLines
+              withOuterLines={false}
+              style={s.chart}
+            />
+            <Delta
+              leftLabel="오늘"
+              rightLabel="선택일"
+              leftRaw={kToday ?? 0}
+              rightRaw={kSel ?? 0}
+              unit="kcal"
+            />
+          </>
+        )}
+      </View>
     </ScrollView>
   )
 }
 
-// ====== 작은 컴포넌트들 ======
-function Card({ label, children }) {
-  return (
-    <View style={s.card}>
-      <Text style={s.cardLabel}>{label}</Text>
-      <View style={{ marginTop: 8 }}>{children}</View>
-    </View>
-  )
-}
-function Row({ children }) {
-  return <View style={s.row}>{children}</View>
-}
-function Cell({ title, children }) {
-  return (
-    <View style={s.cell}>
-      <Text style={s.cellTitle}>{title}</Text>
-      <View style={{ marginTop: 6 }}>{children}</View>
-    </View>
-  )
-}
-function VLine() {
-  return <View style={s.vline} />
-}
-function BigValue({ value, suffix }) {
-  return (
-    <Text style={s.bigValue}>
-      {value}
-      <Text style={s.suffix}>{suffix ?? ''}</Text>
-    </Text>
-  )
-}
-function Hint({ children }) {
-  return <Text style={s.hint}>{children}</Text>
-}
-function Delta({ left, right, leftLabel = 'A', rightLabel = 'B' }) {
-  const diff = (right ?? 0) - (left ?? 0)
+/** Δ 라벨 */
+function Delta({ leftLabel, rightLabel, leftRaw, rightRaw, unit }) {
+  const diff = num(rightRaw) - num(leftRaw)
   const sign = diff > 0 ? '+' : diff < 0 ? '−' : ''
-  const abs = Math.abs(diff)
+  const abs  = Math.abs(diff)
   const color = diff > 0 ? '#DC2626' : diff < 0 ? '#16A34A' : '#6B7280'
   return (
     <Text style={[s.delta, { color }]}>
-      Δ {rightLabel} − {leftLabel} : {sign}{abs} kcal
+      Δ {rightLabel} − {leftLabel} : {sign}{abs} {unit}
     </Text>
   )
 }
-function fmtNumber(n) {
-  if (!Number.isFinite(+n)) return '-'
-  return String(+n)
+
+/** 차트 색감 (몸무게: 다크 그레이 라인) */
+const chartConfigDark = {
+  backgroundColor: '#ffffff',
+  backgroundGradientFrom: '#ffffff',
+  backgroundGradientTo: '#ffffff',
+  decimalPlaces: 1,
+  color: (opacity = 1) => `rgba(17, 24, 39, ${opacity})`,           // #111827
+  labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,   // #6B7280
+  propsForDots: { r: '5', strokeWidth: '2', stroke: '#111827' },
 }
 
-// ====== styles ======
+/** 차트 색감 (칼로리: 블루 라인) */
+const chartConfigBlue = {
+  backgroundColor: '#ffffff',
+  backgroundGradientFrom: '#ffffff',
+  backgroundGradientTo: '#ffffff',
+  decimalPlaces: 0,
+  color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`,         // #3B82F6
+  labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
+  propsForDots: { r: '5', strokeWidth: '2', stroke: '#3B82F6' },
+}
+
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FAFB' },
   title: { fontSize: 22, fontWeight: '800', padding: 16, color: '#111827' },
   calendar: { marginHorizontal: 12, borderRadius: 12, overflow: 'hidden', elevation: 1, backgroundColor: '#fff' },
-  cards: { paddingHorizontal: 12, marginTop: 12, gap: 12 },
-  card: { backgroundColor: 'white', borderRadius: 16, padding: 14, elevation: 1, borderWidth: 1, borderColor: '#E5E7EB' },
-  cardLabel: { fontSize: 12, color: '#6B7280' },
-  row: { flexDirection: 'row', alignItems: 'center' },
-  cell: { flex: 1, alignItems: 'center', paddingVertical: 8 },
-  cellTitle: { fontSize: 12, color: '#6B7280' },
-  bigValue: { fontSize: 28, fontWeight: '800', color: '#111827' },
-  suffix: { fontSize: 16, color: '#6B7280' },
-  vline: { width: 1, height: '100%', backgroundColor: '#E5E7EB' },
-  hint: { marginTop: 6, fontSize: 11, color: '#6B7280' },
-  delta: { marginTop: 10, fontSize: 13, fontWeight: '700' },
-  tip: { fontSize: 12, color: '#6B7280', paddingHorizontal: 16, marginTop: 8 },
+  card: { marginTop: 14, marginHorizontal: 16, backgroundColor: '#fff', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#E5E7EB' },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 8 },
+  chart: { borderRadius: 12 },
+  delta: { marginTop: 8, fontSize: 13, fontWeight: '700', textAlign: 'right' },
+  tip: { fontSize: 12, color: '#6B7280', paddingHorizontal: 16, marginTop: 8, marginBottom: 16 },
 })
