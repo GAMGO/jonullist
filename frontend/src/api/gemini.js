@@ -1,6 +1,6 @@
 import { apiGet } from "../config/api"
 
-<<<<<<<<< Temporary merge branch 1
+// <<<<<<<<< Temporary merge branch 1
 const GEMINI_API_KEY = "AIzaSyCCzNKTnjCLy6ifIHrKUIZrdRlu-ee3cCA"
 
 
