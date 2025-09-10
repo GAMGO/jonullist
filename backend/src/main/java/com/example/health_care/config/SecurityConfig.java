@@ -35,7 +35,8 @@ public class SecurityConfig {
                         "/api/auth/**", // 로그인/회원가입 등
                         "/error", // 스프링 기본 에러 엔드포인트
                         "/api/recover/**" ,// >>> [ADDED] 비밀번호 복구(시작/검증/재설정) 공개 엔드포인트
-                        "/api/food/debug/**"
+                        "/api/food/debug/**",
+                        "/api/gemini/analyze-food" //Gemini 분석 엔드포인트
         };
 
         @Bean
