@@ -11,9 +11,9 @@ export default function DietLogScreen() {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerTitle: '🥗 식단 기록',
+      headerTitle: '식단 기록',
       headerTitleAlign: 'center',
-      headerTintColor: '#000',
+      headerTintColor: '#fff',
     });
   }, [navigation]);
 
@@ -134,48 +134,47 @@ export default function DietLogScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+
       <ImageBackground
-        source={require('../../assets/background/dietLog.png')}
-        style={{ flex: 1 }}
-        resizeMode="cover"
-      >
-        <View style={styles.overlay} />
-        <View style={styles.container}>
+        source={require('../../assets/background/dietLog.png')} 
+        style={{flex:1}}
+        resizeMode="cover">
 
-          {/* 날짜 선택 */}
-          <Pressable style={styles.dateButton} onPress={() => setShowPicker(true)}>
-            <Text style={styles.dateText}>📅 {dateKey}</Text>
-          </Pressable>
+        <View style={styles.darkOverlay}></View>
 
-          {showPicker && (
-            <View style={styles.pickerOverlay}>
-              <Pressable style={styles.pickerBackdrop} onPress={() => setShowPicker(false)} />
-              <View style={styles.pickerSheet}>
-                <View style={styles.pickerToolbar}>
-                  <Pressable onPress={() => setShowPicker(false)}>
-                    <Text style={styles.toolbarBtn}>취소</Text>
-                  </Pressable>
-                  <Text style={styles.toolbarTitle}>날짜 선택</Text>
-                  <Pressable onPress={() => setShowPicker(false)}>
-                    <Text style={styles.toolbarBtn}>완료</Text>
-                  </Pressable>
-                </View>
-                <View style={styles.pickerBody}>
-                  <DateTimePicker
-                    value={selectedDate}
-                    mode="date"
-                    // iOS: iOS14+ 'inline', 그 이하는 'spinner'
-                    display={parseFloat(String(Platform.Version)) >= 14 ? 'inline' : 'spinner'}
-                    themeVariant="light"
-                    onChange={(event, date) => {
-                      if (date) setSelectedDate(date); // dateKey 변경 → fetchDay 자동
-                      // iOS는 사용자가 '완료' 누를 때 닫히도록 유지 (원하면 여기서 닫아도 됨)
-                      // setShowPicker(false);
-                    }}
-                    style={{ backgroundColor: '#fff', alignSelf: 'center', width: 360 }}
-                  />
-                </View>
+    <SafeAreaView style={styles.safeArea}>
+
+    
+
+      <View style={styles.container}>
+
+        {/* 날짜 선택 */}
+        <Pressable style={styles.dateButton} onPress={() => setShowPicker(true)}>
+          <Text style={styles.dateText}>Date: [{dateKey}]</Text>
+        </Pressable>
+
+        {showPicker && (
+          <View style={styles.pickerOverlay}>
+            <Pressable style={styles.pickerBackdrop} onPress={() => setShowPicker(false)} />
+            <View style={styles.pickerSheet}>
+              <View style={styles.pickerToolbar}>
+                <Pressable onPress={() => setShowPicker(false)}><Text style={styles.toolbarBtn}>취소</Text></Pressable>
+                <Text style={styles.toolbarTitle}>날짜 선택</Text>
+                <Pressable onPress={() => setShowPicker(false)}><Text style={styles.toolbarBtn}>완료</Text></Pressable>
+              </View>
+              <View style={styles.pickerBody}>
+                <DateTimePicker
+                  value={selectedDate}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? (parseFloat(String(Platform.Version)) >= 14 ? 'inline' : 'spinner') : 'calendar'}
+                  themeVariant="light"
+                  onChange={(event, date) => {
+                    if (date) setSelectedDate(date);
+                    if (Platform.OS === 'ios') setShowPicker(false);
+                  }}
+                  style={{ backgroundColor: '#fff', alignSelf: 'center', width: 360 }}
+                />
+
               </View>
             </View>
           )}
@@ -185,24 +184,19 @@ export default function DietLogScreen() {
           <MealSection label="점심" type="lunch" />
           <MealSection label="저녁" type="dinner" />
 
-          {/* 총 칼로리 */}
-          <Text style={styles.total}>🔥 총 칼로리: {totalCalories} kcal</Text>
+        {/* 총 칼로리 */}
+        <Text style={styles.total}>Total : {totalCalories} kcal</Text>
         </View>
-      </ImageBackground>
-    </SafeAreaView>
+        </SafeAreaView>
+    </ImageBackground>
+    
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#fff' },
-  container: { flex: 1, padding: 20, backgroundColor: 'transparent' },
 
-  // 배경 위 어둡게 깔고 싶으면 사용(선택)
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.0)', // 필요 시 투명도 조절
-  },
-
+  safeArea: { flex: 1, backgroundColor: 'transparent' },
+  container: { flex: 1, padding: 20, backgroundColor: '#transparent' },
   // 날짜 버튼
   dateButton: {
     paddingVertical: 20,
@@ -210,7 +204,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start', // 'left'는 유효 값이 아님
     marginBottom: 16,
   },
-  dateText: { fontSize: 20, color: '#333' },
+  dateText: { fontSize: 24, color: '#fff' },
 
   // 피커
   pickerOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end', zIndex: 999 },
@@ -227,10 +221,14 @@ const styles = StyleSheet.create({
 
   // 섹션
   section: {
-    borderWidth: 1, borderColor: '#eee', borderRadius: 12, padding: 22, marginBottom: 14, backgroundColor: '#fafafa',
+
+    borderWidth: 4, borderColor: '#eee', borderRadius: 12, padding: 22, height: 130, marginBottom: 15, backgroundColor: 'rgba(255,255,255,0.8)'
   },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#333' },
+  sectionHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8
+  },
+  sectionTitle: { fontSize: 22, fontWeight: '700', color: '#333' },
+
   headerActions: { flexDirection: 'row', gap: 8 },
 
   // 버튼
@@ -247,5 +245,5 @@ const styles = StyleSheet.create({
 
   item: { fontSize: 16, marginVertical: 6, color: '#333' },
   empty: { fontSize: 14, color: '#999', paddingTop: 4 },
-  total: { fontSize: 20, fontWeight: 'bold', marginTop: 8, color: 'tomato' },
+  total: { fontSize: 30, fontWeight: 'bold', marginTop: 30, color: '#fff', textAlign: 'right' },
 });
