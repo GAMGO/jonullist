@@ -24,7 +24,7 @@ public class YoutubeController {
      * @return 검색된 YouTube 영상 목록
      */
     @GetMapping("/youtube/search")
-    public ResponseEntity<List<YoutubeDTO>> searchYoutube(@RequestParam String q) {
+    public ResponseEntity<List<YoutubeDTO>> searchYoutube(@RequestParam("q") String q) { // 파라미터 이름 명시
         try {
             // 검색어가 비어있으면 에러 반환
             if (q == null || q.trim().isEmpty()) {
