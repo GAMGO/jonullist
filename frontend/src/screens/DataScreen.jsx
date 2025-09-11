@@ -5,164 +5,184 @@ import { LineChart } from 'react-native-chart-kit'
 import { apiGet } from '../config/api'
 
 const W = Dimensions.get('window').width
-const num = v => (Number.isFinite(+v) ? +v : 0)
+const num = v => (Number.isFinite(+v) ? +v : NaN)
 const iso = d => (d instanceof Date ? d.toISOString().slice(0,10) : String(d ?? '').slice(0,10))
 const pretty = dISO => {
   if (!dISO) return ''
-  const [y,m,d] = dISO.split('-')
+  const [,m,d] = dISO.split('-')
   return `${m}.${d}`
 }
 
-/** 차트 Infinity 방지:
- * - 데이터 없거나 1개 → 복제
- * - 두 값이 같으면 양쪽에 살짝 패딩
- */
-function sanitizePair(a, b) {
-  let x = [num(a), num(b)]
-  if (x.length < 2) x = [x[0] ?? 0, x[0] ?? 0]
-  if (x[0] === x[1]) {
-    const pad = Math.max(1, Math.abs(x[0]) * 0.01)
-    x = [x[0] - pad, x[1] + pad]
+/* 차트 데이터 보정 */
+function sanitizePair(a, b, { nonNegative = false } = {}) {
+  let x0 = num(a), x1 = num(b)
+  if (!Number.isFinite(x0) &&  Number.isFinite(x1)) x0 = x1
+  if (!Number.isFinite(x1) &&  Number.isFinite(x0)) x1 = x0
+  if (!Number.isFinite(x0) && !Number.isFinite(x1)) x0 = x1 = 0
+  if (x0 === x1) {
+    const pad = Math.max(1, Math.abs(x0) * 0.01)
+    x0 -= pad; x1 += pad
   }
-  return x
+  if (nonNegative) { x0 = Math.max(0, x0); x1 = Math.max(0, x1) }
+  return [x0, x1]
 }
 
 export default function DataScreen() {
   const todayISO = iso(new Date())
   const [selected, setSelected] = useState(todayISO)
 
-  // 몸무게/칼로리 (오늘, 선택일)
+  // 값
   const [wToday, setWToday] = useState(null)
-  const [wSel, setWSel] = useState(null)
+  const [wSel,   setWSel]   = useState(null)
   const [kToday, setKToday] = useState(null)
-  const [kSel, setKSel] = useState(null)
+  const [kSel,   setKSel]   = useState(null)
 
   // 로딩
   const [loadingWToday, setLoadingWToday] = useState(true)
-  const [loadingWSel, setLoadingWSel] = useState(true)
+  const [loadingWSel,   setLoadingWSel]   = useState(true)
   const [loadingKToday, setLoadingKToday] = useState(true)
-  const [loadingKSel, setLoadingKSel] = useState(true)
+  const [loadingKSel,   setLoadingKSel]   = useState(true)
 
-  // ─── API: 현재 몸무게 (/body) ───
+  /* 오늘 몸무게: GET /body -> CustomersProfileDTO 안의 weight */
   async function fetchWeightToday() {
     try {
       setLoadingWToday(true)
-      const res = await apiGet('/body') // CustomersProfileDTO
+      const res = await apiGet('/body')
       const w = res?.weight ?? res?.currentWeight ?? res?.body?.weight ?? res?.profile?.weight
-      setWToday(Number.isFinite(+w) ? +w : 0)
+      setWToday(Number.isFinite(+w) ? +w : null)
     } catch (e) {
       console.warn('GET /body 실패', e)
       Alert.alert('알림', '현재 몸무게 조회 실패')
-      setWToday(0)
+      setWToday(null)
     } finally {
       setLoadingWToday(false)
     }
   }
 
-  // ─── API: 선택일 몸무게 (히스토리에서 선택일≤가장 최근) /body/history ───
-  function readBodyDate(e){
-    const raw = e?.date ?? e?.measuredAt ?? e?.day ?? e?.createdDate ?? e?.created_at ?? e?.regDate
+  /* BodyEntity 히스토리 파서: recordDate, weight 사용 */
+  const readBodyDate = e => {
+    const raw =
+      e?.recordDate ??        // ★ 백엔드 스키마
+      e?.date ??
+      e?.measuredAt ??
+      e?.day ??
+      e?.createdDate ??
+      e?.created_at ??
+      e?.regDate
     if (!raw) return null
     const s = String(raw)
     return s.length >= 10 ? s.slice(0,10) : null
   }
-  function readBodyWeight(e){
-    return num(e?.weight ?? e?.kg ?? e?.bodyWeight ?? e?.value)
-  }
+  const readBodyWeight = e => num(e?.weight ?? e?.kg ?? e?.bodyWeight ?? e?.value)
+
   function pickWeightAtOrBefore(history = [], dateISO) {
     const target = new Date(dateISO + 'T23:59:59')
     let best = null
     for (const it of history) {
-      const d = readBodyDate(it)
-      const w = readBodyWeight(it)
-      if (!d || !Number.isFinite(w)) continue
-      const dd = new Date(d + 'T00:00:00')
-      if (dd <= target) {
-        if (!best || dd > best.date) best = { date: dd, weight: w }
+      const dISO = readBodyDate(it)
+      const w    = readBodyWeight(it)
+      if (!dISO || !Number.isFinite(w)) continue
+      const d = new Date(dISO + 'T00:00:00')
+      if (d <= target) {
+        if (!best || d > best.date) best = { date: d, weight: w }
       }
     }
-    return best?.weight ?? 0
+    return best?.weight
   }
+
+  /* 선택일 몸무게: GET /body/history -> List<BodyEntity> */
   async function fetchWeightSelected(dateISO){
     try{
       setLoadingWSel(true)
-      const history = await apiGet('/body/history') // List<BodyEntity>
-      const w = Array.isArray(history) ? pickWeightAtOrBefore(history, dateISO) : 0
-      setWSel(w)
+      const history = await apiGet('/body/history')
+      let w = Array.isArray(history) ? pickWeightAtOrBefore(history, dateISO) : null
+      if (w == null && dateISO === todayISO) w = wToday ?? null
+      setWSel(Number.isFinite(+w) ? +w : null)
     }catch(e){
       console.warn('GET /body/history 실패', e)
-      setWSel(0)
+      setWSel(null)
     }finally{
       setLoadingWSel(false)
     }
   }
 
-  // ─── API: 칼로리 (/api/diet/get?date=YYYY-MM-DD) ───
+  /* 선택일/오늘 칼로리: GET /api/diet/get?date=YYYY-MM-DD
+     RecordEntity 에서 caloriesM/L/D 합산  */
+  function sumMeals(rec){
+    const m = num(rec?.caloriesM)
+    const l = num(rec?.caloriesL)
+    const d = num(rec?.caloriesD)
+    const s = [m,l,d].reduce((a,v)=> a + (Number.isFinite(v) ? v : 0), 0)
+    return Number.isFinite(s) ? Math.round(s) : null
+  }
   async function fetchCalories(dateISO, setState, setLoading){
     try{
       setLoading(true)
-      const rec = await apiGet(`/api/diet/get?date=${dateISO}`) // RecordEntity
-      let c = rec?.totalCalories ?? rec?.calories ?? rec?.kcal
-      if (c == null) {
-        const arr = rec?.items ?? rec?.records ?? rec?.dietList ?? rec?.diets
-        if (Array.isArray(arr)) {
-          c = arr.reduce((s, it) => s + num(it?.calories ?? it?.kcal), 0)
-        }
+      const rec = await apiGet(`/api/diet/get?date=${dateISO}`)
+      let c = null
+
+      // 1) 우선 M/L/D 합산
+      if (rec) c = sumMeals(rec)
+
+      // 2) 혹시 백엔드에서 totalCalories/kcal 같은 필드를 내려줄 때도 수용
+      if (!Number.isFinite(c)) {
+        const fallback = rec?.totalCalories ?? rec?.calories ?? rec?.kcal
+        if (Number.isFinite(+fallback)) c = Math.round(+fallback)
       }
-      setState(Number.isFinite(+c) ? Math.round(+c) : 0)
+
+      setState(Number.isFinite(c) ? c : null)
     }catch(e){
       console.warn('GET /api/diet/get 실패', e)
-      setState(0)
+      setState(null)
     }finally{
       setLoading(false)
     }
   }
 
-  // 최초 로드: 오늘값들
+  // 최초 로드: 오늘값
   useEffect(() => {
     fetchWeightToday()
     fetchCalories(todayISO, setKToday, setLoadingKToday)
   }, [])
 
-  // 선택일 바뀔 때: 선택일 몸무게/칼로리
+  // 선택일 변경 시
   useEffect(() => {
     fetchWeightSelected(selected)
     fetchCalories(selected, setKSel, setLoadingKSel)
-  }, [selected])
+  }, [selected, wToday])
 
   const markedDates = useMemo(() => ({
     [selected]: { selected: true, selectedColor: '#3B82F6' },
     [todayISO]: selected === todayISO ? {} : { marked: true, dotColor: '#10B981' }
   }), [selected, todayISO])
 
-  // 차트 데이터(2점: 오늘 vs 선택일) – Infinity 방지 보정
-  const weightPair = sanitizePair(wToday ?? 0, wSel ?? 0)
-  const kcalPair   = sanitizePair(kToday ?? 0, kSel ?? 0)
+  /* 왼쪽=선택일, 오른쪽=오늘 로 통일 */
+  const weightPair = sanitizePair(wSel, wToday)
+  const kcalPair   = sanitizePair(kSel, kToday, { nonNegative: true })
+  const wLabels = [pretty(selected), pretty(todayISO)]
+  const kLabels = [pretty(selected), pretty(todayISO)]
 
-  const wLabels = [pretty(todayISO), pretty(selected)]
-  const kLabels = [pretty(todayISO), pretty(selected)]
+  const weightUnavailable = (wSel == null && wToday == null)
+  const kcalUnavailable   = (kSel == null && kToday == null)
 
   return (
     <ScrollView style={s.container} contentContainerStyle={{ paddingBottom: 24 }}>
       <Text style={s.title}>한눈에</Text>
 
-      {/* 캘린더 */}
       <Calendar
         onDayPress={(d) => setSelected(d.dateString)}
         markedDates={markedDates}
-        theme={{
-          todayTextColor: '#10B981',
-          selectedDayBackgroundColor: '#3B82F6',
-          arrowColor: '#111827',
-        }}
+        theme={{ todayTextColor: '#10B981', selectedDayBackgroundColor: '#3B82F6', arrowColor: '#111827' }}
         style={s.calendar}
       />
 
-      {/* 몸무게 비교 */}
+      {/* 몸무게 */}
       <View style={s.card}>
         <Text style={s.cardTitle}>몸무게 (kg)</Text>
         {(loadingWToday || loadingWSel) ? (
           <ActivityIndicator />
+        ) : weightUnavailable ? (
+          <Text style={s.tip}>선택한 날짜와 오늘의 몸무게 데이터가 없습니다.</Text>
         ) : (
           <>
             <LineChart
@@ -172,26 +192,29 @@ export default function DataScreen() {
               yAxisSuffix="kg"
               chartConfig={chartConfigDark}
               bezier
+              fromZero
               withInnerLines
               withOuterLines={false}
               style={s.chart}
             />
             <Delta
-              leftLabel="오늘"
-              rightLabel="선택일"
-              leftRaw={wToday ?? 0}
-              rightRaw={wSel ?? 0}
+              leftLabel="선택일"
+              rightLabel="오늘"
+              leftRaw={wSel ?? 0}
+              rightRaw={wToday ?? 0}
               unit="kg"
             />
           </>
         )}
       </View>
 
-      {/* 칼로리 비교 */}
+      {/* 칼로리 */}
       <View style={s.card}>
         <Text style={s.cardTitle}>칼로리 (kcal)</Text>
         {(loadingKToday || loadingKSel) ? (
           <ActivityIndicator />
+        ) : kcalUnavailable ? (
+          <Text style={s.tip}>선택한 날짜와 오늘의 칼로리 데이터가 없습니다.</Text>
         ) : (
           <>
             <LineChart
@@ -201,15 +224,16 @@ export default function DataScreen() {
               yAxisSuffix="kcal"
               chartConfig={chartConfigBlue}
               bezier
+              fromZero
               withInnerLines
               withOuterLines={false}
               style={s.chart}
             />
             <Delta
-              leftLabel="오늘"
-              rightLabel="선택일"
-              leftRaw={kToday ?? 0}
-              rightRaw={kSel ?? 0}
+              leftLabel="선택일"
+              rightLabel="오늘"
+              leftRaw={kSel ?? 0}
+              rightRaw={kToday ?? 0}
               unit="kcal"
             />
           </>
@@ -219,37 +243,36 @@ export default function DataScreen() {
   )
 }
 
-/** Δ 라벨 */
 function Delta({ leftLabel, rightLabel, leftRaw, rightRaw, unit }) {
-  const diff = num(rightRaw) - num(leftRaw)
+  const l = Number.isFinite(+leftRaw)  ? +leftRaw  : 0
+  const r = Number.isFinite(+rightRaw) ? +rightRaw : 0
+  const diff = l - r                      // 선택일 − 오늘
   const sign = diff > 0 ? '+' : diff < 0 ? '−' : ''
   const abs  = Math.abs(diff)
   const color = diff > 0 ? '#DC2626' : diff < 0 ? '#16A34A' : '#6B7280'
   return (
     <Text style={[s.delta, { color }]}>
-      Δ {rightLabel} − {leftLabel} : {sign}{abs} {unit}
+      Δ {leftLabel} − {rightLabel} : {sign}{abs} {unit}
     </Text>
   )
 }
 
-/** 차트 색감 (몸무게: 다크 그레이 라인) */
+/* 차트 색감 */
 const chartConfigDark = {
   backgroundColor: '#ffffff',
   backgroundGradientFrom: '#ffffff',
   backgroundGradientTo: '#ffffff',
   decimalPlaces: 1,
-  color: (opacity = 1) => `rgba(17, 24, 39, ${opacity})`,           // #111827
-  labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,   // #6B7280
+  color: (opacity = 1) => `rgba(17, 24, 39, ${opacity})`,
+  labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
   propsForDots: { r: '5', strokeWidth: '2', stroke: '#111827' },
 }
-
-/** 차트 색감 (칼로리: 블루 라인) */
 const chartConfigBlue = {
   backgroundColor: '#ffffff',
   backgroundGradientFrom: '#ffffff',
   backgroundGradientTo: '#ffffff',
   decimalPlaces: 0,
-  color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`,         // #3B82F6
+  color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`,
   labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
   propsForDots: { r: '5', strokeWidth: '2', stroke: '#3B82F6' },
 }
@@ -262,5 +285,5 @@ const s = StyleSheet.create({
   cardTitle: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 8 },
   chart: { borderRadius: 12 },
   delta: { marginTop: 8, fontSize: 13, fontWeight: '700', textAlign: 'right' },
-  tip: { fontSize: 12, color: '#6B7280', paddingHorizontal: 16, marginTop: 8, marginBottom: 16 },
+  tip: { fontSize: 12, color: '#6B7280', paddingHorizontal: 2, paddingVertical: 8 },
 })
