@@ -1,3 +1,5 @@
+// 공공 데이터 API 용 foodDTO
+
 package com.example.health_care.dto;
 
 import lombok.AllArgsConstructor;

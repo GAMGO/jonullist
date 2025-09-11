@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from 'react'
-import { View, Text, ImageBackground, StyleSheet, Animated, AppState, ActivityIndicator, TouchableOpacity } from 'react-native'
+import { View, Text, ImageBackground, StyleSheet, Animated, AppState, ActivityIndicator, TouchableOpacity, TextInput, Image, Linking, FlatList } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import * as Location from 'expo-location'
@@ -59,6 +59,11 @@ export default function QuestScreen(){
   const today = dayKey()
   const taunts = useMemo(()=>TAUNTS(lang), [lang])
 
+  const [query,setQuery]=useState('')
+  const [videos,setVideos]=useState([])
+  const [loading,setLoading]=useState(false)
+  const [error,setError]=useState('')
+
   async function loadOrGenQuests(){
     const storedDate = await AsyncStorage.getItem('@quest/date')
     if (storedDate !== today) {
@@ -83,7 +88,6 @@ export default function QuestScreen(){
     const walkKm = Math.round((4.0 * factor) * 10) / 10
     const squats = Math.round(30 * factor)
     const pushups = Math.round(20 * factor)
-
     const list = [
       { id: 'walk',  type: 'walk_km', target: walkKm, desc: `${t('WALK') || 'WALK'} ${walkKm} km`, auto: true,  done: false },
       { id: 'squat', type: 'squat',   target: squats,  desc: `${t('SQUAT') || 'SQUAT'} ${squats}`,   auto: false, done: false },
@@ -141,14 +145,6 @@ export default function QuestScreen(){
     else if(meters===0) setQuip(pick(taunts.none))
   },[meters, quests, perm, taunts, anim])
 
-  if(!fontsLoaded){
-    return(
-      <View style={[styles.center,{backgroundColor:'#000'}]}>
-        <ActivityIndicator />
-      </View>
-    )
-  }
-
   const width=anim.interpolate({inputRange:[0,1],outputRange:['0%','100%']})
   const walkQ = quests.find(x=>x.id==='walk')
   const squatQ = quests.find(x=>x.id==='squat')
@@ -162,9 +158,48 @@ export default function QuestScreen(){
   const canSquat = !!squatQ
   const canPush = !!pushupQ
 
+  async function searchVideos(qText){
+    const q = (qText || query || '').trim()
+    if(!q) return
+    setLoading(true); setError(''); setVideos([])
+    try{
+      const data = await apiGet(`/api/youtube/search?q=${encodeURIComponent(q)}&maxResults=8`)
+      const items = Array.isArray(data?.items) ? data.items : []
+      const mapped = items.map(it => ({
+        id: it?.id?.videoId || it?.id,
+        title: it?.snippet?.title || '',
+        channel: it?.snippet?.channelTitle || '',
+        thumb: it?.snippet?.thumbnails?.medium?.url || it?.snippet?.thumbnails?.default?.url || '',
+      })).filter(v=>v.id)
+      setVideos(mapped)
+    }catch(e){
+      setError('검색에 실패했어요')
+    }finally{
+      setLoading(false)
+    }
+  }
+
+  useEffect(()=>{
+    const base = pushupQ ? '푸쉬업 홈트' : squatQ ? '스쿼트 폼 교정' : '걷기 스트레칭'
+    searchVideos(base)
+  },[]) // 초기 추천
+
+  function openVideo(id){
+    const url = `https://www.youtube.com/watch?v=${id}`
+    Linking.openURL(url)
+  }
+
+  if(!fontsLoaded){
+    return(
+      <View style={[styles.center,{backgroundColor:'#000'}]}>
+        <ActivityIndicator />
+      </View>
+    )
+  }
+
   return(
     <ImageBackground source={require('../../assets/background/home.png')} style={{flex:1}} resizeMode="cover">
-      <Text style={[styles.screenTitle,{top:insets.top+8}]}>{t('QUEST') || 'QUEST'}</Text>
+      <Text style={[styles.screenTitle,{top:insets.top+8}]}>{t('BURNING') || 'BURNING'}</Text>
 
       <View style={{paddingTop:insets.top+88,paddingHorizontal:18,gap:16}}>
         <View style={styles.card}>
@@ -177,7 +212,6 @@ export default function QuestScreen(){
           <Text style={styles.quip}>{quip}</Text>
         </View>
 
-        {/* 빠른 시작 버튼만 표시 */}
         <View style={styles.quickRow}>
           <TouchableOpacity onPress={startSquat} disabled={!canSquat} style={[styles.quickBtn, !canSquat && styles.disabled]}>
             <Text style={styles.quickTxt}>스쿼트 시작</Text>
@@ -187,28 +221,51 @@ export default function QuestScreen(){
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          onPress={async () => {
-            await AsyncStorage.removeItem('@quest/list')
-            await AsyncStorage.removeItem('@quest/date')
-            await loadOrGenQuests()
-          }}
-          style={[styles.btn, { marginTop: 20, alignSelf: 'center', backgroundColor: '#ef4444' }]}
-        >
-          <Text style={styles.btnText}>{t('RESET_QUESTS') || 'RESET QUESTS'}</Text>
-        </TouchableOpacity>
+        <View style={styles.searchRow}>
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="운동 영상 검색"
+            placeholderTextColor="#9CA3AF"
+            style={styles.input}
+            returnKeyType="search"
+            onSubmitEditing={()=>searchVideos()}
+          />
+          <TouchableOpacity onPress={()=>searchVideos()} style={styles.searchBtn}>
+            <Text style={styles.searchTxt}>검색</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.listWrap}>
+          {loading ? (
+            <ActivityIndicator />
+          ) : error ? (
+            <Text style={styles.err}>{error}</Text>
+          ) : (
+            <FlatList
+              data={videos}
+              keyExtractor={(item)=>item.id}
+              renderItem={({item})=>(
+                <TouchableOpacity style={styles.item} onPress={()=>openVideo(item.id)}>
+                  <Image source={{uri:item.thumb}} style={styles.thumb}/>
+                  <View style={styles.meta}>
+                    <Text style={styles.itemTitle} numberOfLines={2}>{item.title}</Text>
+                    <Text style={styles.itemChan} numberOfLines={1}>{item.channel}</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+              ItemSeparatorComponent={()=> <View style={{height:10}}/>}
+              ListEmptyComponent={<Text style={styles.empty}>추천 영상을 불러오지 못했어요</Text>}
+            />
+          )}
+        </View>
       </View>
     </ImageBackground>
   )
 }
 
 const styles=StyleSheet.create({
-  screenTitle:{
-    position:'absolute',left:0,right:0,textAlign:'center',color:'#000',
-    fontSize:26,lineHeight:32,
-    textShadowColor:'rgba(255,255,255,0.28)',textShadowOffset:{width:0,height:1},textShadowRadius:2,
-    zIndex:10,fontFamily:FONT,fontWeight:'normal',includeFontPadding:true,
-  },
+  screenTitle:{position:'absolute',left:0,right:0,textAlign:'center',color:'#000',fontSize:26,lineHeight:32,textShadowColor:'rgba(255,255,255,0.28)',textShadowOffset:{width:0,height:1},textShadowRadius:2,zIndex:10,fontFamily:FONT,fontWeight:'normal',includeFontPadding:true},
   center:{flex:1,alignItems:'center',justifyContent:'center'},
   card:{backgroundColor:'rgba(255,255,255,0.8)',borderRadius:24,padding:18,gap:12},
   title:{fontFamily:FONT,fontSize:20,lineHeight:24,color:'#111',includeFontPadding:true},
@@ -217,12 +274,20 @@ const styles=StyleSheet.create({
   barFill:{position:'absolute',left:0,top:0,bottom:0,backgroundColor:'rgba(34,197,94,0.85)'},
   barText:{textAlign:'center',fontFamily:FONT,fontSize:14,lineHeight:17,color:'#111',includeFontPadding:true},
   quip:{fontFamily:FONT,fontSize:14,lineHeight:17,color:'#000',marginTop:2,includeFontPadding:true},
-
   quickRow:{ flexDirection:'row', gap:10 },
   quickBtn:{ flex:1, backgroundColor:'#111827', borderRadius:12, paddingVertical:12, alignItems:'center' },
   quickTxt:{ fontFamily:FONT, color:'#fff', fontSize:16, lineHeight:20, includeFontPadding:true },
   disabled:{ opacity:0.5 },
-
-  btn:{paddingHorizontal:12,paddingVertical:6,backgroundColor:'#111827',borderRadius:8},
-  btnText:{fontFamily:FONT,color:'#fff',fontSize:12,lineHeight:15,includeFontPadding:true},
+  searchRow:{ flexDirection:'row', gap:8, alignItems:'center' },
+  input:{ flex:1, borderWidth:2, borderColor:'#111', borderRadius:12, paddingHorizontal:12, height:44, backgroundColor:'rgba(255,255,255,0.9)', fontFamily:FONT, fontSize:16, color:'#111' },
+  searchBtn:{ height:44, paddingHorizontal:16, backgroundColor:'#2563EB', borderRadius:12, alignItems:'center', justifyContent:'center' },
+  searchTxt:{ fontFamily:FONT, color:'#fff', fontSize:16 },
+  listWrap:{ flex:1, paddingBottom:24 },
+  item:{ flexDirection:'row', backgroundColor:'rgba(255,255,255,0.9)', borderRadius:12, overflow:'hidden' },
+  thumb:{ width:120, height:80, backgroundColor:'#ddd' },
+  meta:{ flex:1, padding:10, gap:4, justifyContent:'center' },
+  itemTitle:{ fontFamily:FONT, fontSize:14, lineHeight:18, color:'#111' },
+  itemChan:{ fontFamily:FONT, fontSize:12, lineHeight:15, color:'#4B5563' },
+  empty:{ fontFamily:FONT, fontSize:14, lineHeight:18, color:'#111', textAlign:'center', paddingVertical:12 },
+  err:{ fontFamily:FONT, fontSize:14, color:'#ef4444', textAlign:'center' },
 })

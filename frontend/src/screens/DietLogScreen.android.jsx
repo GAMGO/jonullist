@@ -1,12 +1,14 @@
-import React, { useState, useLayoutEffect } from 'react';
-import { View, Text, Button, FlatList, StyleSheet, Pressable, SafeAreaView, Platform } from 'react-native';
+import React, { useState, useLayoutEffect, useMemo, useCallback, useEffect } from 'react';
+import { View, Text, FlatList, StyleSheet, Pressable, SafeAreaView, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { apiPost } from '../config/api';    // 기록된 데이터 백엔드 연결용 
-import { useNavigation } from '@react-navigation/native';
-import Constants from "expo-constants";   // 안드로이드 제목행 고정 
+import { apiPost, apiGet } from '../config/api';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import Constants from 'expo-constants';
+import { Calendar } from 'react-native-calendars';
+
+const EMPTY_DAY = { morning: [], lunch: [], dinner: [] };
 
 export default function DietLogScreen() {
-
   const navigation = useNavigation();
 
   useLayoutEffect(() => {
@@ -15,64 +17,72 @@ export default function DietLogScreen() {
       headerTitleAlign: 'center',
       headerTintColor: '#000',
     });
-  },  [navigation]);
+  }, [navigation]);
 
-  // **날짜별 기록 관리
-  const [mealsByDate, setMealsByDate] = useState({});
   const [selectedDate, setSelectedDate] = useState(new Date());
-
+  const [dayMeals, setDayMeals] = useState(EMPTY_DAY);
   const [showPicker, setShowPicker] = useState(false);
 
-  const [mealType, setMealType] = useState('morning');     
-  const [food, setFood] = useState('');
-  const [calories, setCalories] = useState('');
-
-  // 로컬 기준 날짜(yyyy-mm-dd)
   const dateKey = [
     selectedDate.getFullYear(),
     String(selectedDate.getMonth() + 1).padStart(2, '0'),
     String(selectedDate.getDate()).padStart(2, '0'),
   ].join('-');
 
-  const meals = mealsByDate[dateKey] || {morning: [], lunch: [], dinner: []};
+  const totalCalories = useMemo(() => {
+    return [...dayMeals.morning, ...dayMeals.lunch, ...dayMeals.dinner]
+      .reduce((sum, m) => sum + (m.calories || 0), 0);
+  }, [dayMeals]);
 
-  // 공통 저장 콜백(직접입력+카메라 결과 이걸로 추가)
+  const fetchDay = useCallback(async (dk) => {
+    try {
+      const rec = await apiGet(`/api/diet/get?date=${dk}`);
+      const details = typeof rec?.mealDetails === 'string'
+        ? JSON.parse(rec.mealDetails || '{}')
+        : rec?.mealDetails || {};
+      const normalized = {
+        morning: Array.isArray(details.morning) ? details.morning : [],
+        lunch:   Array.isArray(details.lunch)   ? details.lunch   : [],
+        dinner:  Array.isArray(details.dinner)  ? details.dinner  : [],
+      };
+      setDayMeals(normalized);
+    } catch (e) {
+      setDayMeals(EMPTY_DAY);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDay(dateKey);
+  }, [dateKey, fetchDay]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchDay(dateKey);
+    }, [fetchDay, dateKey])
+  );
+
   const handleAddMeal = async (entry, type) => {
-    // entry: {food: String, calorie: number}
-    const mealType = type;
-    setMealsByDate(prev => ({
-      ...prev,
-      [dateKey]: {
-        morning: prev[dateKey]?.morning ?? [],
-        lunch:   prev[dateKey]?.lunch   ?? [],
-        dinner:  prev[dateKey]?.dinner  ?? [],
-        [mealType]: [ ...(prev[dateKey]?.[mealType] ?? []), entry ],
-      },
+    const payload = { ...entry, timestamp: entry.timestamp ?? Date.now() };
+    setDayMeals(prev => ({
+      morning: type === 'morning' ? [...prev.morning, payload] : prev.morning,
+      lunch:   type === 'lunch'   ? [...prev.lunch,   payload] : prev.lunch,
+      dinner:  type === 'dinner'  ? [...prev.dinner,  payload] : prev.dinner,
     }));
-   
-    // 백엔드로 전송 준비
     try {
       await apiPost('/api/diet/save', {
         date: dateKey,
-        type: mealType,
-        food: entry.food,
-        calories: entry.calories,
+        type,
+        food: payload.food,
+        calories: payload.calories,
+        timestamp: payload.timestamp,
       });
     } catch (err) {
-      console.error('❌ 백엔드 전송 실패', err && err.message ? err.message : err);
+      console.error('❌ 백엔드 전송 실패', err?.message || err);
     }
   };
 
-  // **총 칼로리 계산
-  const totalCalories = React.useMemo(() => {
-    return [...meals.morning, ...meals.lunch, ...meals.dinner]
-      .reduce((sum, m) => sum + (m.calories || 0), 0);
-  }, [meals.morning, meals.lunch, meals.dinner]);
-
-  // 섹션 렌더러
   const MealSection = ({ label, type }) => (
     <View style={styles.section}>
-      {/* 섹션 헤더: 제목 + 버튼 2개(카메라/직접입력) */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>{label}</Text>
         <View style={styles.headerActions}>
@@ -96,15 +106,11 @@ export default function DietLogScreen() {
           </Pressable>
         </View>
       </View>
-
-      {/* 섹션 리스트 */}
       <FlatList
-        data={meals[type]}
+        data={dayMeals[type]}
         keyExtractor={(_, i) => `${type}-${i}`}
         renderItem={({ item }) => (
-          <Text style={styles.item}>
-            {item.food} - {item.calories} kcal
-          </Text>
+          <Text style={styles.item}>{item.food} - {item.calories} kcal</Text>
         )}
         ListEmptyComponent={<Text style={styles.empty}>아직 기록이 없어요.</Text>}
         scrollEnabled={false}
@@ -116,8 +122,6 @@ export default function DietLogScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-
-        {/* 날짜 선택 */}
         <Pressable style={styles.dateButton} onPress={() => setShowPicker(true)}>
           <Text style={styles.dateText}>📅 {dateKey}</Text>
         </Pressable>
@@ -132,28 +136,47 @@ export default function DietLogScreen() {
                 <Pressable onPress={() => setShowPicker(false)}><Text style={styles.toolbarBtn}>완료</Text></Pressable>
               </View>
               <View style={styles.pickerBody}>
-                <DateTimePicker
-                  value={selectedDate}
-                  mode="date"
-                  display={Platform.OS === 'android' ? (parseFloat(String(Platform.Version)) >= 14 ? 'inline' : 'spinner') : 'calendar'}
-                  themeVariant="light"
-                  onChange={(event, date) => {
-                    if (date) setSelectedDate(date);
-                    if (Platform.OS === 'android') setShowPicker(false);
-                  }}
-                  style={{ backgroundColor: '#fff', alignSelf: 'center', width: 360 }}
-                />
+                {Platform.OS === 'android' ? (
+                  <Calendar
+                    initialDate={dateKey}
+                    enableSwipeMonths
+                    onDayPress={(d) => {
+                      setSelectedDate(new Date(d.dateString))
+                      setShowPicker(false)
+                    }}
+                    markedDates={{ [dateKey]: { selected: true } }}
+                    style={{ alignSelf: 'center', width: '100%' }}
+                    theme={{
+                      textDayFontSize: 16,
+                      textMonthFontSize: 18,
+                      textDayHeaderFontSize: 12,
+                      selectedDayBackgroundColor: '#377dff',
+                      selectedDayTextColor: '#fff',
+                      todayTextColor: '#377dff',
+                      arrowColor: '#377dff',
+                    }}
+                  />
+                ) : (
+                  <DateTimePicker
+                    value={selectedDate}
+                    mode="date"
+                    display={parseFloat(String(Platform.Version)) >= 14 ? 'inline' : 'spinner'}
+                    themeVariant="light"
+                    onChange={(event, date) => {
+                      if (date) setSelectedDate(date)
+                    }}
+                    style={{ backgroundColor: '#fff', alignSelf: 'center', width: 360 }}
+                  />
+                )}
               </View>
             </View>
           </View>
         )}
 
-        {/* 섹션 3개: 아침/점심/저녁 */}
         <MealSection label="아침" type="morning" />
         <MealSection label="점심" type="lunch" />
         <MealSection label="저녁" type="dinner" />
 
-        {/* 총 칼로리 */}
         <Text style={styles.total}>🔥 총 칼로리: {totalCalories} kcal</Text>
       </View>
     </SafeAreaView>
@@ -163,49 +186,23 @@ export default function DietLogScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#fff' },
   container: { flex: 1, paddingHorizontal: 20, paddingTop: Constants.statusBarHeight + 30, backgroundColor: '#fff' },
-
-  // 날짜 버튼
-  dateButton: {
-    paddingVertical: 20, paddingHorizontal: 20, alignItems: 'left', marginBottom: 16
-  },
+  dateButton: { paddingVertical: 70, paddingHorizontal: 20, alignItems: 'left', marginBottom: 16 },
   dateText: { fontSize: 20, color: '#333' },
-
-  // 피커
   pickerOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end', zIndex: 999 },
   pickerBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' },
   pickerSheet: { backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingBottom: 12 },
-  pickerToolbar: {
-    height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16,
-    borderBottomWidth: 1, borderBottomColor: '#eee'
-  },
-  pickerBody: {
-    height: Platform.OS === 'android' ? (parseFloat(String(Platform.Version)) >= 14 ? 360 : 216) : undefined
-  },
+  pickerToolbar: { height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  pickerBody: { height: Platform.OS === 'android' ? 360 : undefined },
   toolbarBtn: { fontSize: 16, color: '#tomato' },
   toolbarTitle: { fontSize: 16, fontWeight: '600', color: '#333' },
-
-  // 섹션
-  section: {
-    borderWidth: 1, borderColor: '#eee', borderRadius: 12, padding: 22, marginBottom: 14, backgroundColor: '#fafafa'
-  },
-  sectionHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8
-  },
+  section: { borderWidth: 1, borderColor: '#eee', borderRadius: 12, padding: 22, marginBottom: 14, backgroundColor: '#fafafa' },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#333' },
   headerActions: { flexDirection: 'row', gap: 8 },
-
-  // 버튼
-  primaryBtn: {
-    backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#ddd'
-  },
+  primaryBtn: { backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#ddd' },
   primaryBtnText: { color: '#000', fontSize: 14, fontWeight: '600' },
-  secondaryBtn: {
-    backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: 8, borderWidth: 1, borderColor: '#ddd'
-  },
+  secondaryBtn: { backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#ddd' },
   secondaryBtnText: { color: '#333', fontSize: 14, fontWeight: '600' },
-
   item: { fontSize: 16, marginVertical: 6, color: '#333' },
   empty: { fontSize: 14, color: '#999', paddingTop: 4 },
   total: { fontSize: 20, fontWeight: 'bold', marginTop: 8, color: 'tomato' },

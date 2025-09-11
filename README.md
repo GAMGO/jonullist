@@ -34,6 +34,7 @@ npx expo install react-native-webview
 npm i @react-native-voice/voice
 npm install tesseract.js
 npx expo install expo-file-system
+npx expo install react-native-chart-kit react-native-svg
 - npx expo start
 
 
