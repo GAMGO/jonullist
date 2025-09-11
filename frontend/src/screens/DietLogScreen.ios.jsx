@@ -140,7 +140,6 @@ export default function DietLogScreen() {
         style={{flex:1}}
         resizeMode="cover">
 
-        <View style={styles.darkOverlay}></View>
 
     <SafeAreaView style={styles.safeArea}>
 
@@ -174,10 +173,12 @@ export default function DietLogScreen() {
                   }}
                   style={{ backgroundColor: '#fff', alignSelf: 'center', width: 360 }}
                 />
-
+              
               </View>
             </View>
-          )}
+          </View>
+        )}
+          
 
           {/* 섹션 3개 */}
           <MealSection label="아침" type="morning" />
