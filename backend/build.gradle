@@ -58,8 +58,12 @@ dependencies {
 
     // Tesseract OCR 라이브러리
     implementation 'net.sourceforge.tess4j:tess4j:5.11.0'
-    implementation 'org.bytedeco:tesseract:5.3.3-1.5.10'
-    implementation 'org.bytedeco:leptonica:1.83.1-1.5.10'
+    
+    // .env 파일 로드
+    implementation 'io.github.cdimascio:java-dotenv:5.2.2'
+
+    //PostConstruct
+    implementation 'javax.annotation:javax.annotation-api:1.3.2'
     
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'

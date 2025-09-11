@@ -19,12 +19,7 @@
     "base-64": "^1.0.0",
     "expo": "~53.0.22",
     "expo-camera": "~16.1.11",
-<<<<<<< HEAD
-=======
-
     "expo-constants": "^17.1.7",
-
->>>>>>> main
     "expo-file-system": "~18.1.11",
     "expo-font": "~13.3.2",
     "expo-haptics": "~14.1.4",
@@ -54,14 +49,8 @@
     "react-native-web": "^0.20.0",
     "react-native-webview": "13.13.5",
     "start": "^5.1.0",
-<<<<<<< HEAD
-    "tesseract.js": "^6.0.1"
-=======
-
     "tesseract.js": "^6.0.1",
     "victory-native": "^41.16.2"
-
->>>>>>> main
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
