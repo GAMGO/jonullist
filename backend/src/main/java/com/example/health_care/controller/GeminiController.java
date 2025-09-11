@@ -5,7 +5,7 @@ import com.example.health_care.dto.GeminiRequest;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,14 +14,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/gemini")
 public class GeminiController {
 
     private final WebClient webClient;
@@ -33,65 +36,81 @@ public class GeminiController {
         this.webClient = webClientBuilder.baseUrl("https://generativelanguage.googleapis.com").build();
     }
 
-    @PostMapping("/gemini-proxy")
-    public Mono<ResponseEntity<String>> handleGeminiRequest(@RequestBody GeminiRequest request) {
-        if (geminiApiKey == null || geminiApiKey.isEmpty()) {
-            return Mono.just(ResponseEntity.status(500).body("API Key is not configured."));
+    private Mono<ResponseEntity<String>> handleGeminiRequest(GeminiRequest request) {
+        // 'contents' 배열의 첫 번째 항목인 'parts' 리스트를 생성합니다.
+        List<Map<String, Object>> parts = new ArrayList<>();
+        
+        // 텍스트 프롬프트 부분을 추가합니다.
+        Map<String, Object> textPart = new HashMap<>();
+        textPart.put("text", request.getPrompt());
+        parts.add(textPart);
+
+        // 이미지 데이터가 있을 경우, 이미지 부분을 추가합니다.
+        if (request.getImageData() != null && !request.getImageData().isEmpty()) {
+            Map<String, String> inlineData = new HashMap<>();
+            inlineData.put("mimeType", request.getMimeType());
+            inlineData.put("data", request.getImageData());
+
+            Map<String, Object> imagePart = new HashMap<>();
+            imagePart.put("inlineData", inlineData);
+            parts.add(imagePart);
         }
+        
+        // 최종 'contents' 객체를 구성합니다.
+        Map<String, Object> contents = new HashMap<>();
+        contents.put("parts", parts);
 
+        // 최종 요청 본문(body)을 구성합니다.
         Map<String, Object> body = new HashMap<>();
-        Map<String, Object> parts = new HashMap<>();
-        parts.put("text", request.getPrompt());
-
-        Map<String, String> inlineData = new HashMap<>();
-        inlineData.put("mimeType", request.getMimeType());
-        inlineData.put("data", request.getImageData());
-
-        parts.put("inlineData", inlineData);
-
-        Map<String, Object> content = new HashMap<>();
-        content.put("parts", Collections.singletonList(parts));
-
-        Map<String, Double> generationConfig = new HashMap<>();
-        generationConfig.put("temperature", 0.1);
-
-        body.put("contents", Collections.singletonList(content));
-        body.put("generationConfig", generationConfig);
-
+        body.put("contents", Collections.singletonList(contents));
+        body.put("generationConfig", new HashMap<String, Object>() {{
+            put("temperature", 0.1);
+        }});
+        
         return webClient.post()
-                .uri("/v1beta/models/gemini-1.5-flash-latest:generateContent?key=" + geminiApiKey)
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .uri(uriBuilder -> uriBuilder
+                    .path("/v1beta/models/gemini-1.5-flash:generateContent")
+                    .queryParam("key", geminiApiKey)
+                    .build())
+                .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(body))
                 .retrieve()
                 .bodyToMono(String.class)
-                .map(responseBody -> {
+                .map(response -> {
                     try {
                         ObjectMapper mapper = new ObjectMapper();
-                        JsonNode root = mapper.readTree(responseBody);
-                        JsonNode textNode = root.at("/candidates/0/content/parts/0/text");
-                        if (textNode.isTextual()) {
-                            return ResponseEntity.ok(textNode.asText());
-                        }
+                        JsonNode root = mapper.readTree(response);
+                        String text = root.at("/candidates/0/content/parts/0/text").asText();
+                        return ResponseEntity.ok(text);
                     } catch (Exception e) {
-                        // JSON 파싱 실패 시 원본 응답을 반환하거나 에러 처리
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body("Failed to parse Gemini response JSON.");
                     }
-                    return ResponseEntity.ok(responseBody);
+                })
+                .onErrorResume(e -> {
+                    if (e instanceof WebClientResponseException) {
+                        WebClientResponseException wcE = (WebClientResponseException) e;
+                        System.err.println("Gemini API Error Body: " + wcE.getResponseBodyAsString());
+                    }
+                    System.err.println("WebClient error calling Gemini API: " + e.getMessage());
+                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body("Error calling Gemini API: " + e.getMessage()));
                 });
     }
 
-    @PostMapping("/gemini-proxy/classify")
+    @PostMapping("/classify")
     public Mono<ResponseEntity<String>> classifyImage(@RequestBody GeminiRequest request) {
         request.setPrompt(GeminiPrompts.CLASSIFY_PROMPT);
         return handleGeminiRequest(request);
     }
 
-    @PostMapping("/gemini-proxy/packaged")
+    @PostMapping("/packaged")
     public Mono<ResponseEntity<String>> analyzePackaged(@RequestBody GeminiRequest request) {
         request.setPrompt(GeminiPrompts.PACKAGED_PROMPT);
         return handleGeminiRequest(request);
     }
 
-    @PostMapping("/gemini-proxy/prepared")
+    @PostMapping("/prepared")
     public Mono<ResponseEntity<String>> analyzePrepared(@RequestBody GeminiRequest request) {
         request.setPrompt(GeminiPrompts.PREPARED_PROMPT);
         return handleGeminiRequest(request);

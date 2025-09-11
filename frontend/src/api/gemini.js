@@ -1,8 +1,6 @@
 import * as FileSystem from "expo-file-system";
 import Tesseract from "tesseract.js";
-
-// 더 이상 클라이언트 코드에서 API 키를 직접 사용하지 않습니다.
-// const GEMINI_API_KEY = Constants.expoConfig.extra.GEMINI_API_KEY
+import { ORIGIN } from "../config/api";
 
 /* ───── 공통 유틸 ───── */
 async function toBase64Async(uri) {
@@ -35,53 +33,38 @@ async function callBackendApi(endpoint, base64, mime = "image/jpeg") {
     mimeType: mime,
   };
   
-  // prompt 필드를 삭제하고, 엔드포인트에 따라 백엔드에서 프롬프트가 결정되도록 변경
   const res = await fetchWithTimeout(
-    `http://localhost:3000/api/gemini-proxy/${endpoint}`,
+    `${ORIGIN}/api/gemini/${endpoint}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     },
-    30000 // 타임아웃 30초로 연장
+    30000
   );
 
   if (!res.ok) {
     const t = await res.text().catch(() => "");
     throw new Error(`백엔드 API 호출 실패: ${res.status} ${t}`);
   }
-  return await res.text();
-}
-
-/* ───── Tesseract OCR ───── */
-async function ocrWithTesseract(uri) {
-  try {
-    const base64 = await toBase64Async(uri);
-    const dataUrl = `data:${guessMime(uri)};base64,${base64}`;
-    const { data: { text } } = await Tesseract.recognize(
-      dataUrl, "kor+eng",
-      { logger: m => __DEV__ && console.log("[tesseract]", m?.status || m) }
-    );
-    return String(text || "");
-  } catch (e) {
-    if (__DEV__) console.warn("[tesseract] error:", e?.message || e);
-    return "";
-  }
+  // 백엔드에서 JSON 문자열을 반환하므로 .text()로 받은 뒤 다시 파싱
+  const text = await res.text();
+  return JSON.parse(text);
 }
 
 /* ───── API 호출 파이프라인 ───── */
 async function classifyImage(uri) {
   const base64 = await toBase64Async(uri);
-  const text = await callBackendApi("classify", base64, guessMime(uri));
-  return JSON.parse(text);
+  // classify 엔드포인트는 이미지를 백엔드로 전송하고, 백엔드에서 프롬프트를 붙여서 Gemini 호출
+  const result = await callBackendApi("classify", base64, guessMime(uri));
+  console.log('LOG  ➡️ 분류 결과:', result);
+  return result;
 }
 
 async function analyzePackaged(uri) {
   const base64 = await toBase64Async(uri);
-  const text = await callBackendApi("packaged", base64, guessMime(uri));
-  const result = JSON.parse(text);
+  const result = await callBackendApi("packaged", base64, guessMime(uri));
 
-  // Gemini 응답에 필요한 값이 없을 경우, Tesseract OCR을 통한 보정 로직
   if (result.output?.calories === 0 && result.panel?.net_weight_g === 0) {
     const ocrText = await ocrWithTesseract(uri);
     const body = {
@@ -90,21 +73,21 @@ async function analyzePackaged(uri) {
       prompt: `텍스트 분석 결과를 활용하여 JSON을 다시 생성해줘: ${ocrText}`
     };
 
-    const res = await fetchWithTimeout(`http://localhost:3000/api/gemini-proxy/packaged`, {
+    const res = await fetchWithTimeout(`${ORIGIN}/api/gemini/packaged`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     }, 30000);
-    const text2 = await res.text();
-    return JSON.parse(text2);
+    const result2 = await res.text();
+    return JSON.parse(result2);
   }
   return result;
 }
 
 async function analyzePrepared(uri) {
   const base64 = await toBase64Async(uri);
-  const text = await callBackendApi("prepared", base64, guessMime(uri));
-  return JSON.parse(text);
+  const result = await callBackendApi("prepared", base64, guessMime(uri));
+  return result;
 }
 
 // 메인 함수
@@ -119,14 +102,16 @@ export async function analyzeFoodImage(uri) {
       if (result.output?.calories > 0) {
         return result.output;
       }
-      // 조리식품으로 분석 실패 시 포장 식품으로 다시 시도
-      const packagedResult = await analyzePackaged(uri);
-      return packagedResult.output;
+      return null;
     }
-  } catch (e) {
-    if (__DEV__) console.warn("[analyzeFoodImage] error:", e?.message || e);
-    throw e;
+  } catch (err) {
+    console.warn("[analyzeFoodImage] error:", err.message);
+    return null;
   }
 }
 
-export default { analyzeFoodImage };
+// Tesseract OCR 함수 (필요한 경우 구현)
+async function ocrWithTesseract(uri) {
+  const { data: { text } } = await Tesseract.recognize(uri, 'eng+kor');
+  return text;
+}

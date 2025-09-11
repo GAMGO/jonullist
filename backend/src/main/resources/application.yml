@@ -4,12 +4,12 @@ server:
 
 spring:
   config:
-    import: optional:file:.env[.properties]
+    import: optional:file:./.env
   datasource:
     driver-class-name: oracle.jdbc.OracleDriver
     url: jdbc:oracle:thin:@//localhost:1521/xe
-    username: c##idev # 임시로 직접 입력
-    password: 1234 # 임시로 직접 입력
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: update
