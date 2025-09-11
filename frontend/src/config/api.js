@@ -129,3 +129,25 @@ export async function apiPost(path, body, init) {
     clearTimeout(to)
   }
 }
+
+export async function apiDelete(path, body, init) {
+  const url = join(ORIGIN, path)
+  const ctrl = new AbortController()
+  const to = setTimeout(() => ctrl.abort(), 20000)
+  try {
+    const res = await fetch(url, {
+      ...(init || {}),
+      method: 'DELETE',
+      headers: withAuthHeaders(init?.headers),
+      body: JSON.stringify(body),
+      signal: ctrl.signal,
+    })
+    const text = await res.text()
+    if (__DEV__) console.log('DELETE', url, '->', res.status, text)
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${text}`)
+    try { return JSON.parse(text) } catch { return text }
+  } finally {
+    clearTimeout(to)
+  }
+}
+
