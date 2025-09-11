@@ -2,6 +2,7 @@ import React, { useEffect, useState, useLayoutEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, Pressable, FlatList, Alert, Platform, SafeAreaView, StatusBar } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { apiGet, apiPost, apiDelete } from '../config/api';
 
 const FAV_KEY = 'FAVORITE_MEALS_V1';
 
@@ -23,22 +24,28 @@ export default function DirectInputScreen() {
 
   useEffect(() => {
     (async () => {
+
       try {
-        const raw = await AsyncStorage.getItem(FAV_KEY);
-        setFavs(raw ? JSON.parse(raw) : []);
+        const remote= await apiGet('/api/favorite');
+        console.log('서버에서 받은 데이터:', remote);
+        if (Array.isArray(remote)) {
+          setFavs(remote);
+          await AsyncStorage.setItem(FAV_KEY, JSON.stringify(remote)); // 로컬 캐싱
+        } else {
+          const raw = await AsyncStorage.getItem(FAV_KEY);
+          setFavs(raw ? JSON.parse(raw) : []);
+        }
       } catch (e) {
         console.error('즐겨찾기 로드 실패', e?.message || e);
+        const raw = await AsyncStorage.getItem(FAV_KEY);
+        setFavs(raw ? JSON.parse(raw) : []);
       }
     })();
   }, []);
 
   const saveFavs = async (next) => {
     setFavs(next);
-    try {
-      await AsyncStorage.setItem(FAV_KEY, JSON.stringify(next));
-    } catch (e) {
-      console.error('즐겨찾기 저장 실패', e?.message || e);
-    }
+    await AsyncStorage.setItem(FAV_KEY, JSON.stringify(next));
   };
 
   const addToFavs = async () => {
@@ -52,15 +59,29 @@ export default function DirectInputScreen() {
       Alert.alert('이미 있음', '이미 즐겨찾기에 있어요.');
       return;
     }
-    const next = [{ food: food.trim(), calories: kcal }, ...favs].slice(0, 50);
-    await saveFavs(next);
-    Alert.alert('즐겨찾기', '즐겨찾기에 저장했어요.');
+
+    try {
+      const saved = await apiPost('/api/favorite', { food: food.trim(), calories: kcal }); // 서버 저장
+      const next = [saved, ...favs].slice(0, 50);
+      await saveFavs(next);
+      Alert.alert('즐겨찾기', '즐겨찾기에 저장했어요.');
+    } catch (e) {
+      console.error('서버 즐겨찾기 저장 실패', e?.message || e);
+      Alert.alert('오류', '서버에 저장하지 못했습니다.');
+    }
   };
 
-  const removeFav = async (idx) => {
+  const removeFav = async (idx, id) => {
     const next = favs.filter((_, i) => i !== idx);
     await saveFavs(next);
+    try {
+      await apiDelete(`/api/favorite/${id}`); // 서버에서도 삭제
+    } catch (e) {
+      console.error('서버 즐겨찾기 삭제 실패', e?.message || e);
+    }
   };
+
+
 
   const pickFav = (f) => {
     setFood(f.food);
@@ -117,7 +138,7 @@ export default function DirectInputScreen() {
         <Text style={styles.sectionTitle}>자주 먹는 식단</Text>
         <FlatList
           data={favs}
-          keyExtractor={(_, i) => String(i)}
+          keyExtractor={(item, i) => item.idx ? String(item.idx):String(i)}
           renderItem={({ item, index }) => (
             <Pressable
               style={styles.favItem}
@@ -125,7 +146,7 @@ export default function DirectInputScreen() {
               onLongPress={() => {
                 Alert.alert('삭제', `"${item.food} (${item.calories}kcal)" 즐겨찾기를 삭제할까요?`, [
                   { text: '취소' },
-                  { text: '삭제', style: 'destructive', onPress: () => removeFav(index) },
+                  { text: '삭제', style: 'destructive', onPress: () => removeFav(index, item.idx) },
                 ]);
               }}
             >
@@ -143,19 +164,17 @@ export default function DirectInputScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, paddingHorizontal: 20, backgroundColor: '#fff', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight +20:20 },
+    flex: 1, paddingHorizontal: 20, backgroundColor: '#transparent', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight +20:20 },
   meta: { fontSize: 14, color: '#666', marginBottom: 12 },
 
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   input: {
     borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
-    paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 80 : 20,
-    backgroundColor: '#fff', fontSize: 16,
+    paddingHorizontal: 20,paddingVertical: 12, backgroundColor: '#fff', fontSize: 16
   },
-
   primaryBtn: {
     backgroundColor: '#007AFF', paddingHorizontal: 16, paddingVertical: 12,
-    borderRadius: 8, justifyContent: 'center', alignItems: 'center',
+    borderRadius: 8, justifyContent: 'center', alignItems: 'center'
   },
   primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   secondaryBtn: {

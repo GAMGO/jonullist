@@ -42,7 +42,7 @@ logging:
       hibernate:
         SQL: debug
 
-# API
+# 영양학 API
 nutri:
   base-url: http://api.data.go.kr
   endpoint: /openapi/tn_pubr_public_nutri_info_api
@@ -54,3 +54,9 @@ gemini:
     key: "${GEMINI_API_KEY}" # 환경 변수 참조
 tesseract:
   datapath: src/main/resources/tessdata
+
+# Youtube API
+youtube:
+  api:
+    key: ${YOUTUBE_API_KEY}
+  base-url: https://www.googleapis.com/youtube/v3
