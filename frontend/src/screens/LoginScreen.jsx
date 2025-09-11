@@ -149,7 +149,7 @@ export default function LoginScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={() => navigation.navigate('RecoverySetup')}
+          onPress={() => navigation.navigate('Recovery')}
           style={{ alignItems: 'center', padding: 10 }}
         >
           <Text style={{ fontFamily: FONT, color: '#2563eb' }}>{t('RECOVERY')}</Text>

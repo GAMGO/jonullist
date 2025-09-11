@@ -41,28 +41,28 @@ const TAUNTS = (lang) => ({
 
 function pick(a){return a[Math.floor(Math.random()*a.length)]}
 function dayKey(d=new Date()){const t=new Date(d);t.setHours(0,0,0,0);return t.toISOString().slice(0,10)}
-function haversineFix(lat1,lon1,lat2,lon2){const R=6371000,toRad=x=>x*Math.PI/180;const dLat=toRad(lat2-lat1),dLon=toRad(lon2-lon1);const s1=Math.sin(dLat/2),s2=Math.sin(dLon/2);const a=s1*s1+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*s2*s2;return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
+function haversineFix(lat1,lon1,lat2,lon2){const R=6371000,toRad=x=>x*Math.PI/180;const dLat=toRad(lat2-lat1),dLon=toRad(lat2-lon1);const s1=Math.sin(dLat/2),s2=Math.sin(dLon/2);const a=s1*s1+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*s2*s2;return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
 
 export default function QuestScreen(){
   const navigation = useNavigation()
-  const insets=useSafeAreaInsets()
-  const [fontsLoaded]=useFonts({[FONT]:require('../../assets/fonts/DungGeunMo.otf')})
+  const insets = useSafeAreaInsets()
+  const [fontsLoaded] = useFonts({ [FONT]: require('../../assets/fonts/DungGeunMo.otf') })
   const { t, lang } = useI18n()
-  const [perm,setPerm]=useState('undetermined')
-  const [meters,setMeters]=useState(0)
-  const [sessionMeters,setSessionMeters]=useState(0)
+  const [perm, setPerm] = useState('undetermined')
+  const [meters, setMeters] = useState(0)
+  const [sessionMeters, setSessionMeters] = useState(0)
   const [quests, setQuests] = useState([])
-  const anim=useRef(new Animated.Value(0)).current
-  const watchRef=useRef(null)
-  const lastRef=useRef(null)
-  const appActiveRef=useRef(true)
+  const anim = useRef(new Animated.Value(0)).current
+  const watchRef = useRef(null)
+  const lastRef = useRef(null)
+  const appActiveRef = useRef(true)
   const today = dayKey()
   const taunts = useMemo(()=>TAUNTS(lang), [lang])
 
-  const [query,setQuery]=useState('')
-  const [videos,setVideos]=useState([])
-  const [loading,setLoading]=useState(false)
-  const [error,setError]=useState('')
+  const [query, setQuery] = useState('')
+  const [videos, setVideos] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   async function loadOrGenQuests(){
     const storedDate = await AsyncStorage.getItem('@quest/date')
@@ -101,7 +101,10 @@ export default function QuestScreen(){
 
   useFocusEffect(useMemo(() => () => { return () => {} }, []))
 
-  useEffect(()=>{const sub=AppState.addEventListener('change',s=>{appActiveRef.current=(s==='active')});return()=>sub?.remove?.()},[])
+  useEffect(()=>{
+    const sub = AppState.addEventListener('change', s => { appActiveRef.current = (s === 'active') })
+    return () => sub?.remove?.()
+  },[])
   useEffect(()=>{let mounted=true;(async()=>{
     const {status}=await Location.requestForegroundPermissionsAsync().catch(()=>({status:'denied'}))
     if (!mounted) return
@@ -154,27 +157,29 @@ export default function QuestScreen(){
 
   const startSquat = () => squatQ && navigation.navigate('TACoach', { mode: 'squat', target: squatQ.target })
   const startPushup = () => pushupQ && navigation.navigate('TACoach', { mode: 'pushup', target: pushupQ.target })
-
   const canSquat = !!squatQ
   const canPush = !!pushupQ
 
   async function searchVideos(qText){
     const q = (qText || query || '').trim()
-    if(!q) return
+    if (!q) return
     setLoading(true); setError(''); setVideos([])
-    try{
-      const data = await apiGet(`/api/youtube/search?q=${encodeURIComponent(q)}&maxResults=8`)
-      const items = Array.isArray(data?.items) ? data.items : []
-      const mapped = items.map(it => ({
-        id: it?.id?.videoId || it?.id,
-        title: it?.snippet?.title || '',
-        channel: it?.snippet?.channelTitle || '',
-        thumb: it?.snippet?.thumbnails?.medium?.url || it?.snippet?.thumbnails?.default?.url || '',
-      })).filter(v=>v.id)
+    try {
+      const raw = await apiGet(`/api/youtube/search?q=${encodeURIComponent(q)}&maxResults=8`)
+      const data = typeof raw === 'string' ? JSON.parse(raw) : raw
+      const arr = Array.isArray(data) ? data : []
+      const mapped = arr.map(it => ({
+        id: it.videoId,
+        title: it.title || '',
+        channel: it.channelTitle || '',
+        thumb: it.thumbnail || '',
+        publishedAt: it.publishedAt || '',
+        viewCount: it.viewCount || '',
+      })).filter(v => v.id)
       setVideos(mapped)
-    }catch(e){
-      setError('검색에 실패했어요')
-    }finally{
+    } catch (e) {
+      setError('검색에 실패했어')
+    } finally {
       setLoading(false)
     }
   }
@@ -182,7 +187,7 @@ export default function QuestScreen(){
   useEffect(()=>{
     const base = pushupQ ? '푸쉬업 홈트' : squatQ ? '스쿼트 폼 교정' : '걷기 스트레칭'
     searchVideos(base)
-  },[]) // 초기 추천
+  },[]) 
 
   function openVideo(id){
     const url = `https://www.youtube.com/watch?v=${id}`
@@ -201,7 +206,8 @@ export default function QuestScreen(){
     <ImageBackground source={require('../../assets/background/home.png')} style={{flex:1}} resizeMode="cover">
       <Text style={[styles.screenTitle,{top:insets.top+8}]}>{t('BURNING') || 'BURNING'}</Text>
 
-      <View style={{paddingTop:insets.top+88,paddingHorizontal:18,gap:16}}>
+      {/* ✅ 여기 flex:1 추가 */}
+      <View style={{ flex:1, paddingTop: insets.top + 88, paddingHorizontal: 18, gap: 16 }}>
         <View style={styles.card}>
           <Text style={styles.title}>{t('DAILY_QUESTS') || 'DAILY QUESTS'}</Text>
           <Text style={styles.questMain}>{(t('WALK') || 'WALK')} {goalKm} km</Text>
@@ -244,7 +250,7 @@ export default function QuestScreen(){
           ) : (
             <FlatList
               data={videos}
-              keyExtractor={(item)=>item.id}
+              keyExtractor={(item)=> String(item.id)}
               renderItem={({item})=>(
                 <TouchableOpacity style={styles.item} onPress={()=>openVideo(item.id)}>
                   <Image source={{uri:item.thumb}} style={styles.thumb}/>
@@ -256,6 +262,8 @@ export default function QuestScreen(){
               )}
               ItemSeparatorComponent={()=> <View style={{height:10}}/>}
               ListEmptyComponent={<Text style={styles.empty}>추천 영상을 불러오지 못했어요</Text>}
+              contentContainerStyle={{ paddingBottom: 24 }}
+              keyboardShouldPersistTaps="handled"
             />
           )}
         </View>
@@ -282,7 +290,7 @@ const styles=StyleSheet.create({
   input:{ flex:1, borderWidth:2, borderColor:'#111', borderRadius:12, paddingHorizontal:12, height:44, backgroundColor:'rgba(255,255,255,0.9)', fontFamily:FONT, fontSize:16, color:'#111' },
   searchBtn:{ height:44, paddingHorizontal:16, backgroundColor:'#2563EB', borderRadius:12, alignItems:'center', justifyContent:'center' },
   searchTxt:{ fontFamily:FONT, color:'#fff', fontSize:16 },
-  listWrap:{ flex:1, paddingBottom:24 },
+  listWrap:{ flex:1, minHeight:120, paddingBottom:24 },
   item:{ flexDirection:'row', backgroundColor:'rgba(255,255,255,0.9)', borderRadius:12, overflow:'hidden' },
   thumb:{ width:120, height:80, backgroundColor:'#ddd' },
   meta:{ flex:1, padding:10, gap:4, justifyContent:'center' },
