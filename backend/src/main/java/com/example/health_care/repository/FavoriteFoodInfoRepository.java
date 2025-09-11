@@ -16,4 +16,7 @@ public interface FavoriteFoodInfoRepository extends JpaRepository<FavoriteFoodIn
 
     // 사용자별 즐겨찾기 개수 조회
     long countByCustomer_Idx(Long customerIdx);
+
+    // 50개 제한 시 가장 오래된 즐겨찾기 삭제를 위한 조회
+    List<FavoriteFoodInfoEntity> findByCustomer_IdxOrderByCreatedAtAsc(Long customerIdx);
 }
