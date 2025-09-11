@@ -24,8 +24,10 @@ export default function DirectInputScreen() {
 
   useEffect(() => {
     (async () => {
+
       try {
         const remote= await apiGet('/api/favorite');
+        console.log('서버에서 받은 데이터:', remote);
         if (Array.isArray(remote)) {
           setFavs(remote);
           await AsyncStorage.setItem(FAV_KEY, JSON.stringify(remote)); // 로컬 캐싱
@@ -69,11 +71,11 @@ export default function DirectInputScreen() {
     }
   };
 
-  const removeFav = async (idx) => {
+  const removeFav = async (idx, id) => {
     const next = favs.filter((_, i) => i !== idx);
     await saveFavs(next);
     try {
-      await apiDelete(`/api/favorite/${idx}`); // 서버에서도 삭제
+      await apiDelete(`/api/favorite/${id}`); // 서버에서도 삭제
     } catch (e) {
       console.error('서버 즐겨찾기 삭제 실패', e?.message || e);
     }
@@ -136,7 +138,7 @@ export default function DirectInputScreen() {
         <Text style={styles.sectionTitle}>자주 먹는 식단</Text>
         <FlatList
           data={favs}
-          keyExtractor={(item, i) => item.id ? String(item.id):String(i)}
+          keyExtractor={(item, i) => item.idx ? String(item.idx):String(i)}
           renderItem={({ item, index }) => (
             <Pressable
               style={styles.favItem}
@@ -144,7 +146,7 @@ export default function DirectInputScreen() {
               onLongPress={() => {
                 Alert.alert('삭제', `"${item.food} (${item.calories}kcal)" 즐겨찾기를 삭제할까요?`, [
                   { text: '취소' },
-                  { text: '삭제', style: 'destructive', onPress: () => removeFav(index, item.id) },
+                  { text: '삭제', style: 'destructive', onPress: () => removeFav(index, item.idx) },
                 ]);
               }}
             >
