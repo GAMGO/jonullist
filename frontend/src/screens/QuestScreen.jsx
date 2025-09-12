@@ -200,6 +200,7 @@ export default function QuestScreen(){
         thumb: it?.snippet?.thumbnails?.medium?.url || it?.snippet?.thumbnails?.default?.url || '',
       })).filter(v=>v.id)
       setVideos(mapped)
+
     }catch(e){
       setError('검색에 실패했어요')
     }finally{
