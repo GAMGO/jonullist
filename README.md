@@ -15,7 +15,8 @@ API 필수조건
 ---------------------------------------------
 <b>Node js 설치구문</b>
 frontend install (assets 안에 사진은 중요한 거라 냅두시면 됩니다)
-- npm install
+- npm install expo@^54.0.0
+- npx expo-doctor
 - npm i @react-navigation/native @react-navigation/native-stack
 - npx expo install react-native-screens react-native-safe-area-context
 - npx expo install expo-camera expo-image-manipulator
@@ -36,6 +37,9 @@ frontend install (assets 안에 사진은 중요한 거라 냅두시면 됩니�
 - npx expo install expo-file-system
 - npx expo install react-native-chart-kit react-native-svg
 - npx expo start
+------------------------------------------------
+- npx expo install --check
+- npx expo install --fix
 
 
 #### 사진 인식 및 분석 API
