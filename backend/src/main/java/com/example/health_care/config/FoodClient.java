@@ -28,25 +28,24 @@ public class FoodClient {
             RestTemplate restTemplate,
             @Value("${nutri.base-url}") String baseUrl,
             @Value("${nutri.endpoint}") String endpoint,
-            @Value("${nutri.service-key-encoding:}") String encKey,
-            @Value("${nutri.service-key-decoding:}") String decKey) {
+            @Value("${PUBLIC_DATA_API_KEY}") String key) { // apikeys.env 파일에 있는 변수명으로 수정
 
         this.restTemplate = restTemplate;
         this.baseUrl = safe(baseUrl);
         this.endpoint = safe(endpoint);
-        this.encKey  = safe(encKey);
-        this.decKey  = safe(decKey);
-
-        if (this.encKey.isBlank() && this.decKey.isBlank()) {
+        this.decKey = safe(key); // PUBLIC_DATA_API_KEY를 decKey로 사용
+        this.encKey = ""; // encKey는 사용하지 않으므로 빈 값으로 설정
+        
+        if (this.decKey.isBlank()) {
             throw new IllegalStateException("공공데이터 서비스키가 없습니다.");
         }
     }
 
-    private static String safe(String s) { 
-        return s == null ? "" : s.trim(); 
+    private static String safe(String s) {
+        return s == null ? "" : s.trim();
     }
 
-    // 식품명으로 영양성분 정보 검색  
+    // 식품명으로 영양성분 정보 검색
     public String searchByName(String name, int page, int perPage) {
         String q = name == null ? "" : name.trim();
         int pageNo = Math.max(1, page);

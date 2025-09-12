@@ -15,7 +15,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class YoutubeService {
     
-    @Value("${youtube.api.key}")
+    @Value("${YOUTUBE_API_KEY}")
     private String apiKey;
     
     private final RestTemplate restTemplate;
