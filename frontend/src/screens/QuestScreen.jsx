@@ -298,7 +298,7 @@ export default function QuestScreen(){
             />
           )}
         </View>
-      </View>
+      </ScrollView>
     </ImageBackground>
   )
 }
