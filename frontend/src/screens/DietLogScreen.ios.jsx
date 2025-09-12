@@ -1,8 +1,8 @@
 import React, { useState, useLayoutEffect, useMemo, useCallback, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, Pressable, SafeAreaView, Platform, ImageBackground } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { apiPost, apiGet } from '../config/api';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { Calendar } from 'react-native-calendars';
 
 const EMPTY_DAY = { morning: [], lunch: [], dinner: [] };
 
@@ -49,7 +49,7 @@ export default function DietLogScreen() {
         dinner:  Array.isArray(details.dinner)  ? details.dinner  : [],
       };
       setDayMeals(normalized);
-    } catch (e) {
+    } catch {
       // 기록 없으면 빈값
       setDayMeals(EMPTY_DAY);
     }
@@ -135,16 +135,12 @@ export default function DietLogScreen() {
 
   return (
 
-      <ImageBackground
+    <ImageBackground
         source={require('../../assets/background/dietLog.png')} 
         style={{flex:1}}
         resizeMode="cover">
 
-
     <SafeAreaView style={styles.safeArea}>
-
-    
-
       <View style={styles.container}>
 
         {/* 날짜 선택 */}
@@ -162,18 +158,25 @@ export default function DietLogScreen() {
                 <Pressable onPress={() => setShowPicker(false)}><Text style={styles.toolbarBtn}>완료</Text></Pressable>
               </View>
               <View style={styles.pickerBody}>
-                <DateTimePicker
-                  value={selectedDate}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? (parseFloat(String(Platform.Version)) >= 14 ? 'inline' : 'spinner') : 'calendar'}
-                  themeVariant="light"
-                  onChange={(event, date) => {
-                    if (date) setSelectedDate(date);
-                    if (Platform.OS === 'ios') setShowPicker(false);
-                  }}
-                  style={{ backgroundColor: '#fff', alignSelf: 'center', width: 360 }}
-                />
-              
+                  <Calendar
+                    initialDate={dateKey}
+                    enableSwipeMonths
+                    onDayPress={(d) => {
+                      setSelectedDate(new Date(d.dateString))
+                    }}
+                    markedDates={{ 
+                      [dateKey]: { selected: true, selectedColor: 'tomato', selectedTextColor: '#fff' } }}
+                    style={{ alignSelf: 'center', width: '100%' }}
+                    theme={{
+                      textDayFontSize: 16,
+                      textMonthFontSize: 18,
+                      textDayHeaderFontSize: 12,
+                      selectedDayBackgroundColor: 'tomato',
+                       selectedDayTextColor: '#fff',
+                      todayTextColor: 'tomato',
+                      arrowColor: 'tomato',
+                      }}
+                     />
               </View>
             </View>
           </View>
@@ -197,7 +200,7 @@ export default function DietLogScreen() {
 const styles = StyleSheet.create({
 
   safeArea: { flex: 1, backgroundColor: 'transparent' },
-  container: { flex: 1, padding: 20, backgroundColor: '#transparent' },
+  container: { flex: 1, padding: 20, backgroundColor: 'transparent' },
   // 날짜 버튼
   dateButton: {
     paddingVertical: 20,
@@ -242,7 +245,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8,
     borderRadius: 8, borderWidth: 1, borderColor: '#ddd',
   },
-  secondaryBtnText: { color: '#333', fontSize: 14, fontWeight: '600' },
+  secondaryBtnText: { color: '#333', fontSize: 12, fontWeight: '600' },
 
   item: { fontSize: 16, marginVertical: 6, color: '#333' },
   empty: { fontSize: 14, color: '#999', paddingTop: 4 },
