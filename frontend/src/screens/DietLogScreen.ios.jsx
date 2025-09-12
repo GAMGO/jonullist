@@ -12,16 +12,22 @@ export default function DietLogScreen() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: '식단 기록',
+      headerTitle: '식단 기록',
       headerTitleAlign: 'center',
+      headerTintColor: '#fff',
       headerTintColor: '#fff',
     });
   }, [navigation]);
+  }, [navigation]);
 
+  // 하루치만 관리
   // 하루치만 관리
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [dayMeals, setDayMeals] = useState(EMPTY_DAY);
+  const [dayMeals, setDayMeals] = useState(EMPTY_DAY);
   const [showPicker, setShowPicker] = useState(false);
 
+  // yyyy-mm-dd
   // yyyy-mm-dd
   const dateKey = [
     selectedDate.getFullYear(),
@@ -76,7 +82,16 @@ export default function DietLogScreen() {
       morning: type === 'morning' ? [...prev.morning, payload] : prev.morning,
       lunch:   type === 'lunch'   ? [...prev.lunch,   payload] : prev.lunch,
       dinner:  type === 'dinner'  ? [...prev.dinner,  payload] : prev.dinner,
+    const payload = { ...entry, timestamp: entry.timestamp ?? Date.now() };
+
+    // 1) 화면 즉시 반영
+    setDayMeals(prev => ({
+      morning: type === 'morning' ? [...prev.morning, payload] : prev.morning,
+      lunch:   type === 'lunch'   ? [...prev.lunch,   payload] : prev.lunch,
+      dinner:  type === 'dinner'  ? [...prev.dinner,  payload] : prev.dinner,
     }));
+
+    // 2) 백엔드 저장
 
     // 2) 백엔드 저장
     try {
@@ -89,7 +104,15 @@ export default function DietLogScreen() {
       });
       // 서버가 정규화/집계하면 아래 재조회 활성화
       // await fetchDay(dateKey);
+        type,
+        food: payload.food,
+        calories: payload.calories,
+        timestamp: payload.timestamp,
+      });
+      // 서버가 정규화/집계하면 아래 재조회 활성화
+      // await fetchDay(dateKey);
     } catch (err) {
+      console.error('❌ 백엔드 전송 실패', err?.message || err);
       console.error('❌ 백엔드 전송 실패', err?.message || err);
     }
   };
@@ -112,6 +135,7 @@ export default function DietLogScreen() {
                 dateKey,
                 mealType: type,
                 onAdd: entry => handleAddMeal(entry, type),
+                onAdd: entry => handleAddMeal(entry, type),
               })
             }
           >
@@ -122,8 +146,10 @@ export default function DietLogScreen() {
 
       <FlatList
         data={dayMeals[type]}
+        data={dayMeals[type]}
         keyExtractor={(_, i) => `${type}-${i}`}
         renderItem={({ item }) => (
+          <Text style={styles.item}>{item.food} - {item.calories} kcal</Text>
           <Text style={styles.item}>{item.food} - {item.calories} kcal</Text>
         )}
         ListEmptyComponent={<Text style={styles.empty}>아직 기록이 없어요.</Text>}
@@ -149,6 +175,7 @@ export default function DietLogScreen() {
 
         {/* 날짜 선택 */}
         <Pressable style={styles.dateButton} onPress={() => setShowPicker(true)}>
+          <Text style={styles.dateText}>Date: [{dateKey}]</Text>
           <Text style={styles.dateText}>Date: [{dateKey}]</Text>
         </Pressable>
 
@@ -184,8 +211,19 @@ export default function DietLogScreen() {
           <MealSection label="아침" type="morning" />
           <MealSection label="점심" type="lunch" />
           <MealSection label="저녁" type="dinner" />
+          
+
+          {/* 섹션 3개 */}
+          <MealSection label="아침" type="morning" />
+          <MealSection label="점심" type="lunch" />
+          <MealSection label="저녁" type="dinner" />
 
         {/* 총 칼로리 */}
+        <Text style={styles.total}>Total : {totalCalories} kcal</Text>
+        </View>
+        </SafeAreaView>
+    </ImageBackground>
+    
         <Text style={styles.total}>Total : {totalCalories} kcal</Text>
         </View>
         </SafeAreaView>
@@ -204,7 +242,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     alignItems: 'flex-start', // 'left'는 유효 값이 아님
     marginBottom: 16,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    alignItems: 'flex-start', // 'left'는 유효 값이 아님
+    marginBottom: 16,
   },
+  dateText: { fontSize: 24, color: '#fff' },
   dateText: { fontSize: 24, color: '#fff' },
 
   // 피커
@@ -214,7 +257,10 @@ const styles = StyleSheet.create({
   pickerToolbar: {
     height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16,
     borderBottomWidth: 1, borderBottomColor: '#eee',
+    borderBottomWidth: 1, borderBottomColor: '#eee',
   },
+  pickerBody: { height: 360 },
+
   pickerBody: { height: 360 },
 
   toolbarBtn: { fontSize: 16, color: '#tomato' },
@@ -224,10 +270,14 @@ const styles = StyleSheet.create({
   section: {
 
     borderWidth: 4, borderColor: '#eee', borderRadius: 12, padding: 22, height: 130, marginBottom: 15, backgroundColor: 'rgba(255,255,255,0.8)'
+
+    borderWidth: 4, borderColor: '#eee', borderRadius: 12, padding: 22, height: 130, marginBottom: 15, backgroundColor: 'rgba(255,255,255,0.8)'
   },
   sectionHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8
   },
+  sectionTitle: { fontSize: 22, fontWeight: '700', color: '#333' },
+
   sectionTitle: { fontSize: 22, fontWeight: '700', color: '#333' },
 
   headerActions: { flexDirection: 'row', gap: 8 },
@@ -236,15 +286,18 @@ const styles = StyleSheet.create({
   primaryBtn: {
     backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8,
     borderRadius: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#ddd',
+    borderRadius: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#ddd',
   },
   primaryBtnText: { color: '#000', fontSize: 14, fontWeight: '600' },
   secondaryBtn: {
     backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8,
     borderRadius: 8, borderWidth: 1, borderColor: '#ddd',
+    borderRadius: 8, borderWidth: 1, borderColor: '#ddd',
   },
-  secondaryBtnText: { color: '#333', fontSize: 14, fontWeight: '600' },
+  secondaryBtnText: { color: '#333', fontSize: 12, fontWeight: '600' },
 
   item: { fontSize: 16, marginVertical: 6, color: '#333' },
   empty: { fontSize: 14, color: '#999', paddingTop: 4 },
+  total: { fontSize: 30, fontWeight: 'bold', marginTop: 30, color: '#fff', textAlign: 'right' },
   total: { fontSize: 30, fontWeight: 'bold', marginTop: 30, color: '#fff', textAlign: 'right' },
 });

@@ -32,7 +32,6 @@ const TAUNTS_MAP = {
     zh: ['先给定位权限，再来指点','GPS锁不住，借口倒挺多'],
   },
 }
-
 const TAUNTS = (lang) => ({
   none: TAUNTS_MAP.none[lang] || TAUNTS_MAP.none.ko,
   done: TAUNTS_MAP.done[lang] || TAUNTS_MAP.done.ko,
@@ -41,21 +40,49 @@ const TAUNTS = (lang) => ({
 
 function pick(a){return a[Math.floor(Math.random()*a.length)]}
 function dayKey(d=new Date()){const t=new Date(d);t.setHours(0,0,0,0);return t.toISOString().slice(0,10)}
-function haversineFix(lat1,lon1,lat2,lon2){const R=6371000,toRad=x=>x*Math.PI/180;const dLat=toRad(lat2-lat1),dLon=toRad(lon2-lon1);const s1=Math.sin(dLat/2),s2=Math.sin(dLon/2);const a=s1*s1+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*s2*s2;return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
+function haversineFix(lat1,lon1,lat2,lon2){
+  const R=6371000,toRad=x=>x*Math.PI/180
+  const dLat=toRad(lat2-lat1),dLon=toRad(lon2-lon1)
+  const s1=Math.sin(dLat/2),s2=Math.sin(dLon/2)
+  const a=s1*s1+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*s2*s2
+  return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))
+}
+
+/* ── 기구운동 드롭다운 ── */
+function Dropdown({ value, onChange, options, placeholder = '기구 선택', style }) {
+  const [open, setOpen] = useState(false)
+  const current = options.find(o => o.value === value)
+  return (
+    <View style={[styles.ddWrap, style]}>
+      <Pressable onPress={() => setOpen(o => !o)} style={({ pressed }) => [styles.ddBtn, pressed && { transform: [{ translateY: 1 }] }]}>
+        <Text style={styles.ddText}>{current ? current.label : placeholder}</Text>
+        <Text style={styles.ddArrow}>{open ? '▲' : '▼'}</Text>
+      </Pressable>
+      {open && (
+        <View style={styles.ddMenu}>
+          {options.map(opt => (
+            <Pressable key={opt.value} onPress={() => { onChange(opt.value); setOpen(false) }} style={({ pressed }) => [styles.ddItem, pressed && { opacity: 0.8 }]} >
+              <Text style={styles.ddItemText}>{opt.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+    </View>
+  )
+}
 
 export default function QuestScreen(){
   const navigation = useNavigation()
-  const insets=useSafeAreaInsets()
-  const [fontsLoaded]=useFonts({[FONT]:require('../../assets/fonts/DungGeunMo.otf')})
+  const insets = useSafeAreaInsets()
+  const [fontsLoaded] = useFonts({ [FONT]: require('../../assets/fonts/DungGeunMo.otf') })
   const { t, lang } = useI18n()
-  const [perm,setPerm]=useState('undetermined')
-  const [meters,setMeters]=useState(0)
-  const [sessionMeters,setSessionMeters]=useState(0)
+  const [perm, setPerm] = useState('undetermined')
+  const [meters, setMeters] = useState(0)
   const [quests, setQuests] = useState([])
-  const anim=useRef(new Animated.Value(0)).current
-  const watchRef=useRef(null)
-  const lastRef=useRef(null)
-  const appActiveRef=useRef(true)
+  const anim = useRef(new Animated.Value(0)).current
+  const watchRef = useRef(null)
+  const lastRef = useRef(null)
+  const appActiveRef = useRef(true)
   const today = dayKey()
   const taunts = useMemo(()=>TAUNTS(lang), [lang])
 
@@ -98,10 +125,12 @@ export default function QuestScreen(){
   }
 
   useEffect(()=>{ (async()=>{ await loadOrGenQuests(); })() }, [])
-
   useFocusEffect(useMemo(() => () => { return () => {} }, []))
+  useEffect(()=>{
+    const sub = AppState.addEventListener('change', s => { appActiveRef.current = (s === 'active') })
+    return () => sub?.remove?.()
+  },[])
 
-  useEffect(()=>{const sub=AppState.addEventListener('change',s=>{appActiveRef.current=(s==='active')});return()=>sub?.remove?.()},[])
   useEffect(()=>{let mounted=true;(async()=>{
     const {status}=await Location.requestForegroundPermissionsAsync().catch(()=>({status:'denied'}))
     if (!mounted) return
@@ -128,7 +157,6 @@ export default function QuestScreen(){
         const vOk=v>=0.7&&v<=4.5
         const sOk=typeof speed==='number'?speed>=0.7&&speed<=4.5:true
         if(!(vOk&&sOk))return
-        setSessionMeters(vv=>vv+d)
         setMeters(prev=>prev+d)
       }
     )
@@ -200,8 +228,19 @@ export default function QuestScreen(){
   return(
     <ImageBackground source={require('../../assets/background/home.png')} style={{flex:1}} resizeMode="cover">
       <Text style={[styles.screenTitle,{top:insets.top+8}]}>{t('BURNING') || 'BURNING'}</Text>
+      <Text style={[styles.screenTitle,{top:insets.top+8}]}>{t('BURNING') || 'BURNING'}</Text>
 
-      <View style={{paddingTop:insets.top+88,paddingHorizontal:18,gap:16}}>
+      {/* 전체 스크롤 뷰 */}
+      <ScrollView
+        contentContainerStyle={{
+          paddingTop: insets.top + 88,
+          paddingHorizontal: 18,
+          paddingBottom: insets.bottom + 28,
+          gap: 16,
+        }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.card}>
           <Text style={styles.title}>{t('DAILY_QUESTS') || 'DAILY QUESTS'}</Text>
           <Text style={styles.questMain}>{(t('WALK') || 'WALK')} {goalKm} km</Text>
@@ -213,10 +252,10 @@ export default function QuestScreen(){
         </View>
 
         <View style={styles.quickRow}>
-          <TouchableOpacity onPress={startSquat} disabled={!canSquat} style={[styles.quickBtn, !canSquat && styles.disabled]}>
+          <TouchableOpacity onPress={startSquat} disabled={!squatQ} style={[styles.quickBtn, !squatQ && styles.disabled]}>
             <Text style={styles.quickTxt}>스쿼트 시작</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={startPushup} disabled={!canPush} style={[styles.quickBtn, !canPush && styles.disabled]}>
+          <TouchableOpacity onPress={startPushup} disabled={!pushupQ} style={[styles.quickBtn, !pushupQ && styles.disabled]}>
             <Text style={styles.quickTxt}>푸쉬업 시작</Text>
           </TouchableOpacity>
         </View>
@@ -266,8 +305,9 @@ export default function QuestScreen(){
 
 const styles=StyleSheet.create({
   screenTitle:{position:'absolute',left:0,right:0,textAlign:'center',color:'#000',fontSize:26,lineHeight:32,textShadowColor:'rgba(255,255,255,0.28)',textShadowOffset:{width:0,height:1},textShadowRadius:2,zIndex:10,fontFamily:FONT,fontWeight:'normal',includeFontPadding:true},
+  screenTitle:{position:'absolute',left:0,right:0,textAlign:'center',color:'#000',fontSize:26,lineHeight:32,textShadowColor:'rgba(255,255,255,0.28)',textShadowOffset:{width:0,height:1},textShadowRadius:2,zIndex:10,fontFamily:FONT,fontWeight:'normal',includeFontPadding:true},
   center:{flex:1,alignItems:'center',justifyContent:'center'},
-  card:{backgroundColor:'rgba(255,255,255,0.8)',borderRadius:24,padding:18,gap:12},
+  card:{backgroundColor:'rgba(255,255,255,0.85)',borderRadius:24,padding:18,gap:12},
   title:{fontFamily:FONT,fontSize:20,lineHeight:24,color:'#111',includeFontPadding:true},
   questMain:{fontFamily:FONT,fontSize:28,lineHeight:34,color:'#111',includeFontPadding:true},
   barWrap:{height:26,borderWidth:2,borderColor:'#111',borderRadius:10,overflow:'hidden',justifyContent:'center',backgroundColor:'rgba(0,0,0,0.05)'},
