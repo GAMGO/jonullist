@@ -17,7 +17,7 @@ function guessMime(uri = "") {
 }
 
 // 백엔드 API 호출용으로 수정
-async function fetchWithTimeout(url, opt = {}, ms = 15000) {
+async function fetchWithTimeout(url, opt = {}, ms = 60000) { // ✅ 타임아웃 60초로 늘림
   const ctrl = new AbortController();
   const id = setTimeout(() => ctrl.abort(), ms);
   try {
@@ -40,16 +40,17 @@ async function callBackendApi(endpoint, base64, mime = "image/jpeg") {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     },
-    30000
+    60000 // ✅ 타임아웃 60초로 늘림
   );
 
   if (!res.ok) {
     const t = await res.text().catch(() => "");
     throw new Error(`백엔드 API 호출 실패: ${res.status} ${t}`);
   }
-  // 백엔드에서 JSON 문자열을 반환하므로 .text()로 받은 뒤 다시 파싱
+  
   const text = await res.text();
-  return JSON.parse(text);
+  // ✅ 수정: JSON.parse() 제거. CameraScreen에서 처리하도록 함.
+  return text;
 }
 
 /* ───── API 호출 파이프라인 ───── */
@@ -77,9 +78,10 @@ async function analyzePackaged(uri) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-    }, 30000);
+    }, 60000); // ✅ 타임아웃 60초로 늘림
     const result2 = await res.text();
-    return JSON.parse(result2);
+    // ✅ 수정: JSON.parse() 제거
+    return result2;
   }
   return result;
 }
@@ -87,26 +89,31 @@ async function analyzePackaged(uri) {
 async function analyzePrepared(uri) {
   const base64 = await toBase64Async(uri);
   const result = await callBackendApi("prepared", base64, guessMime(uri));
+  if (result.output?.calories === 0) {
+  }
   return result;
 }
 
 // 메인 함수
+// ✅ 수정: `output` 객체 대신 전체 `result` 객체를 반환합니다.
 export async function analyzeFoodImage(uri) {
   try {
-    const { context } = await classifyImage(uri);
+    // ✅ 수정: 반환된 문자열을 JSON으로 파싱
+    const classificationResult = JSON.parse(await classifyImage(uri));
+    const { context } = classificationResult;
+    
     if (context === "packaged") {
-      const result = await analyzePackaged(uri);
-      return result.output;
+      // ✅ 수정: analyzePackaged도 문자열 반환
+      const packagedResult = await analyzePackaged(uri);
+      return JSON.parse(packagedResult);
     } else {
-      const result = await analyzePrepared(uri);
-      if (result.output?.calories > 0) {
-        return result.output;
-      }
-      return null;
+      // ✅ 수정: analyzePrepared도 문자열 반환
+      const preparedResult = await analyzePrepared(uri);
+      return JSON.parse(preparedResult);
     }
-  } catch (err) {
-    console.warn("[analyzeFoodImage] error:", err.message);
-    return null;
+  } catch (e) {
+    console.error("analyzeFoodImage 함수 오류:", e);
+    throw e; // ✅ 오류를 재전파하여 CameraScreen에서 처리하도록 함
   }
 }
 

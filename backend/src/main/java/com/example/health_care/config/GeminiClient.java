@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class GeminiClient {
 
     private String key;
+    private String baseUrl;
 
     public String getKey() {
         return key;
@@ -18,10 +19,19 @@ public class GeminiClient {
         this.key = key;
     }
 
+    public String getBaseUrl() {
+        return baseUrl;
+    }
+
+    public void setBaseUrl(String baseUrl) {
+        this.baseUrl = baseUrl;
+    }
+
     @Override
     public String toString() {
         return "GeminiConfig{" +
-               "key='" + key + '\'' +
-               '}';
+                "key='" + key + '\'' +
+                ", baseUrl='" + baseUrl + '\'' +
+                '}';
     }
 }
