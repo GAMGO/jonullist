@@ -1,6 +1,5 @@
 import React, { useState, useLayoutEffect, useMemo, useCallback, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, Pressable, SafeAreaView, Platform } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { View, Text, FlatList, StyleSheet, Pressable, SafeAreaView, Platform, ImageBackground } from 'react-native';
 import { apiPost, apiGet } from '../config/api';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Constants from 'expo-constants';
@@ -13,9 +12,9 @@ export default function DietLogScreen() {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerTitle: '🥗 식단 기록',
+      headerTitle: '식단 기록',
       headerTitleAlign: 'center',
-      headerTintColor: '#000',
+      headerTintColor: '#fff',
     });
   }, [navigation]);
 
@@ -120,10 +119,16 @@ export default function DietLogScreen() {
   );
 
   return (
+
+    <ImageBackground
+            source={require('../../assets/background/dietLog.png')} 
+            style={{flex:1}}
+            resizeMode="cover">
+    
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <Pressable style={styles.dateButton} onPress={() => setShowPicker(true)}>
-          <Text style={styles.dateText}>📅 {dateKey}</Text>
+          <Text style={styles.dateText}>Date: [{dateKey}]</Text>
         </Pressable>
 
         {showPicker && (
@@ -136,38 +141,28 @@ export default function DietLogScreen() {
                 <Pressable onPress={() => setShowPicker(false)}><Text style={styles.toolbarBtn}>완료</Text></Pressable>
               </View>
               <View style={styles.pickerBody}>
-                {Platform.OS === 'android' ? (
+                {/* {Platform.OS === 'android' ? ( */}
                   <Calendar
                     initialDate={dateKey}
                     enableSwipeMonths
                     onDayPress={(d) => {
                       setSelectedDate(new Date(d.dateString))
-                      setShowPicker(false)
                     }}
-                    markedDates={{ [dateKey]: { selected: true } }}
+                    markedDates={{ 
+                      [dateKey]: { 
+                        selected: true
+                       } }}
                     style={{ alignSelf: 'center', width: '100%' }}
                     theme={{
                       textDayFontSize: 16,
                       textMonthFontSize: 18,
                       textDayHeaderFontSize: 12,
-                      selectedDayBackgroundColor: '#377dff',
+                      selectedDayBackgroundColor: 'tomato',
                       selectedDayTextColor: '#fff',
-                      todayTextColor: '#377dff',
-                      arrowColor: '#377dff',
+                      todayTextColor: 'tomato',
+                      arrowColor: 'tomato',
                     }}
                   />
-                ) : (
-                  <DateTimePicker
-                    value={selectedDate}
-                    mode="date"
-                    display={parseFloat(String(Platform.Version)) >= 14 ? 'inline' : 'spinner'}
-                    themeVariant="light"
-                    onChange={(event, date) => {
-                      if (date) setSelectedDate(date)
-                    }}
-                    style={{ backgroundColor: '#fff', alignSelf: 'center', width: 360 }}
-                  />
-                )}
               </View>
             </View>
           </View>
@@ -177,33 +172,42 @@ export default function DietLogScreen() {
         <MealSection label="점심" type="lunch" />
         <MealSection label="저녁" type="dinner" />
 
-        <Text style={styles.total}>🔥 총 칼로리: {totalCalories} kcal</Text>
+        <Text style={styles.total}>Total : {totalCalories} kcal</Text>
       </View>
     </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#fff' },
-  container: { flex: 1, paddingHorizontal: 20, paddingTop: Constants.statusBarHeight + 30, backgroundColor: '#fff' },
-  dateButton: { paddingVertical: 70, paddingHorizontal: 20, alignItems: 'left', marginBottom: 16 },
-  dateText: { fontSize: 20, color: '#333' },
+
+  safeArea: { flex: 1, backgroundColor: 'transparent' },
+  container: { flex: 1, paddingHorizontal: 20, paddingTop: Constants.statusBarHeight + 80, backgroundColor: 'transparent' },
+  // 날짜 버튼
+  dateButton: { paddingVertical: 30, paddingHorizontal: 20, alignItems: 'left', marginBottom: 16 },
+  dateText: { fontSize: 22, color: '#fff' },
+  // 피커
   pickerOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end', zIndex: 999 },
   pickerBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' },
   pickerSheet: { backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingBottom: 12 },
   pickerToolbar: { height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
   pickerBody: { height: Platform.OS === 'android' ? 360 : undefined },
-  toolbarBtn: { fontSize: 16, color: '#tomato' },
+
+  toolbarBtn: { fontSize: 16, color: '#333' },
   toolbarTitle: { fontSize: 16, fontWeight: '600', color: '#333' },
-  section: { borderWidth: 1, borderColor: '#eee', borderRadius: 12, padding: 22, marginBottom: 14, backgroundColor: '#fafafa' },
+  // 섹션
+  section: { borderWidth: 5, borderColor: '#eee', borderRadius: 12, padding: 22, height: 135, marginBottom: 15, backgroundColor: 'rgba(255,255,255,0.8)' },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#333' },
+  sectionTitle: { fontSize: 20, fontFamily: 'MyCustomFont-Bold', color: '#333' },
+
   headerActions: { flexDirection: 'row', gap: 8 },
+  // 버튼
   primaryBtn: { backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#ddd' },
-  primaryBtnText: { color: '#000', fontSize: 14, fontWeight: '600' },
+  primaryBtnText: { color: '#000', fontSize: 13, fontWeight: '600' },
   secondaryBtn: { backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#ddd' },
-  secondaryBtnText: { color: '#333', fontSize: 14, fontWeight: '600' },
-  item: { fontSize: 16, marginVertical: 6, color: '#333' },
-  empty: { fontSize: 14, color: '#999', paddingTop: 4 },
-  total: { fontSize: 20, fontWeight: 'bold', marginTop: 8, color: 'tomato' },
+  secondaryBtnText: { color: '#333', fontSize: 12, fontWeight: '600' },
+
+  item: { fontSize: 13, marginVertical: 6, color: '#333' },
+  empty: { fontSize: 13, color: '#999', paddingTop: 4 },
+  total: { fontSize: 25, fontFamily: 'MyCustomFont-Bold', marginTop: 40, color: '#fff', textAlign: 'right' },
 });
