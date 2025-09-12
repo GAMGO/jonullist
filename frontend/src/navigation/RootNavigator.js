@@ -16,9 +16,11 @@ import { useFonts } from 'expo-font'
 import QuestScreen from '../screens/QuestScreen'
 import RankingScreen from '../screens/RankingScreen'
 import HealthyCatchGameScreen from '../screens/HealthyCatchGameScreen'
-import RecoverySetup from '../screens/RecoverySetup'
 import TACoach from '../screens/TACoach'
 import VoicePickerScreen from '../screens/VoicePickerScreen'
+
+// ↓ 추가: 비밀번호 찾기(공개 플로우) 스크린
+import RecoverySetup from '../screens/RecoverySetup'// 파일명: src/screens/recovery.js
 
 const Stack = createNativeStackNavigator()
 
@@ -39,6 +41,12 @@ function AuthStack() {
       <Stack.Screen name="Welcome" component={WelcomeScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Signup" component={SignupScreen} />
+      {/* ↓ 추가: 비밀번호 찾기 */}
+      <Stack.Screen
+        name="Recovery"
+        component={RecoverySetup}
+        options={{ headerShown: true, title: '' }}
+      />
     </Stack.Navigator>
   )
 }
@@ -56,11 +64,11 @@ function AppStack({ initialRouteName = 'Home' }) {
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="Burning" component={QuestScreen} />
       <Stack.Screen name="Ranking" component={RankingScreen} />
+      {/* 로그인 후 내 계정에 보안질문 등록/수정 */}
       <Stack.Screen name="RecoverySetup" component={RecoverySetup} />
       <Stack.Screen name="HealthyCatch" component={HealthyCatchGameScreen} options={{ headerShown: false }} />
       <Stack.Screen name="TACoach" component={TACoach} options={{ headerShown: true, title: '' }} />
       <Stack.Screen name="VoicePicker" component={VoicePickerScreen} options={{ title: '보이스 선택' }} />
-
     </Stack.Navigator>
   )
 }

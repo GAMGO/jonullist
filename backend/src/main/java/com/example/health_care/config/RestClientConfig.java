@@ -1,5 +1,6 @@
 package com.example.health_care.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -15,5 +16,10 @@ public class RestClientConfig {
         factory.setConnectTimeout(5000);  // 5초 연결 타임아웃
         factory.setReadTimeout(10000);    // 10초 읽기 타임아웃
         return new RestTemplate(factory);
+    }
+    
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
     }
 }
