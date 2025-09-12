@@ -241,7 +241,7 @@ export default function QuestScreen(){
       })).filter(v => v.id)
       setVideos(mapped)
     } catch (e) {
-      setError('추천을 불러오지 못했어')
+      setError('추천을 불러오지 못했어yo')
     } finally {
       setLoading(false)
     }
