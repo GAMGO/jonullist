@@ -4,7 +4,7 @@ server:
 
 spring:
   config:
-    import: optional:file:./.env
+    import: optional:file:./apikeys.env
   datasource:
     driver-class-name: oracle.jdbc.OracleDriver
     url: jdbc:oracle:thin:@//localhost:1521/xe

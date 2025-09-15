@@ -18,7 +18,7 @@ export default function DirectInputScreen() {
     navigation.setOptions({
       headerTitle: '✍️ 직접 입력',
       headerTitleAlign: 'center',
-      headerTintColor: '#000',
+      headerTintColor: '#fff',
     });
   }, [navigation]);
 
@@ -61,9 +61,16 @@ export default function DirectInputScreen() {
     }
 
     try {
-      const saved = await apiPost('/api/favorite', { food: food.trim(), calories: kcal }); // 서버 저장
-      const next = [saved, ...favs].slice(0, 50);
-      await saveFavs(next);
+      // 입력값으로 UI 먼저 업데이트
+       const newFav = { food: food.trim(), calories: kcal };
+       const next = [newFav, ...favs].slice(0, 50);
+       await saveFavs(next);
+
+      // 서버 저장은 따로 실행 (UI 반영에 영향 안 주게)
+      apiPost('/api/favorite', newFav).catch(e => {
+         console.error('서버 즐겨찾기 저장 실패', e?.message || e);
+      });
+
       Alert.alert('즐겨찾기', '즐겨찾기에 저장했어요.');
     } catch (e) {
       console.error('서버 즐겨찾기 저장 실패', e?.message || e);
@@ -75,7 +82,9 @@ export default function DirectInputScreen() {
     const next = favs.filter((_, i) => i !== idx);
     await saveFavs(next);
     try {
+      if(id) {
       await apiDelete(`/api/favorite/${id}`); // 서버에서도 삭제
+      }
     } catch (e) {
       console.error('서버 즐겨찾기 삭제 실패', e?.message || e);
     }
@@ -95,14 +104,14 @@ export default function DirectInputScreen() {
       return;
     }
     const entry = { food: food.trim(), calories: kcal };
-    if (typeof onAdd === 'function') onAdd(entry); // DietLog로 반영
+    if (typeof onAdd === 'function') onAdd(entry, mealType); // DietLog로 반영
     navigation.goBack();
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight:0 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#111827', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight:0 }}>
       <View style={styles.container}>
-        <Text style={styles.meta}>📅 {dateKey} • 🍽 {mealType === 'morning' ? '아침' : mealType === 'lunch' ? '점심' : '저녁'}</Text>
+        <Text style={styles.meta}>{dateKey} • 🍽 {mealType === 'morning' ? '아침' : mealType === 'lunch' ? '점심' : '저녁'}</Text>
 
         {/* 입력 */}
         <View style={styles.inputRow}>
@@ -130,12 +139,12 @@ export default function DirectInputScreen() {
             <Text style={styles.primaryBtnText}>저장</Text>
           </Pressable>
           <Pressable style={styles.secondaryBtn} onPress={addToFavs}>
-            <Text style={styles.secondaryBtnText}>★ 즐겨찾기</Text>
+            <Text style={styles.secondaryBtnText}>⭐ 즐겨찾기</Text>
           </Pressable>
         </View>
 
         {/* 즐겨찾기 */}
-        <Text style={styles.sectionTitle}>자주 먹는 식단</Text>
+        <Text style={styles.sectionTitle}>📌 자주 먹는 식단</Text>
         <FlatList
           data={favs}
           keyExtractor={(item, i) => item.idx ? String(item.idx):String(i)}
@@ -146,7 +155,7 @@ export default function DirectInputScreen() {
               onLongPress={() => {
                 Alert.alert('삭제', `"${item.food} (${item.calories}kcal)" 즐겨찾기를 삭제할까요?`, [
                   { text: '취소' },
-                  { text: '삭제', style: 'destructive', onPress: () => removeFav(index, item.idx) },
+                  { text: '삭제', style: 'destructive', onPress: () => removeFav(index, item.idx || item.id || null) },
                 ]);
               }}
             >
@@ -154,7 +163,7 @@ export default function DirectInputScreen() {
               <Text style={styles.favDelHint}>길게 눌러 삭제</Text>
             </Pressable>
           )}
-          ListEmptyComponent={<Text style={styles.empty}>즐겨찾기가 비어 있어요. 위에서 ★ 버튼으로 추가하세요.</Text>}
+          ListEmptyComponent={<Text style={styles.empty}>즐겨찾기가 비어 있어요. 위에서 ⭐ 버튼으로 추가하세요.</Text>}
           contentContainerStyle={{ paddingVertical: 8 }}
         />
       </View>
@@ -164,31 +173,31 @@ export default function DirectInputScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, paddingHorizontal: 20, backgroundColor: '#transparent', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight +20:20 },
-  meta: { fontSize: 14, color: '#666', marginBottom: 12 },
+    flex: 1, paddingHorizontal: 20, backgroundColor: '#111827', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight +20:20 },
+  meta: { fontSize: 20, color: '#fff', marginBlockStart: 17, marginBottom: 12, fontFamily: 'DungGeunMo' },
 
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   input: {
-    borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
-    paddingHorizontal: 20,paddingVertical: 12, backgroundColor: '#fff', fontSize: 16
+    borderWidth: 3, borderColor: '#ddd', borderRadius: 8,
+    paddingHorizontal: 20,paddingVertical: 12, backgroundColor: '#fff', fontSize: 20, fontFamily: 'DungGeunMo'
   },
   primaryBtn: {
-    backgroundColor: '#007AFF', paddingHorizontal: 16, paddingVertical: 12,
+    backgroundColor: 'tomato', paddingHorizontal: 16, paddingVertical: 12, height: 45,
     borderRadius: 8, justifyContent: 'center', alignItems: 'center'
   },
-  primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  primaryBtnText: { color: '#fff', fontSize: 15, fontFamily: 'DungGeunMo' },
   secondaryBtn: {
-    backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 12,
-    borderRadius: 8, borderWidth: 1, borderColor: '#ddd',
+    backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 12, height: 45,
+    borderRadius: 8, borderWidth: 1, borderColor: '#ddd'
   },
-  secondaryBtnText: { color: '#333', fontSize: 16, fontWeight: '600' },
+  secondaryBtnText: { color: '#333', fontSize: 15, fontFamily: 'DungGeunMo' },
 
-  sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 8, color: '#333' },
+  sectionTitle: { fontSize: 18, fontFamily: 'DungGeunMo', marginBlockStart: 17, marginBottom: 15, color: '#fff' },
   favItem: {
     borderWidth: 1, borderColor: '#eee', borderRadius: 10,
     padding: 12, marginBottom: 8, backgroundColor: '#fafafa',
   },
-  favText: { fontSize: 16, color: '#333' },
-  favDelHint: { fontSize: 12, color: '#aaa', marginTop: 4 },
-  empty: { fontSize: 14, color: '#999', paddingVertical: 8 },
+  favText: { fontSize: 16, color: '#333', fontFamily: 'DungGeunMo' },
+  favDelHint: { fontSize: 12, color: '#aaa', marginTop: 4, fontFamily: 'DungGeunMo' },
+  empty: { fontSize: 14, color: '#999', paddingVertical: 8, fontFamily: 'DungGeunMo' },
 });
