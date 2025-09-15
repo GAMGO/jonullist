@@ -14,6 +14,9 @@ export default function DietLogScreen() {
       headerTitle: '식단 기록',
       headerTitleAlign: 'center',
       headerTintColor: '#fff',
+      // // 헤더 타이틀 폰트 지정
+      // headerTitleStyle: { fontFamily: 'DungGeunMo', fontWeight: 'normal'},
+      // headerBackTitleVisible: false 
     });
   }, [navigation]);
 
@@ -67,18 +70,18 @@ export default function DietLogScreen() {
     }, [fetchDay, dateKey])
   );
 
-  // 공통 추가 콜백 (UI 즉시 반영 후 서버 저장)
+  // 공통 추가 콜백 (UI 먼저 반영 후 서버 저장)
   const handleAddMeal = async (entry, type) => {
     const payload = { ...entry, timestamp: entry.timestamp ?? Date.now() };
 
-    // 1) 화면 즉시 반영
+    // 1) UI 먼저 반영
     setDayMeals(prev => ({
       morning: type === 'morning' ? [...prev.morning, payload] : prev.morning,
       lunch:   type === 'lunch'   ? [...prev.lunch,   payload] : prev.lunch,
       dinner:  type === 'dinner'  ? [...prev.dinner,  payload] : prev.dinner,
     }));
 
-    // 2) 백엔드 저장
+    // 2) 백엔드 저장(뒤에서. UI 딜레이 방지)
     try {
       await apiPost('/api/diet/save', {
         date: dateKey,
@@ -168,11 +171,14 @@ export default function DietLogScreen() {
                       [dateKey]: { selected: true, selectedColor: 'tomato', selectedTextColor: '#fff' } }}
                     style={{ alignSelf: 'center', width: '100%' }}
                     theme={{
+                      textDayFontFamily: 'DungGeunMo',
+                      textMonthFontFamily: 'DungGeunMo',
+                      textDayHeaderFontFamily: 'DungGeunMo',
                       textDayFontSize: 16,
                       textMonthFontSize: 18,
                       textDayHeaderFontSize: 12,
                       selectedDayBackgroundColor: 'tomato',
-                       selectedDayTextColor: '#fff',
+                      selectedDayTextColor: '#fff',
                       todayTextColor: 'tomato',
                       arrowColor: 'tomato',
                       }}
@@ -208,7 +214,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start', // 'left'는 유효 값이 아님
     marginBottom: 16,
   },
-  dateText: { fontSize: 24, color: '#fff' },
+  dateText: { fontSize: 24, color: '#fff',  fontFamily: 'DungGeunMo' },
 
   // 피커
   pickerOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end', zIndex: 999 },
@@ -216,22 +222,21 @@ const styles = StyleSheet.create({
   pickerSheet: { backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingBottom: 12 },
   pickerToolbar: {
     height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16,
-    borderBottomWidth: 1, borderBottomColor: '#eee',
+    borderBottomWidth: 1, borderBottomColor: '#eee'
   },
   pickerBody: { height: 360 },
 
-  toolbarBtn: { fontSize: 16, color: '#tomato' },
-  toolbarTitle: { fontSize: 16, fontWeight: '600', color: '#333' },
+  toolbarBtn: { fontSize: 16, color: 'tomato',  fontFamily: 'DungGeunMo' },
+  toolbarTitle: { fontSize: 16, color: '#333',  fontFamily: 'DungGeunMo' },
 
   // 섹션
   section: {
-
     borderWidth: 4, borderColor: '#eee', borderRadius: 12, padding: 22, height: 130, marginBottom: 15, backgroundColor: 'rgba(255,255,255,0.8)'
   },
   sectionHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8
   },
-  sectionTitle: { fontSize: 22, fontWeight: '700', color: '#333' },
+  sectionTitle: { fontSize: 22, color: '#333',  fontFamily: 'DungGeunMo' },
 
   headerActions: { flexDirection: 'row', gap: 8 },
 
@@ -240,14 +245,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8,
     borderRadius: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#ddd',
   },
-  primaryBtnText: { color: '#000', fontSize: 14, fontWeight: '600' },
+  primaryBtnText: { color: '#000', fontSize: 14,  fontFamily: 'DungGeunMo' },
   secondaryBtn: {
     backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8,
     borderRadius: 8, borderWidth: 1, borderColor: '#ddd',
   },
-  secondaryBtnText: { color: '#333', fontSize: 12, fontWeight: '600' },
+  secondaryBtnText: { color: '#333', fontSize: 12,  fontFamily: 'DungGeunMo' },
 
-  item: { fontSize: 16, marginVertical: 6, color: '#333' },
-  empty: { fontSize: 14, color: '#999', paddingTop: 4 },
-  total: { fontSize: 30, fontWeight: 'bold', marginTop: 30, color: '#fff', textAlign: 'right' },
+  item: { fontSize: 16, marginVertical: 6, color: '#333',  fontFamily: 'DungGeunMo'},
+  empty: { fontSize: 14, color: '#999', paddingTop: 4,  fontFamily: 'DungGeunMo' },
+  total: { fontSize: 30, marginTop: 30, color: '#fff', textAlign: 'right',  fontFamily: 'DungGeunMo' },
 });
