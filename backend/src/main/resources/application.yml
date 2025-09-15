@@ -24,6 +24,31 @@ spring:
     livereload:
       enabled: true
 
+  # 이메일 인증 설정 (야물에 직접 입력)
+  mail:
+    host: smtp.sendgrid.net
+    port: 587
+    username: apikey
+    password: ${SENDGRID_API_KEY:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+    
+    # Daum
+    # host: smtp.daum.net
+    # port: 465
+    # username: your-email@daum.net
+    # password: your-password
+    # properties:
+    #   mail:
+    #     smtp:
+    #       auth: true
+    #       ssl:
+    #         enable: true
+
 springdoc:
   swagger-ui:
     path: /swagger-ui/index.html
@@ -61,3 +86,6 @@ youtube:
   api:
     key: ${YOUTUBE_API_KEY} # 환경 변수 참조
   base-url: https://www.googleapis.com/youtube/v3
+
+
+

@@ -35,3 +35,9 @@ CREATE TABLE customers (
     height NUMBER(3)
 );
 
+-- ✅ 이메일 인증 컬럼 추가(2025-09-15)
+
+ALTER TABLE customers 
+ADD (email_verified NUMBER(1) DEFAULT 0,
+     email_verification_token VARCHAR2(255),
+     email_verification_expires TIMESTAMP);

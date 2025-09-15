@@ -2,7 +2,11 @@ package com.example.health_care.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.time.LocalDateTime;
+
 import com.example.health_care.entity.Gender;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 @Getter
 @Setter
@@ -37,6 +41,16 @@ public class CustomersEntity {
 
     @Column(name = "height")
     private Double height;
+
+    @Column(name = "email_verified")
+    private Boolean emailVerified; // 이메일 인증 
+
+    @Column(name = "email_verification_token")
+    private String emailVerificationToken; // 이메일 인증 토큰
+
+    @Column(name = "email_verification_expires")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime emailVerificationExpires;
 }
 /*tlqkf */
 /*..? */
