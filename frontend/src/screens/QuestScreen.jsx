@@ -195,7 +195,7 @@ export default function QuestScreen(){
       })).filter(v => v.id)
       setVideos(mapped)
     } catch (e) {
-      setError('영상을 불러오지 못했어')
+      setError('영상을 불러오지 못했어요')
     } finally {
       setLoading(false)
     }
