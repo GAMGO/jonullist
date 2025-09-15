@@ -26,4 +26,6 @@ public class DietRequest {
     @NotNull
     @PositiveOrZero
     private Long calories; // 200
+    
+    private Long timestamp; // 식품 추가 시간 (선택사항)
 }

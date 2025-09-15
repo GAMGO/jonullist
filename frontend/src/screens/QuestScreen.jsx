@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from 'react'
-import { View, Text, ImageBackground, StyleSheet, Animated, AppState, ActivityIndicator, TouchableOpacity, TextInput, Image, Linking, FlatList } from 'react-native'
+import { View, Text, ImageBackground, StyleSheet, Animated, AppState, ActivityIndicator, TouchableOpacity, Image, Linking, FlatList } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import * as Location from 'expo-location'
@@ -32,6 +32,7 @@ const TAUNTS_MAP = {
     zh: ['先给定位权限，再来指点','GPS锁不住，借口倒挺多'],
   },
 }
+
 const TAUNTS = (lang) => ({
   none: TAUNTS_MAP.none[lang] || TAUNTS_MAP.none.ko,
   done: TAUNTS_MAP.done[lang] || TAUNTS_MAP.done.ko,
@@ -40,36 +41,27 @@ const TAUNTS = (lang) => ({
 
 function pick(a){return a[Math.floor(Math.random()*a.length)]}
 function dayKey(d=new Date()){const t=new Date(d);t.setHours(0,0,0,0);return t.toISOString().slice(0,10)}
-function haversineFix(lat1,lon1,lat2,lon2){
-  const R=6371000,toRad=x=>x*Math.PI/180
-  const dLat=toRad(lat2-lat1),dLon=toRad(lon2-lon1)
-  const s1=Math.sin(dLat/2),s2=Math.sin(dLon/2)
-  const a=s1*s1+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*s2*s2
-  return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))
+function haversineFix(lat1,lon1,lat2,lon2){const R=6371000,toRad=x=>x*Math.PI/180;const dLat=toRad(lat2-lat1),dLon=toRad(lon2-lon1);const s1=Math.sin(dLat/2),s2=Math.sin(dLon/2);const a=s1*s1+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*s2*s2;return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
+
+const TAB_HOME = 'home'
+const TAB_STRETCH = 'stretch'
+const TAB_GYM = 'gym'
+
+const PRESETS = {
+  [TAB_HOME]: '홈트 전신 운동 10분',
+  [TAB_STRETCH]: '전신 스트레칭 10분'
 }
 
-/* ── 기구운동 드롭다운 ── */
-function Dropdown({ value, onChange, options, placeholder = '기구 선택', style }) {
-  const [open, setOpen] = useState(false)
-  const current = options.find(o => o.value === value)
-  return (
-    <View style={[styles.ddWrap, style]}>
-      <Pressable onPress={() => setOpen(o => !o)} style={({ pressed }) => [styles.ddBtn, pressed && { transform: [{ translateY: 1 }] }]}>
-        <Text style={styles.ddText}>{current ? current.label : placeholder}</Text>
-        <Text style={styles.ddArrow}>{open ? '▲' : '▼'}</Text>
-      </Pressable>
-      {open && (
-        <View style={styles.ddMenu}>
-          {options.map(opt => (
-            <Pressable key={opt.value} onPress={() => { onChange(opt.value); setOpen(false) }} style={({ pressed }) => [styles.ddItem, pressed && { opacity: 0.8 }]} >
-              <Text style={styles.ddItemText}>{opt.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-      )}
-    </View>
-  )
-}
+const GYM_OPTIONS = [
+  { key:'squat', label:'스쿼트', query:'스쿼트 올바른 자세 루틴' },
+  { key:'bench', label:'벤치프레스', query:'벤치프레스 폼 교정 초보 루틴' },
+  { key:'deadlift', label:'데드리프트', query:'데드리프트 자세 핵심 팁' },
+  { key:'lat', label:'랫풀다운', query:'랫풀다운 등운동 루틴' },
+  { key:'legpress', label:'레그프레스', query:'레그프레스 무릎 보호 루틴' },
+  { key:'shoulder', label:'숄더프레스', query:'숄더프레스 어깨운동 루틴' },
+  { key:'row', label:'시티드 로우', query:'시티드 로우 등운동 루틴' },
+  { key:'cable', label:'케이블 코어', query:'케이블 크런치 복근 운동' },
+]
 
 export default function QuestScreen(){
   const navigation = useNavigation()
@@ -86,10 +78,13 @@ export default function QuestScreen(){
   const today = dayKey()
   const taunts = useMemo(()=>TAUNTS(lang), [lang])
 
-  const [query,setQuery]=useState('')
-  const [videos,setVideos]=useState([])
-  const [loading,setLoading]=useState(false)
-  const [error,setError]=useState('')
+  const [videos, setVideos] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const [tab, setTab] = useState(TAB_HOME)
+  const [gymOpen, setGymOpen] = useState(false)
+  const [gymKey, setGymKey] = useState(GYM_OPTIONS[0].key)
 
   async function loadOrGenQuests(){
     const storedDate = await AsyncStorage.getItem('@quest/date')
@@ -126,6 +121,7 @@ export default function QuestScreen(){
 
   useEffect(()=>{ (async()=>{ await loadOrGenQuests(); })() }, [])
   useFocusEffect(useMemo(() => () => { return () => {} }, []))
+
   useEffect(()=>{
     const sub = AppState.addEventListener('change', s => { appActiveRef.current = (s === 'active') })
     return () => sub?.remove?.()
@@ -183,34 +179,46 @@ export default function QuestScreen(){
   const startSquat = () => squatQ && navigation.navigate('TACoach', { mode: 'squat', target: squatQ.target })
   const startPushup = () => pushupQ && navigation.navigate('TACoach', { mode: 'pushup', target: pushupQ.target })
 
-  const canSquat = !!squatQ
-  const canPush = !!pushupQ
-
-  async function searchVideos(qText){
-    const q = (qText || query || '').trim()
-    if(!q) return
+  async function fetchVideosByQuery(q){
     setLoading(true); setError(''); setVideos([])
-    try{
-      const data = await apiGet(`/api/youtube/search?q=${encodeURIComponent(q)}&maxResults=8`)
-      const items = Array.isArray(data?.items) ? data.items : []
-      const mapped = items.map(it => ({
-        id: it?.id?.videoId || it?.id,
-        title: it?.snippet?.title || '',
-        channel: it?.snippet?.channelTitle || '',
-        thumb: it?.snippet?.thumbnails?.medium?.url || it?.snippet?.thumbnails?.default?.url || '',
-      })).filter(v=>v.id)
+    try {
+      const raw = await apiGet(`/api/youtube/search?q=${encodeURIComponent(q)}&maxResults=12`)
+      const data = typeof raw === 'string' ? JSON.parse(raw) : raw
+      const arr = Array.isArray(data) ? data : []
+      const mapped = arr.map(it => ({
+        id: it.videoId,
+        title: it.title || '',
+        channel: it.channelTitle || '',
+        thumb: it.thumbnail || '',
+        publishedAt: it.publishedAt || '',
+        viewCount: it.viewCount || '',
+      })).filter(v => v.id)
       setVideos(mapped)
-    }catch(e){
-      setError('검색에 실패했어요')
-    }finally{
+    } catch (e) {
+      setError('영상을 불러오지 못했어')
+    } finally {
       setLoading(false)
     }
   }
 
-  useEffect(()=>{
-    const base = pushupQ ? '푸쉬업 홈트' : squatQ ? '스쿼트 폼 교정' : '걷기 스트레칭'
-    searchVideos(base)
-  },[]) // 초기 추천
+  function onTabChange(nextTab){
+    setTab(nextTab)
+    if (nextTab===TAB_HOME) fetchVideosByQuery(PRESETS[TAB_HOME])
+    else if (nextTab===TAB_STRETCH) fetchVideosByQuery(PRESETS[TAB_STRETCH])
+    else if (nextTab===TAB_GYM){
+      const opt = GYM_OPTIONS.find(o=>o.key===gymKey) || GYM_OPTIONS[0]
+      fetchVideosByQuery(opt.query)
+    }
+  }
+
+  function onGymPick(k){
+    setGymKey(k)
+    const opt = GYM_OPTIONS.find(o=>o.key===k) || GYM_OPTIONS[0]
+    fetchVideosByQuery(opt.query)
+    setGymOpen(false)
+  }
+
+  useEffect(()=>{ onTabChange(TAB_HOME) },[]) 
 
   function openVideo(id){
     const url = `https://www.youtube.com/watch?v=${id}`
@@ -225,22 +233,13 @@ export default function QuestScreen(){
     )
   }
 
+  const gymLabel = (GYM_OPTIONS.find(o=>o.key===gymKey)||GYM_OPTIONS[0]).label
+
   return(
     <ImageBackground source={require('../../assets/background/home.png')} style={{flex:1}} resizeMode="cover">
       <Text style={[styles.screenTitle,{top:insets.top+8}]}>{t('BURNING') || 'BURNING'}</Text>
-      <Text style={[styles.screenTitle,{top:insets.top+8}]}>{t('BURNING') || 'BURNING'}</Text>
 
-      {/* 전체 스크롤 뷰 */}
-      <ScrollView
-        contentContainerStyle={{
-          paddingTop: insets.top + 88,
-          paddingHorizontal: 18,
-          paddingBottom: insets.bottom + 28,
-          gap: 16,
-        }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={{ flex:1, paddingTop: insets.top + 88, paddingHorizontal: 18, gap: 16 }}>
         <View style={styles.card}>
           <Text style={styles.title}>{t('DAILY_QUESTS') || 'DAILY QUESTS'}</Text>
           <Text style={styles.questMain}>{(t('WALK') || 'WALK')} {goalKm} km</Text>
@@ -260,20 +259,37 @@ export default function QuestScreen(){
           </TouchableOpacity>
         </View>
 
-        <View style={styles.searchRow}>
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="운동 영상 검색"
-            placeholderTextColor="#9CA3AF"
-            style={styles.input}
-            returnKeyType="search"
-            onSubmitEditing={()=>searchVideos()}
-          />
-          <TouchableOpacity onPress={()=>searchVideos()} style={styles.searchBtn}>
-            <Text style={styles.searchTxt}>검색</Text>
+        <View style={styles.tabsRow}>
+          <TouchableOpacity onPress={()=>onTabChange(TAB_HOME)} style={[styles.tabBtn, tab===TAB_HOME && styles.tabActive]}>
+            <Text style={[styles.tabTxt, tab===TAB_HOME && styles.tabTxtActive]}>홈트</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={()=>onTabChange(TAB_STRETCH)} style={[styles.tabBtn, tab===TAB_STRETCH && styles.tabActive]}>
+            <Text style={[styles.tabTxt, tab===TAB_STRETCH && styles.tabTxtActive]}>스트레칭</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={()=>onTabChange(TAB_GYM)} style={[styles.tabBtn, tab===TAB_GYM && styles.tabActive]}>
+            <Text style={[styles.tabTxt, tab===TAB_GYM && styles.tabTxtActive]}>기구운동</Text>
           </TouchableOpacity>
         </View>
+
+        {tab===TAB_GYM && (
+          <View style={{gap:8}}>
+            <View>
+              <TouchableOpacity onPress={()=>setGymOpen(v=>!v)} style={styles.ddBtn}>
+                <Text style={styles.ddTxt}>{gymLabel}</Text>
+                <Text style={styles.ddArrow}>{gymOpen ? '▲' : '▼'}</Text>
+              </TouchableOpacity>
+              {gymOpen && (
+                <View style={styles.ddMenu}>
+                  {GYM_OPTIONS.map(o=>(
+                    <TouchableOpacity key={o.key} onPress={()=>onGymPick(o.key)} style={styles.ddItem}>
+                      <Text style={[styles.ddItemTxt, o.key===gymKey && styles.ddItemActive]}>{o.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          </View>
+        )}
 
         <View style={styles.listWrap}>
           {loading ? (
@@ -283,7 +299,7 @@ export default function QuestScreen(){
           ) : (
             <FlatList
               data={videos}
-              keyExtractor={(item)=>item.id}
+              keyExtractor={(item)=> String(item.id)}
               renderItem={({item})=>(
                 <TouchableOpacity style={styles.item} onPress={()=>openVideo(item.id)}>
                   <Image source={{uri:item.thumb}} style={styles.thumb}/>
@@ -295,19 +311,20 @@ export default function QuestScreen(){
               )}
               ItemSeparatorComponent={()=> <View style={{height:10}}/>}
               ListEmptyComponent={<Text style={styles.empty}>추천 영상을 불러오지 못했어요</Text>}
+              contentContainerStyle={{ paddingBottom: 24 }}
+              keyboardShouldPersistTaps="handled"
             />
           )}
         </View>
-      </ScrollView>
+      </View>
     </ImageBackground>
   )
 }
 
 const styles=StyleSheet.create({
   screenTitle:{position:'absolute',left:0,right:0,textAlign:'center',color:'#000',fontSize:26,lineHeight:32,textShadowColor:'rgba(255,255,255,0.28)',textShadowOffset:{width:0,height:1},textShadowRadius:2,zIndex:10,fontFamily:FONT,fontWeight:'normal',includeFontPadding:true},
-  screenTitle:{position:'absolute',left:0,right:0,textAlign:'center',color:'#000',fontSize:26,lineHeight:32,textShadowColor:'rgba(255,255,255,0.28)',textShadowOffset:{width:0,height:1},textShadowRadius:2,zIndex:10,fontFamily:FONT,fontWeight:'normal',includeFontPadding:true},
   center:{flex:1,alignItems:'center',justifyContent:'center'},
-  card:{backgroundColor:'rgba(255,255,255,0.85)',borderRadius:24,padding:18,gap:12},
+  card:{backgroundColor:'rgba(255,255,255,0.8)',borderRadius:24,padding:18,gap:12},
   title:{fontFamily:FONT,fontSize:20,lineHeight:24,color:'#111',includeFontPadding:true},
   questMain:{fontFamily:FONT,fontSize:28,lineHeight:34,color:'#111',includeFontPadding:true},
   barWrap:{height:26,borderWidth:2,borderColor:'#111',borderRadius:10,overflow:'hidden',justifyContent:'center',backgroundColor:'rgba(0,0,0,0.05)'},
@@ -318,11 +335,12 @@ const styles=StyleSheet.create({
   quickBtn:{ flex:1, backgroundColor:'#111827', borderRadius:12, paddingVertical:12, alignItems:'center' },
   quickTxt:{ fontFamily:FONT, color:'#fff', fontSize:16, lineHeight:20, includeFontPadding:true },
   disabled:{ opacity:0.5 },
-  searchRow:{ flexDirection:'row', gap:8, alignItems:'center' },
-  input:{ flex:1, borderWidth:2, borderColor:'#111', borderRadius:12, paddingHorizontal:12, height:44, backgroundColor:'rgba(255,255,255,0.9)', fontFamily:FONT, fontSize:16, color:'#111' },
-  searchBtn:{ height:44, paddingHorizontal:16, backgroundColor:'#2563EB', borderRadius:12, alignItems:'center', justifyContent:'center' },
-  searchTxt:{ fontFamily:FONT, color:'#fff', fontSize:16 },
-  listWrap:{ flex:1, paddingBottom:24 },
+  tabsRow:{ flexDirection:'row', gap:8 },
+  tabBtn:{ flex:1, height:40, borderWidth:2, borderColor:'#111', borderRadius:12, alignItems:'center', justifyContent:'center', backgroundColor:'rgba(255,255,255,0.9)' },
+  tabActive:{ backgroundColor:'#111', borderColor:'#111' },
+  tabTxt:{ fontFamily:FONT, fontSize:16, color:'#111' },
+  tabTxtActive:{ color:'#fff' },
+  listWrap:{ flex:1, minHeight:120, paddingBottom:24 },
   item:{ flexDirection:'row', backgroundColor:'rgba(255,255,255,0.9)', borderRadius:12, overflow:'hidden' },
   thumb:{ width:120, height:80, backgroundColor:'#ddd' },
   meta:{ flex:1, padding:10, gap:4, justifyContent:'center' },
@@ -330,4 +348,11 @@ const styles=StyleSheet.create({
   itemChan:{ fontFamily:FONT, fontSize:12, lineHeight:15, color:'#4B5563' },
   empty:{ fontFamily:FONT, fontSize:14, lineHeight:18, color:'#111', textAlign:'center', paddingVertical:12 },
   err:{ fontFamily:FONT, fontSize:14, color:'#ef4444', textAlign:'center' },
+  ddBtn:{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', height:44, paddingHorizontal:12, borderWidth:2, borderColor:'#111', borderRadius:12, backgroundColor:'rgba(255,255,255,0.9)' },
+  ddTxt:{ fontFamily:FONT, fontSize:16, color:'#111' },
+  ddArrow:{ fontFamily:FONT, fontSize:14, color:'#4B5563' },
+  ddMenu:{ marginTop:6, borderWidth:2, borderColor:'#111', borderRadius:12, overflow:'hidden', backgroundColor:'rgba(255,255,255,0.98)' },
+  ddItem:{ paddingVertical:10, paddingHorizontal:12 },
+  ddItemTxt:{ fontFamily:FONT, fontSize:16, color:'#111' },
+  ddItemActive:{ textDecorationLine:'underline' },
 })

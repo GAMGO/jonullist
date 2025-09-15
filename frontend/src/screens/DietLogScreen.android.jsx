@@ -1,6 +1,5 @@
 import React, { useState, useLayoutEffect, useMemo, useCallback, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, Pressable, SafeAreaView, Platform,ImageBackground } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { View, Text, FlatList, StyleSheet, Pressable, SafeAreaView, Platform, ImageBackground } from 'react-native';
 import { apiPost, apiGet } from '../config/api';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Constants from 'expo-constants';
@@ -16,6 +15,9 @@ export default function DietLogScreen() {
       headerTitle: '식단 기록',
       headerTitleAlign: 'center',
       headerTintColor: '#fff',
+       // // 헤더 타이틀 폰트 지정
+      // headerTitleStyle: { fontFamily: 'DungGeunMo', fontWeight: 'normal'},
+      // headerBackTitleVisible: false 
     });
   }, [navigation]);
 
@@ -142,17 +144,31 @@ export default function DietLogScreen() {
                 <Pressable onPress={() => setShowPicker(false)}><Text style={styles.toolbarBtn}>완료</Text></Pressable>
               </View>
               <View style={styles.pickerBody}>
-                <DateTimePicker
-                  value={selectedDate}
-                  mode="date"
-                  display={Platform.OS === 'android' ? (parseFloat(String(Platform.Version)) >= 14 ? 'inline' : 'spinner') : 'calendar'}
-                  themeVariant="light"
-                  onChange={(event, date) => {
-                    if (date) setSelectedDate(date);
-                    if (Platform.OS === 'android') setShowPicker(false);
-                  }}
-                  style={{ backgroundColor: '#fff', alignSelf: 'center', width: 360 }}
-                />
+                {/* {Platform.OS === 'android' ? ( */}
+                  <Calendar
+                    initialDate={dateKey}
+                    enableSwipeMonths
+                    onDayPress={(d) => {
+                      setSelectedDate(new Date(d.dateString))
+                    }}
+                    markedDates={{ 
+                      [dateKey]: { 
+                        selected: true
+                       } }}
+                    style={{ alignSelf: 'center', width: '100%' }}
+                    theme={{
+                      textDayFontFamily: 'DungGeunMo',
+                      textMonthFontFamily: 'DungGeunMo',
+                      textDayHeaderFontFamily: 'DungGeunMo',
+                      textDayFontSize: 16,
+                      textMonthFontSize: 18,
+                      textDayHeaderFontSize: 12,
+                      selectedDayBackgroundColor: 'tomato',
+                      selectedDayTextColor: '#fff',
+                      todayTextColor: 'tomato',
+                      arrowColor: 'tomato',
+                    }}
+                  />
               </View>
             </View>
           </View>
@@ -162,8 +178,7 @@ export default function DietLogScreen() {
         <MealSection label="점심" type="lunch" />
         <MealSection label="저녁" type="dinner" />
 
-        {/* 총 칼로리 */}
-        <Text style={styles.total}>🔥 총 칼로리: {totalCalories} kcal</Text>
+        <Text style={styles.total}>Total : {totalCalories} kcal</Text>
       </View>
     </SafeAreaView>
     </ImageBackground>
@@ -171,52 +186,34 @@ export default function DietLogScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#fff' },
-  container: { flex: 1, paddingHorizontal: 20, paddingTop: Constants.statusBarHeight + 30, backgroundColor: '#fff' },
 
+  safeArea: { flex: 1, backgroundColor: 'transparent' },
+  container: { flex: 1, paddingHorizontal: 20, paddingTop: Constants.statusBarHeight + 80, backgroundColor: 'transparent' },
   // 날짜 버튼
-  dateButton: {
-    paddingVertical: 20, paddingHorizontal: 20, alignItems: 'left', marginBottom: 16
-  },
-  dateText: { fontSize: 20, color: '#333' },
-
+  dateButton: { paddingVertical: 30, paddingHorizontal: 20, alignItems: 'left', marginBottom: 16 },
+  dateText: { fontSize: 22, color: '#fff',  fontFamily: 'DungGeunMo' },
   // 피커
   pickerOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end', zIndex: 999 },
   pickerBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' },
   pickerSheet: { backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingBottom: 12 },
-  pickerToolbar: {
-    height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16,
-    borderBottomWidth: 1, borderBottomColor: '#eee'
-  },
-  pickerBody: {
-    height: Platform.OS === 'android' ? (parseFloat(String(Platform.Version)) >= 14 ? 360 : 216) : undefined
-  },
-  toolbarBtn: { fontSize: 16, color: '#tomato' },
-  toolbarTitle: { fontSize: 16, fontWeight: '600', color: '#333' },
+  pickerToolbar: { height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  pickerBody: { height: Platform.OS === 'android' ? 360 : undefined },
 
+  toolbarBtn: { fontSize: 16, color: '#333',  fontFamily: 'DungGeunMo' },
+  toolbarTitle: { fontSize: 16, fontFamily: 'DungGeunMo', color: '#333' },
   // 섹션
-  section: {
-    borderWidth: 1, borderColor: '#eee', borderRadius: 12, padding: 22, marginBottom: 14, backgroundColor: '#fafafa'
-  },
-  sectionHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8
-  },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#333' },
+  section: { borderWidth: 5, borderColor: '#eee', borderRadius: 12, padding: 22, height: 135, marginBottom: 15, backgroundColor: 'rgba(255,255,255,0.8)' },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  sectionTitle: { fontSize: 20,  fontFamily: 'DungGeunMo', color: '#333' },
+
   headerActions: { flexDirection: 'row', gap: 8 },
-
   // 버튼
-  primaryBtn: {
-    backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#ddd'
-  },
-  primaryBtnText: { color: '#000', fontSize: 14, fontWeight: '600' },
-  secondaryBtn: {
-    backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: 8, borderWidth: 1, borderColor: '#ddd'
-  },
-  secondaryBtnText: { color: '#333', fontSize: 14, fontWeight: '600' },
+  primaryBtn: { backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#ddd' },
+  primaryBtnText: { color: '#000', fontSize: 13,  fontFamily: 'DungGeunMo' },
+  secondaryBtn: { backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#ddd' },
+  secondaryBtnText: { color: '#333', fontSize: 12,  fontFamily: 'DungGeunMo' },
 
-  item: { fontSize: 16, marginVertical: 6, color: '#333' },
-  empty: { fontSize: 14, color: '#999', paddingTop: 4 },
-  total: { fontSize: 20, fontWeight: 'bold', marginTop: 8, color: 'tomato' },
+  item: { fontSize: 13, marginVertical: 6, color: '#333',  fontFamily: 'DungGeunMo' },
+  empty: { fontSize: 13, color: '#999', paddingTop: 4,  fontFamily: 'DungGeunMo' },
+  total: { fontSize: 25,  fontFamily: 'DungGeunMo', marginTop: 40, color: '#fff', textAlign: 'right' },
 });

@@ -31,12 +31,12 @@ public class FavoriteFoodInfoService {
         CustomersEntity customer = customersRepository.findById(customerId)
             .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
         
-        List<FavoriteFoodInfoEntity> favorites = favoriteFoodInfoRepository
-            .findByCustomer_IdxOrderByCreatedAtDesc(customer.getIdx());
-        
-        return favorites.stream()
-            .map(this::convertToResponse)
-            .collect(Collectors.toList());
+         List<FavoriteFoodInfoEntity> entities = favoriteFoodInfoRepository
+        .findByCustomer_IdxOrderByCreatedAtDesc(customer.getIdx());
+    
+    return entities.stream()
+        .map(this::convertToResponse)
+        .collect(Collectors.toList());
     }
 
     // 즐겨찾기 추가
