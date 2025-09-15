@@ -34,9 +34,9 @@ public class SecurityConfig {
                         "/api/ping", // 헬스 체크
                         "/api/auth/**", // 로그인/회원가입 등
                         "/error", // 스프링 기본 에러 엔드포인트
-                        "/api/recover/**" ,// >>> [ADDED] 비밀번호 복구(시작/검증/재설정) 공개 엔드포인트
+                        "/api/recover/**", // >>> [ADDED] 비밀번호 복구(시작/검증/재설정) 공개 엔드포인트
                         "/api/food/**",
-                        "/api/gemini/**" //Gemini 분석 엔드포인트
+                        "/api/gemini/**" // Gemini 분석 엔드포인트
         };
 
         @Bean
@@ -53,12 +53,13 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                                 .requestMatchers(PUBLIC_WHITELIST).permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/ranking").permitAll()
-                                                .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/signup")
-                                                .permitAll()
-                                                .requestMatchers("/api/auth/logout", "/body", "/api/profile")
-                                                .authenticated() // 로그아웃, 바디프로필, 프로필 추가
+                                                .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/signup").permitAll()
+                                                .requestMatchers("/api/auth/logout", "/body", "/api/profile").authenticated() // 로그아웃, 바디프로필, 프로필 추가
                                                 .requestMatchers("/api/food/public/**").permitAll()
                                                 .requestMatchers("/api/youtube/**").permitAll()
+                                                .requestMatchers("/api/quests/**").authenticated()
+                                                .requestMatchers("/api/shop/**").authenticated()
+                                                .requestMatchers("/api/cashout/**").authenticated()
                                                 .anyRequest().authenticated())
                                 // 폼/베이직 로그인 비활성
                                 .httpBasic(b -> b.disable())
