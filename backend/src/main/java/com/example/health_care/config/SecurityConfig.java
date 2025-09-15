@@ -19,7 +19,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Configuration
 public class SecurityConfig {
-
+        
         private final CorsConfig corsConfig;
 
         // swagger 문서 접근 허용 목록
