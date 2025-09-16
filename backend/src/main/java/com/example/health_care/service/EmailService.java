@@ -11,11 +11,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.mail.internet.MimeMessage;
-import lombok.extern.slf4j.Slf4j; // Slf4j 로깅을 위한 import 추가
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Transactional
-@Slf4j // 로거 사용을 위한 어노테이션 추가
+@Slf4j
 public class EmailService {
 
     @Autowired
@@ -54,7 +54,7 @@ public class EmailService {
             // .env 파일의 GMAIL_API_EMAIL 변수에서 이메일 주소 가져오기
             String senderEmail = dotenv.get("GMAIL_API_EMAIL");
             
-            // 로깅으로 발신자 이메일 확인 (선택 사항)
+            // 로거로 발신자 이메일 확인
             log.info("이메일 발신자: {}", senderEmail);
             
             helper.setFrom(senderEmail); // ENV에서 가져온 값 사용
