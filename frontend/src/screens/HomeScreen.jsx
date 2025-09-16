@@ -45,6 +45,74 @@ function CalorieGauge({ current, target }) {
   )
 }
 
+function EvolvingAvatar({ category, size }) {
+  const [displayCat, setDisplayCat] = useState(category)
+  const [isEvolving, setIsEvolving] = useState(false)
+  const fade = useRef(new Animated.Value(1)).current
+  const scale = useRef(new Animated.Value(1)).current
+  const pulse = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    if (category === displayCat) return
+    setIsEvolving(true)
+    fade.setValue(1)
+    scale.setValue(1)
+    pulse.setValue(0)
+
+    Animated.parallel([
+      Animated.timing(pulse, { toValue: 1, duration: 1000, useNativeDriver: true }),
+      Animated.sequence([
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(fade, { toValue: 0.25, duration: 150, useNativeDriver: true }),
+            Animated.timing(fade, { toValue: 1, duration: 150, useNativeDriver: true })
+          ]),
+          { iterations: 4 }
+        ),
+        Animated.parallel([
+          Animated.timing(scale, { toValue: 1.35, duration: 260, useNativeDriver: true }),
+          Animated.timing(fade, { toValue: 0, duration: 260, useNativeDriver: true })
+        ])
+      ])
+    ]).start(() => {
+      setDisplayCat(category)
+      fade.setValue(1)
+      scale.setValue(1)
+      pulse.setValue(0)
+      setIsEvolving(false)
+    })
+  }, [category])
+
+  const pulseScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1.6] })
+  const pulseOpacity = pulse.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0, 0.3, 0] })
+
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      {isEvolving && (
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            width: size * 0.92,
+            height: size * 0.92,
+            borderRadius: (size * 0.92) / 2,
+            backgroundColor: '#7dd3fc',
+            opacity: pulseOpacity,
+            transform: [{ scale: pulseScale }]
+          }}
+        />
+      )}
+      {isEvolving ? (
+        <Animated.View style={{ opacity: fade, transform: [{ scale }] }}>
+          <AvatarByBMI category={displayCat} size={size} />
+        </Animated.View>
+      ) : (
+        <AvatarByBMI category={displayCat} size={size} />
+      )}
+    </View>
+  )
+}
+
 function dayKey(d = new Date()) { const t = new Date(d); t.setHours(0,0,0,0); return t.toISOString().slice(0,10) }
 
 export default function HomeScreen() {
@@ -113,7 +181,7 @@ export default function HomeScreen() {
 
   if (!fontsLoaded) return null
 
-  const IconLabeled = ({ iconSrc, label, to, onPress, showBadge }) => (
+  const IconLabeled = ({ iconSrc, label, to, onPress }) => (
     <Pressable onPress={onPress ?? (() => nav.navigate(to))} style={{ alignItems: 'center', width: ICON_SIZE + 8 }}>
       <View style={{ position: 'relative' }}>
         <Image source={iconSrc} style={{ width: ICON_SIZE, height: ICON_SIZE, resizeMode: 'contain' }} />
@@ -137,7 +205,7 @@ export default function HomeScreen() {
           <CalorieGauge current={current} target={target} />
         </View>
         <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 150, alignItems: 'center' }} pointerEvents="none">
-          <AvatarByBMI category={category} size={260} />
+          <EvolvingAvatar category={category} size={260} />
         </View>
         <Pressable
           onPress={() => {
@@ -155,7 +223,7 @@ export default function HomeScreen() {
         <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 24 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center' }}>
             <IconLabeled iconSrc={require('../../assets/icons/profile.png')} label={t('PROFILE')} to="Profile" />
-            <IconLabeled iconSrc={require('../../assets/icons/quest.png')} label={t('BURNING')} to="Burning" showBadge={questNew} />
+            <IconLabeled iconSrc={require('../../assets/icons/quest.png')} label={t('BURNING')} to="Burning" />
             <IconLabeled iconSrc={require('../../assets/icons/quest.png')} label={t('RANKING')} to="Ranking" />
             <IconLabeled iconSrc={require('../../assets/icons/setting.png')} label={t('SETTINGS')} to="Settings" />
           </View>
