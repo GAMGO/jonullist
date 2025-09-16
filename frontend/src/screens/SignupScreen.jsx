@@ -65,19 +65,11 @@ export default function SignupScreen({ navigation }) {
     const payload = {
       id: id.trim(),
       password,
-      weight: Number(weight),
-      age: Number(age),
-      gender,
-      height: Number(height),
+      weight: w,
+      age: a,
+      gender,            // 'M' 또는 'F' 그대로 보냄
+      height: h,
     };
-
-    if (
-      Number.isNaN(payload.age) ||
-      Number.isNaN(payload.weight) ||
-      Number.isNaN(payload.height)
-    ) {
-      return Alert.alert('형식 오류', '나이/체중/키는 숫자로 입력하세요.');
-    }
 
     try {
       setLoading(true);
