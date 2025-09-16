@@ -1,267 +1,374 @@
-import { useState, useMemo } from 'react';
+// src/screens/SignupScreen.js
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
+  TouchableOpacity, // ✅ 일관성을 위해 TouchableOpacity 사용
   Alert,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { apiPost, API_BASE_DEBUG } from '../config/api.js';
+import { apiPost, API_BASE_DEBUG } from '../config/api';
 import { calcBMI, classifyBMI } from '../utils/bmi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 
 const FONT = 'DungGeunMo';
-
-const isValidEmail = (v = '') => {
-  const s = String(v).trim();
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
-};
+const isValidEmail = (v = '') => /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(String(v).trim());
+const onlyDigits = (s = '') => s.replace(/\\D+/g, '').slice(0, 6);
 
 export default function SignupScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const [fontsLoaded] = useFonts({
-    [FONT]: require('../../assets/fonts/DungGeunMo.otf'),
-  });
+  const [fontsLoaded] = useFonts({ [FONT]: require('../../assets/fonts/DungGeunMo.otf') });
 
   let auth = null;
-  try {
-    auth = useAuth?.();
-  } catch {
-    auth = null;
-  }
+  try { auth = useAuth?.(); } catch { auth = null; }
 
   const [id, setId] = useState('');
   const [password, setPassword] = useState('');
   const [weight, setWeight] = useState('');
-  const [age, setAge] = useState('');
-  const [gender, setGender] = useState('F');
   const [height, setHeight] = useState('');
+  const [age, setAge] = useState('');
+  const [gender, setGender] = useState('male');
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const endpoint = useMemo(() => `${API_BASE_DEBUG}/api/auth/signup`, []);
+  // 이메일 인증 관련 상태
+  const [sent, setSent] = useState(false);
+  const [code, setCode] = useState('');
+  const [leftSec, setLeftSec] = useState(0);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const timerId = useRef();
 
-  async function signupFallback(payload) {
-    const res = await apiPost('/api/auth/signup', payload);
-    return !!res;
-  }
-
-  const onSubmit = async () => {
-    if (!id || !password || !weight || !age || !gender || !height) {
-      return Alert.alert('필수 입력', '모든 항목을 입력해 주세요.');
+  useEffect(() => {
+    if (leftSec <= 0) {
+      if (timerId.current) clearTimeout(timerId.current);
+      return;
     }
-    if (!isValidEmail(id)) {
-      return Alert.alert('형식 오류', '이메일 형식이 올바르지 않습니다.');
-    }
-    if (String(password).length < 8) {
-      return Alert.alert('형식 오류', '비밀번호는 8자리 이상이어야 합니다.');
-    }
+    timerId.current = setTimeout(() => {
+      setLeftSec(leftSec - 1);
+    }, 1000);
+    return () => clearTimeout(timerId.current);
+  }, [leftSec]);
 
-    const payload = {
-      id: id.trim(),
-      password,
-      weight: w,
-      age: a,
-      gender,            // 'M' 또는 'F' 그대로 보냄
-      height: h,
-    };
-
+  const requestVerificationEmail = async () => {
+    setResendLoading(true);
     try {
-      setLoading(true);
-      if (__DEV__) {
-        console.log('▶ 요청:', endpoint);
-        console.log('▶ 보낼 데이터:', payload);
-      }
-      const ok = auth?.signup ? await auth.signup(payload) : await signupFallback(payload);
-      if (ok) {
-        await AsyncStorage.setItem(
-          '@profile/prefill',
-          JSON.stringify({
-            id: payload.id,
-            email: payload.id,
-            weight: payload.weight,
-            height: payload.height,
-            age: payload.age,
-            gender: payload.gender,
-          })
-        );
-        await AsyncStorage.setItem(
-          'goal_draft',
-          JSON.stringify({
-            weight: payload.weight,
-            height: payload.height,
-            age: payload.age,
-            gender: payload.gender,
-          })
-        );
-        const bmi = calcBMI(payload.weight, payload.height);
-        const category = classifyBMI(bmi);
-        await AsyncStorage.setItem('@avatar/category_prefill', String(category));
-        Alert.alert('성공', `회원가입 완료! BMI: ${bmi}`);
-        navigation.replace('Login', { bmi, category });
+      const response = await apiPost('/api/email/send', { email: id.trim() });
+      if (response.success) {
+        Alert.alert('성공', '인증번호가 발송되었습니다.');
+        setSent(true);
+        setLeftSec(180);
       } else {
-        Alert.alert('가입 실패', '다시 시도해 주세요.');
+        Alert.alert('오류', response.message);
       }
     } catch (e) {
-      Alert.alert('가입 실패', e?.message ?? '잠시 후 다시 시도해 주세요.');
+      Alert.alert('오류', e.message);
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  const requestVerificationEmail_NoBody = async (email) => {
+    setResendLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_DEBUG}/api/email/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: email }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        Alert.alert('성공', '인증번호가 발송되었습니다.');
+        setSent(true);
+        setLeftSec(180);
+      } else {
+        Alert.alert('오류', data.message);
+      }
+    } catch (e) {
+      Alert.alert('오류', '네트워크 오류가 발생했습니다.');
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  const verifyEmailCode = async () => {
+    setVerifyLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_DEBUG}/api/email/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token: code, email: id.trim() }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        Alert.alert('성공', '이메일 인증이 완료되었습니다. 회원가입을 계속해주세요.');
+        // 성공 시 인증 섹션 숨기기
+        setSent(false);
+        setLeftSec(0);
+      } else {
+        Alert.alert('오류', data.message);
+      }
+    } catch (e) {
+      Alert.alert('오류', '네트워크 오류가 발생했습니다.');
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
+  const handleSignup = async () => {
+    setErrorMessage('');
+    try {
+      setLoading(true);
+
+      const payload = {
+        id: id.trim(),
+        password,
+        age: Number(age),
+        weight: Number(weight),
+        height: Number(height),
+        gender: gender.toUpperCase(),
+      };
+      
+      if (
+        Number.isNaN(payload.age) ||
+        Number.isNaN(payload.weight) ||
+        Number.isNaN(payload.height)
+      ) {
+        setLoading(false);
+        return Alert.alert('형식 오류', '나이/체중/키는 숫자로 입력하세요.');
+      }
+      
+      const response = await apiPost('/auth/signup', payload);
+
+      if (response.success) {
+        Alert.alert('가입 성공', '회원가입이 완료되었습니다.');
+        navigation.navigate('Login');
+      } else {
+        setErrorMessage(response.message || '회원가입 실패');
+      }
+    } catch (error) {
+      setErrorMessage(error.message || '네트워크 오류');
     } finally {
       setLoading(false);
     }
   };
 
-  if (!fontsLoaded) return null;
+  const inputStyle = useMemo(
+    () => ({
+      width: '100%',
+      height: 50,
+      backgroundColor: '#f1f5f9',
+      borderRadius: 8,
+      paddingHorizontal: 16,
+      fontSize: 16,
+      fontFamily: FONT,
+      color: '#1a202c',
+    }),
+    [],
+  );
 
-  const inputStyle = {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    padding: 12,
-    fontFamily: FONT,
-  };
+  const buttonStyle = useMemo(
+    () => ({
+      width: '100%',
+      height: 50,
+      borderRadius: 8,
+      justifyContent: 'center',
+      alignItems: 'center',
+    }),
+    [],
+  );
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: '#fff' }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
     >
       <ScrollView
-        contentContainerStyle={{
-          paddingHorizontal: 20,
-          paddingBottom: 24,
-          paddingTop: insets.top + 80,
-          gap: 12,
-        }}
-        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ flexGrow: 1 }}
+        style={{ backgroundColor: '#fff' }}
       >
-        <Text
-          style={{
-            fontSize: 36,
-            fontFamily: FONT,
-            marginBottom: 20,
-            textAlign: 'center',
-          }}
-        >
-          SIGNUP
-        </Text>
-
-        <TextInput
-          value={id}
-          onChangeText={setId}
-          placeholder="이메일"
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="email-address"
-          inputMode="email"
-          style={inputStyle}
-        />
-
-        <TextInput
-          value={password}
-          onChangeText={setPassword}
-          placeholder="비밀번호 (8자리 이상)"
-          secureTextEntry
-          autoCapitalize="none"
-          style={inputStyle}
-        />
-
-        <TextInput
-          value={age}
-          onChangeText={setAge}
-          placeholder="나이"
-          keyboardType="numeric"
-          style={inputStyle}
-        />
-
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TouchableOpacity
-            onPress={() => setGender('F')}
-            style={{
-              flex: 1,
-              backgroundColor: gender === 'F' ? '#111827' : '#e5e7eb',
-              padding: 12,
-              borderRadius: 10,
-            }}
-          >
-            <Text
-              style={{
-                fontFamily: FONT,
-                color: gender === 'F' ? '#fff' : '#111',
-                textAlign: 'center',
-              }}
-            >
-              여성
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setGender('M')}
-            style={{
-              flex: 1,
-              backgroundColor: gender === 'M' ? '#111827' : '#e5e7eb',
-              padding: 12,
-              borderRadius: 10,
-            }}
-          >
-            <Text
-              style={{
-                fontFamily: FONT,
-                color: gender === 'M' ? '#fff' : '#111',
-                textAlign: 'center',
-              }}
-            >
-              남성
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <TextInput
-          value={weight}
-          onChangeText={setWeight}
-          placeholder="체중 (kg)"
-          keyboardType="numeric"
-          style={inputStyle}
-        />
-
-        <TextInput
-          value={height}
-          onChangeText={setHeight}
-          placeholder="키 (cm)"
-          keyboardType="numeric"
-          style={inputStyle}
-        />
-
-        <TouchableOpacity
-          onPress={onSubmit}
-          disabled={loading}
-          style={{
-            backgroundColor: '#10b981',
-            padding: 14,
-            borderRadius: 10,
-            opacity: loading ? 0.6 : 1,
-          }}
-        >
-          <Text style={{ color: '#fff', textAlign: 'center', fontFamily: FONT }}>
-            {loading ? '처리 중…' : '계정 만들기'}
-          </Text>
-        </TouchableOpacity>
-
         <View
           style={{
-            flexDirection: 'row',
+            flex: 1,
             justifyContent: 'center',
             alignItems: 'center',
-            marginTop: 8,
+            padding: 24,
+            paddingTop: insets.top + 24,
           }}
         >
-          <Text style={{ color: '#6b7280', fontFamily: FONT }}>이미 계정이 있나요? </Text>
-          <TouchableOpacity onPress={() => navigation.replace('Login')}>
-            <Text style={{ color: '#2563eb', fontFamily: FONT }}>로그인</Text>
-          </TouchableOpacity>
+          <Text
+            style={{
+              fontSize: 32,
+              fontWeight: 'bold',
+              marginBottom: 24,
+              fontFamily: FONT,
+              color: '#1d4ed8',
+            }}
+          >
+            회원가입
+          </Text>
+
+          <View style={{ width: '100%', gap: 10 }}>
+            <Text style={{ fontFamily: FONT, color: '#4b5563' }}>아이디 (이메일)</Text>
+            <View style={{ flexDirection: 'row', width: '100%', gap: 8 }}>
+              <TextInput
+                value={id}
+                onChangeText={setId}
+                placeholder="이메일 주소"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                style={{ ...inputStyle, flex: 1 }}
+              />
+              <TouchableOpacity
+                style={{
+                  ...buttonStyle,
+                  width: 120,
+                  backgroundColor: resendLoading || (sent && leftSec > 0) ? '#cbd5e1' : '#2563eb',
+                }}
+                onPress={() => {
+                  if (!isValidEmail(id)) return Alert.alert('형식 오류', '올바른 이메일을 입력하세요.');
+                  if (sent && leftSec > 0) return;
+                  requestVerificationEmail_NoBody(id.trim());
+                }}
+                disabled={resendLoading || (sent && leftSec > 0)}
+              >
+                <Text style={{ color: '#fff', fontFamily: FONT }}>
+                  {resendLoading ? '전송 중...' : sent && leftSec > 0 ? `재전송 (${leftSec}s)` : '인증번호 발송'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ height: 10 }} />
+
+            {sent && (
+              <View style={{ width: '100%', gap: 10 }}>
+                <Text style={{ fontFamily: FONT, color: '#4b5563' }}>인증번호</Text>
+                <View style={{ flexDirection: 'row', width: '100%', gap: 8 }}>
+                  <TextInput
+                    value={code}
+                    onChangeText={(t) => setCode(onlyDigits(t))}
+                    placeholder="6자리 인증번호"
+                    keyboardType="number-pad"
+                    inputMode="numeric"
+                    maxLength={6}
+                    style={{ ...inputStyle, flex: 1 }}
+                  />
+                  <TouchableOpacity
+                    style={{
+                      ...buttonStyle,
+                      width: 120,
+                      backgroundColor: verifyLoading || code.length !== 6 ? '#cbd5e1' : '#2563eb',
+                    }}
+                    onPress={verifyEmailCode}
+                    disabled={verifyLoading || code.length !== 6}
+                  >
+                    <Text style={{ color: '#fff', fontFamily: FONT }}>
+                      {verifyLoading ? '확인 중...' : '인증 확인'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            <View style={{ height: 10 }} />
+
+            <Text style={{ fontFamily: FONT, color: '#4b5563' }}>비밀번호</Text>
+            <TextInput
+              value={password}
+              onChangeText={setPassword}
+              placeholder="비밀번호"
+              secureTextEntry
+              style={inputStyle}
+            />
+
+            <View style={{ height: 10 }} />
+
+            <Text style={{ fontFamily: FONT, color: '#4b5563' }}>나이 / 체중 / 키</Text>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TextInput
+                value={age}
+                onChangeText={setAge}
+                placeholder="나이"
+                keyboardType="numeric"
+                style={{ ...inputStyle, flex: 1 }}
+              />
+              <TextInput
+                value={weight}
+                onChangeText={setWeight}
+                placeholder="체중 (kg)"
+                keyboardType="numeric"
+                style={{ ...inputStyle, flex: 1 }}
+              />
+              <TextInput
+                value={height}
+                onChangeText={setHeight}
+                placeholder="키 (cm)"
+                keyboardType="numeric"
+                style={{ ...inputStyle, flex: 1 }}
+              />
+            </View>
+
+            <View style={{ height: 10 }} />
+
+            <Text style={{ fontFamily: FONT, color: '#4b5563' }}>성별</Text>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                style={{
+                  ...buttonStyle,
+                  flex: 1,
+                  backgroundColor: gender === 'male' ? '#1d4ed8' : '#e2e8f0',
+                }}
+                onPress={() => setGender('male')}
+              >
+                <Text style={{ color: gender === 'male' ? '#fff' : '#4b5563', fontFamily: FONT }}>남성</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  ...buttonStyle,
+                  flex: 1,
+                  backgroundColor: gender === 'female' ? '#1d4ed8' : '#e2e8f0',
+                }}
+                onPress={() => setGender('female')}
+              >
+                <Text style={{ color: gender === 'female' ? '#fff' : '#4b5563', fontFamily: FONT }}>여성</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ height: 20 }} />
+
+            {errorMessage ? (
+              <Text style={{ color: 'red', textAlign: 'center', marginBottom: 10, fontFamily: FONT }}>
+                {errorMessage}
+              </Text>
+            ) : null}
+
+            <TouchableOpacity
+              style={{
+                ...buttonStyle,
+                backgroundColor: loading ? '#cbd5e1' : '#1d4ed8',
+              }}
+              onPress={handleSignup}
+              disabled={loading}
+            >
+              <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', fontFamily: FONT }}>
+                {loading ? '가입 중...' : '가입하기'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
