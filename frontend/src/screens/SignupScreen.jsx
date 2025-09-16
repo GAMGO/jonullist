@@ -1,9 +1,10 @@
+// src/screens/SignupScreen.js
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
   TextInput,
-  TouchableOpacity, // ✅ 일관성을 위해 TouchableOpacity 사용
+  TouchableOpacity,
   Alert,
   ScrollView,
   KeyboardAvoidingView,
@@ -31,14 +32,14 @@ export default function SignupScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [weight, setWeight] = useState('');
   const [age, setAge] = useState('');
-  const [gender, setGender] = useState('F');
+  const [gender, setGender] = useState('F'); // 'M' | 'F'
   const [height, setHeight] = useState('');
   const [loading, setLoading] = useState(false);
 
   // 이메일 인증
   const [code, setCode] = useState('');
-  const [sent, setSent] = useState(false);
-  const [leftSec, setLeftSec] = useState(0);
+  const [sent, setSent] = useState(false);      // ✅ 가입 성공 후 true
+  const [leftSec, setLeftSec] = useState(0);    // 재발송 쿨다운
   const [resendLoading, setResendLoading] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(false);
   const tickRef = useRef(null);
@@ -78,14 +79,7 @@ export default function SignupScreen({ navigation }) {
     if ([w, a, h].some(Number.isNaN)) return Alert.alert('형식 오류', '나이/체중/키는 숫자로 입력하세요.');
     if (a > 150) return Alert.alert('형식 오류', '나이는 150 이하로 입력하세요.');
 
-    const payload = {
-      id: id.trim(),
-      password,
-      weight: w,
-      age: a,
-      gender,      // 'M' 또는 'F'
-      height: h,
-    };
+    const payload = { id: id.trim(), password, weight: w, age: a, gender, height: h };
 
     try {
       setLoading(true);
@@ -98,10 +92,9 @@ export default function SignupScreen({ navigation }) {
         ['@avatar/category_prefill', String(classifyBMI(calcBMI(w, h)))],
       ]);
 
-      // 백엔드가 가입 시 인증코드를 즉시 발송하므로 바로 인증 단계로 전환
+      // ✅ 백엔드가 가입 시 인증코드 자동 발송 → 버튼 합치기: 여기서 바로 인증 단계 전환
       setSent(true);
       startTimer(300);
-
       Alert.alert('가입 완료', '인증번호가 이메일로 발송되었어요. 아래에 입력해 주세요.');
     } catch (e) {
       Alert.alert('가입 실패', e?.message ?? '잠시 후 다시 시도해 주세요.');
@@ -110,7 +103,7 @@ export default function SignupScreen({ navigation }) {
     }
   };
 
-  // @RequestParam email 호환: 바디/헤더 없이 POST
+  // 재발송 (바디 없이 @RequestParam)
   async function requestVerificationEmail_NoBody(email) {
     try {
       setResendLoading(true);
@@ -171,10 +164,7 @@ export default function SignupScreen({ navigation }) {
   const mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}
-    >
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24, paddingTop: insets.top + 80, gap: 12 }}
         keyboardShouldPersistTaps="handled"
@@ -196,25 +186,32 @@ export default function SignupScreen({ navigation }) {
         <TextInput value={weight} onChangeText={setWeight} placeholder="체중 (kg)" keyboardType="numeric" style={inputStyle} />
         <TextInput value={height} onChangeText={setHeight} placeholder="키 (cm)" keyboardType="numeric" style={inputStyle} />
 
+        {/* 계정 만들기 → 가입 + 코드 자동발송 */}
         <Button title={loading ? '처리 중…' : '계정 만들기'} onPress={onSubmit} disabled={loading} bg="#10b981" />
 
         {/* ───────── 이메일 인증 섹션 ───────── */}
         <View style={{ marginTop: 24, padding: 14, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12 }}>
           <Text style={{ fontFamily: FONT, fontSize: 18, marginBottom: 8 }}>이메일 인증</Text>
-          <Text style={{ fontFamily: FONT, color: '#6b7280', marginBottom: 10 }}>
-            가입하면 인증코드가 자동 발송돼요. 필요하면 아래에서 재발송할 수 있어요.
-          </Text>
 
-          <Button
-            title={resendLoading ? '발송 중…' : sent && leftSec > 0 ? `재발송 (대기 ${mmss(leftSec)})` : '인증번호 발송'}
-            onPress={() => {
-              if (!isValidEmail(id)) return Alert.alert('형식 오류', '올바른 이메일을 입력하세요.');
-              if (sent && leftSec > 0) return;
-              requestVerificationEmail_NoBody(id.trim());
-            }}
-            disabled={resendLoading || (sent && leftSec > 0)}
-            bg="#2563eb"
-          />
+          {/* 버튼 합치기: 초기엔 안내만, 가입 성공 후에만 재발송 버튼 노출 */}
+          {!sent ? (
+            <Text style={{ fontFamily: FONT, color: '#6b7280' }}>
+              계정을 만들면 인증코드가 자동 발송돼요.
+            </Text>
+          ) : (
+            <>
+              <Text style={{ fontFamily: FONT, color: '#6b7280', marginBottom: 10 }}>
+                {leftSec > 0 ? `재발송까지 대기 ${mmss(leftSec)}` : '필요하면 코드 재발송이 가능합니다.'}
+              </Text>
+
+              <Button
+                title={resendLoading ? '발송 중…' : '코드 재발송'}
+                onPress={() => requestVerificationEmail_NoBody(id.trim())}
+                disabled={resendLoading || leftSec > 0}
+                bg="#2563eb"
+              />
+            </>
+          )}
 
           <View style={{ height: 10 }} />
 
