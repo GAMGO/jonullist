@@ -59,9 +59,6 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/auth/logout", "/body", "/api/profile").authenticated() // 로그아웃, 바디프로필, 프로필 추가
                                                 .requestMatchers("/api/food/public/**").permitAll()
                                                 .requestMatchers("/api/youtube/**").permitAll()
-                                                .requestMatchers("/api/quests/**").authenticated()
-                                                .requestMatchers("/api/shop/**").authenticated()
-                                                .requestMatchers("/api/cashout/**").authenticated()
                                                 .anyRequest().authenticated())
                                 // 폼/베이직 로그인 비활성
                                 .httpBasic(b -> b.disable())
