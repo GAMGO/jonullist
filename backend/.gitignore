@@ -35,6 +35,6 @@ out/
 
 .env
 .env.local
-
+apikeys.env
 ### VS Code ###
 .vscode/
