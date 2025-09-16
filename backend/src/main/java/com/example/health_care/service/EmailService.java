@@ -1,5 +1,6 @@
 package com.example.health_care.service;
 
+import io.github.cdimascio.dotenv.Dotenv;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -10,9 +11,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.mail.internet.MimeMessage;
+import lombok.extern.slf4j.Slf4j; // Slf4j 로깅을 위한 import 추가
 
 @Service
 @Transactional
+@Slf4j // 로거 사용을 위한 어노테이션 추가
 public class EmailService {
 
     @Autowired
@@ -42,52 +45,39 @@ public class EmailService {
      */
     public boolean sendVerificationEmail(String email, String verificationCode) {
         try {
+            // .env 파일 로드
+            Dotenv dotenv = Dotenv.load();
+
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            // .env 파일의 GMAIL_API_EMAIL 변수에서 이메일 주소 가져오기
+            String senderEmail = dotenv.get("GMAIL_API_EMAIL");
             
-            helper.setFrom("popple1101@naver.com"); // 인증된 발신자 사용
+            // 로깅으로 발신자 이메일 확인 (선택 사항)
+            log.info("이메일 발신자: {}", senderEmail);
+            
+            helper.setFrom(senderEmail); // ENV에서 가져온 값 사용
             helper.setTo(email);
             helper.setSubject("이메일 인증번호입니다");
-            
+
             String htmlContent = createVerificationCodeHtml(verificationCode);
             
             helper.setText(htmlContent, true);
             mailSender.send(message);
             
-            // 로그로 인증번호 출력 (개발용)
-            System.out.println("=== 이메일 인증번호 ===");
-            System.out.println("이메일: " + email);
-            System.out.println("인증번호: " + verificationCode);
-            System.out.println("========================");
+            // 로거로 인증번호 출력 (개발용)
+            log.info("이메일 인증번호 발송 완료: {} - 코드: {}", email, verificationCode);
             
             return true;
         } catch (Exception e) {
-            System.err.println("이메일 발송 실패: " + e.getMessage());
+            log.error("이메일 발송 실패: {}", e.getMessage());
             return false;
         }
     }
 
     /**
-     * 토큰 검증
-     * @param token 검증할 토큰
-     * @return 토큰 유효성
-     */
-    public boolean verifyToken(String token) {
-        if (token == null || token.trim().isEmpty()) {
-            return false;
-        }
-        
-        // UUID 형식 검증
-        try {
-            UUID.fromString(token);
-            return true;
-        } catch (IllegalArgumentException e) {
-            return false;
-        }
-    }
-
-    /**
-     * 토큰 만료 시간 체크
+     * 토큰 만료 여부 확인
      * @param expires 만료 시간
      * @return 만료 여부
      */
@@ -97,7 +87,7 @@ public class EmailService {
         }
         return LocalDateTime.now().isAfter(expires);
     }
-
+    
     /**
      * 이메일 인증번호 HTML 템플릿 생성
      * @param verificationCode 인증번호
