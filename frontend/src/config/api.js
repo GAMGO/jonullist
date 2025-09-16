@@ -50,13 +50,7 @@ function getDevOrigin() {
   } else {
     // ip 1개 지정 후 주석 풀고 사용
     if (Platform.OS === 'android') {
-<<<<<<< HEAD
-      host = '192.168.0.28' // << 학원 ip
-      // host = '192.168.156.230' // << 준우님 ip
-    } else if (Platform.OS === 'ios') {
-      host = '192.168.0.28'
-      // host = '192.168.156.230'
-=======
+
       // host = '192.168.0.28' // << 학원 ip
       // host = '192.168.156.43' // << 준우님 ip 192.168.0.5
       host = '192.168.0.5' // << 준우님 집 ip 
@@ -65,7 +59,7 @@ function getDevOrigin() {
       // host = '192.168.0.28'
       // host = '172.30.1.6'
       host = '172.30.1.64'
->>>>>>> fa301e2dfad00edf8acd90ea3ab24472c430a36a
+
     } else {
       host = 'localhost'
     }
