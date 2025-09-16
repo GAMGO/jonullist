@@ -13,7 +13,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -49,8 +48,8 @@ public class DietService {
         // 식사 타입에 따라 칼로리 추가
         addCaloriesToRecord(record, request.getType(), request.getCalories());
 
-        // 상세 정보를 JSON으로 저장
-        addMealDetailToRecord(record, request.getType(), request.getFood(), request.getCalories());
+        // 상세 정보를 JSON으로 저장 (timestamp 포함)
+        addMealDetailToRecord(record, request.getType(), request.getFood(), request.getCalories(), request.getTimestamp());
 
         // 변경사항 db저장
         recordRepository.save(record);
@@ -128,7 +127,7 @@ public class DietService {
     }
 
     // 기존 meal_details JSON 파싱 -> 새 음식 추가 -> JSON으로 저장
-    private void addMealDetailToRecord(RecordEntity record, String mealType, String foodName, Long calories) {
+    private void addMealDetailToRecord(RecordEntity record, String mealType, String foodName, Long calories, Long timestamp) {
         try {
             // 기존 meal_details JSON 파싱
             Map<String, Object> mealDetails = new HashMap<>();
@@ -147,7 +146,7 @@ public class DietService {
             Map<String, Object> foodItem = new HashMap<>();
             foodItem.put("food", foodName);
             foodItem.put("calories", calories);
-            foodItem.put("timestamp", new Date().getTime());
+            foodItem.put("timestamp", timestamp != null ? timestamp : new Date().getTime());
 
             mealList.add(foodItem);
             mealDetails.put(mealType, mealList);

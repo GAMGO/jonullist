@@ -1,5 +1,6 @@
 package com.example.health_care.service;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -37,14 +38,33 @@ public class CustomersService implements UserDetailsService {
         private final BodyRepository bodyRepository;
         private final GoalRepository goalRepository;
         private final RecordRepository recordRepository;
+        private final EmailService emailService;
 
         @Transactional
         public CustomersEntity signup(SignupRequest req) {
                 log.debug("[SIGNUP:SERVICE] existsById? id={}", req.getId()); // log 확인
                 if (customersRepository.existsById(req.getId())) {
                         log.warn("[SIGNUP:SERVICE] duplicate id={}", req.getId());
-                        throw new IllegalArgumentException("이미 존재하는 ID입니다.");
+                        // 중복 ID인 경우 기존 사용자 정보 반환 (이메일 인증만 재발송)
+                        CustomersEntity existingUser = customersRepository.findById(req.getId()).orElse(null);
+                        if (existingUser != null && !existingUser.getEmailVerified()) {
+                                // 이메일 인증이 안된 경우 토큰 재생성
+                                String newToken = emailService.generateVerificationToken();
+                                LocalDateTime newExpires = LocalDateTime.now().plusHours(24);
+                                existingUser.setEmailVerificationToken(newToken);
+                                existingUser.setEmailVerificationExpires(newExpires);
+                                customersRepository.save(existingUser);
+                                
+                                // 이메일 재발송
+                                emailService.sendVerificationEmail(req.getRealEmail(), newToken);
+                                log.info("[SIGNUP:SERVICE] 이메일 인증 토큰 재발송: {}", req.getId());
+                        }
+                        return existingUser;
                 }
+
+                // 이메일 인증번호 생성
+                String verificationCode = emailService.generateVerificationCode();
+                LocalDateTime codeExpires = LocalDateTime.now().plusMinutes(5);
 
                 CustomersEntity user = CustomersEntity.builder()
                                 .id(req.getId())
@@ -53,6 +73,9 @@ public class CustomersService implements UserDetailsService {
                                 .age(req.getAge())
                                 .gender(req.getGender())
                                 .height(req.getHeight())
+                                .emailVerified(false) // 이메일 인증 대기 상태
+                                .emailVerificationToken(verificationCode) // 인증번호
+                                .emailVerificationExpires(codeExpires) // 인증번호 만료 시간
                                 .build();
 
                 CustomersEntity savedUser = customersRepository.save(user);
@@ -67,6 +90,14 @@ public class CustomersService implements UserDetailsService {
                                 .build();
 
                 bodyRepository.save(bodyEntity);
+
+        // 이메일 인증번호 발송
+        boolean emailSent = emailService.sendVerificationEmail(req.getRealEmail(), verificationCode);
+        if (emailSent) {
+            log.info("[SIGNUP:SERVICE] 이메일 인증번호 발송 성공: {}", req.getId());
+        } else {
+            log.warn("[SIGNUP:SERVICE] 이메일 인증번호 발송 실패: {}", req.getId());
+        }
 
                 return savedUser;
         }

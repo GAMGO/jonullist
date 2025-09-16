@@ -1,5 +1,5 @@
 import { registerRootComponent } from 'expo';
-import React, { useMemo } from 'react';
+import React, { useEffect } from 'react';
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -9,20 +9,8 @@ import { useFonts } from 'expo-font';
 import RootNavigator from './src/navigation/RootNavigator';
 import AuthProvider, { useAuth } from './src/context/AuthContext';
 
-// >>> [ADDED] i18n 컨텍스트
-import { I18nProvider } from './src/i18n/I18nContext'; // <<< NEW
-
-function applyGlobalFont(fontFamily) {
-  if (Text.__globalFontPatched) return;
-  const oldRender = Text.render;
-  Text.render = function (...args) {
-    const origin = oldRender.call(this, ...args);
-    return React.cloneElement(origin, {
-      style: [origin.props.style, { fontFamily }],
-    });
-  };
-  Text.__globalFontPatched = true;
-}
+// i18n 컨텍스트
+import { I18nProvider } from './src/i18n/I18nContext';
 
 function Loading() {
   return (
@@ -46,28 +34,41 @@ export default function App() {
     DungGeunMo: require('./assets/fonts/DungGeunMo.otf'),
   });
 
-  useMemo(() => {
-    if (fontsLoaded) applyGlobalFont('DungGeunMo');
+  // useEffect로 전역 폰트 적용
+  useEffect(() => {
+    if (fontsLoaded) {
+      console.log("✅ Fonts Loaded, applying global font: DungGeunMo");
+      if (Text.defaultProps == null) {
+        Text.defaultProps = {};
+      }
+      Text.defaultProps.style = { fontFamily: 'DungGeunMo' };
+    } else {
+      console.log("⌛ Fonts not loaded yet...");
+    }
   }, [fontsLoaded]);
 
-  if (!fontsLoaded) return <Loading />;
+  if (!fontsLoaded) {
+    return <Loading />;
+  }
 
   return (
     <SafeAreaProvider>
       <StatusBar style="light" backgroundColor="#111827" />
-      {/* >>> [ADDED] I18nProvider로 전체 감싸기 */}
-      <I18nProvider> {/* <<< NEW */}
+      <I18nProvider>
         <AuthProvider>
           <AppShell />
         </AuthProvider>
-      </I18nProvider> {/* <<< NEW */}
+      </I18nProvider>
     </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
   loading: {
-    flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000',
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
   },
 });
 
