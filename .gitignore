@@ -68,9 +68,10 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
+###env 무시
 .env
+.env.local
+apikeys.env
 
 # typescript
 *.tsbuildinfo
