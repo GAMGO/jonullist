@@ -7,10 +7,10 @@ import lombok.*;
 
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class SignupRequest {
-    @NotBlank
+    @NotBlank @Email
     private String id;
 
-    @NotBlank @Email
+    @NotBlank
     @Size(min = 8, max = 72)
     private String password;
 
@@ -27,4 +27,5 @@ public class SignupRequest {
     @Positive
     @Digits(integer = 3, fraction = 1)
     private Double height;
+
 }

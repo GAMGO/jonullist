@@ -4,7 +4,7 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
+  TouchableOpacity, // ✅ 일관성을 위해 TouchableOpacity 사용
   Alert,
   ScrollView,
   KeyboardAvoidingView,
@@ -173,9 +173,8 @@ export default function SignupScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: '#fff' }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
     >
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24, paddingTop: insets.top + 80, gap: 12 }}
