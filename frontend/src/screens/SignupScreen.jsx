@@ -1,4 +1,3 @@
-// src/screens/SignupScreen.js
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
@@ -32,14 +31,14 @@ export default function SignupScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [weight, setWeight] = useState('');
   const [age, setAge] = useState('');
-  const [gender, setGender] = useState('F'); // 'M' | 'F'
+  const [gender, setGender] = useState('F');
   const [height, setHeight] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 이메일 인증
+  // 인증
   const [code, setCode] = useState('');
-  const [sent, setSent] = useState(false);      // ✅ 가입 성공 후 true
-  const [leftSec, setLeftSec] = useState(0);    // 재발송 쿨다운
+  const [sent, setSent] = useState(false);
+  const [leftSec, setLeftSec] = useState(0);
   const [resendLoading, setResendLoading] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(false);
   const tickRef = useRef(null);
@@ -77,7 +76,6 @@ export default function SignupScreen({ navigation }) {
     const a = Number(age);
     const h = Number(height);
     if ([w, a, h].some(Number.isNaN)) return Alert.alert('형식 오류', '나이/체중/키는 숫자로 입력하세요.');
-    if (a > 150) return Alert.alert('형식 오류', '나이는 150 이하로 입력하세요.');
 
     const payload = { id: id.trim(), password, weight: w, age: a, gender, height: h };
 
@@ -92,38 +90,15 @@ export default function SignupScreen({ navigation }) {
         ['@avatar/category_prefill', String(classifyBMI(calcBMI(w, h)))],
       ]);
 
-      // ✅ 백엔드가 가입 시 인증코드 자동 발송 → 버튼 합치기: 여기서 바로 인증 단계 전환
       setSent(true);
       startTimer(300);
-      Alert.alert('가입 완료', '인증번호가 이메일로 발송되었어요. 아래에 입력해 주세요.');
+      // ✅ 알림은 없애고, 화면에서 안내 문구만 보여주도록
     } catch (e) {
       Alert.alert('가입 실패', e?.message ?? '잠시 후 다시 시도해 주세요.');
     } finally {
       setLoading(false);
     }
   };
-
-  // 재발송 (바디 없이 @RequestParam)
-  async function requestVerificationEmail_NoBody(email) {
-    try {
-      setResendLoading(true);
-      const url = `${API_BASE_DEBUG}/api/email/resend?email=${encodeURIComponent(email)}`;
-      const res = await fetch(url, { method: 'POST' });
-      const data = await safeJson(res);
-      if (res.ok && data?.success) {
-        setSent(true);
-        startTimer(300);
-        return true;
-      }
-      Alert.alert('발송 실패', data?.message ?? `코드 발송에 실패했습니다 (HTTP ${res.status})`);
-      return false;
-    } catch (e) {
-      Alert.alert('네트워크 오류', e?.message ?? '잠시 후 다시 시도해 주세요.');
-      return false;
-    } finally {
-      setResendLoading(false);
-    }
-  }
 
   async function verifyEmailCode() {
     const token = onlyDigits(code);
@@ -144,21 +119,16 @@ export default function SignupScreen({ navigation }) {
     }
   }
 
-  async function safeJson(res) {
-    try { const t = await res.text(); return t ? JSON.parse(t) : {}; }
-    catch { return {}; }
-  }
-
   if (!fontsLoaded) return null;
 
   const inputStyle = { borderWidth: 1, borderColor: '#ddd', borderRadius: 10, padding: 12, fontFamily: FONT };
-  const Button = ({ title, onPress, disabled, bg = '#111827', light = false, style }) => (
+  const Button = ({ title, onPress, disabled, bg = '#111827', style }) => (
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled}
-      style={[{ backgroundColor: light ? '#e5e7eb' : bg, padding: 14, borderRadius: 10, opacity: disabled ? 0.6 : 1 }, style]}
+      style={[{ backgroundColor: bg, padding: 14, borderRadius: 10, opacity: disabled ? 0.6 : 1 }, style]}
     >
-      <Text style={{ color: light ? '#111' : '#fff', textAlign: 'center', fontFamily: FONT }}>{title}</Text>
+      <Text style={{ color: '#fff', textAlign: 'center', fontFamily: FONT }}>{title}</Text>
     </TouchableOpacity>
   );
   const mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
@@ -171,9 +141,9 @@ export default function SignupScreen({ navigation }) {
       >
         <Text style={{ fontSize: 36, fontFamily: FONT, marginBottom: 20, textAlign: 'center' }}>SIGNUP</Text>
 
-        {/* 기본 가입 입력 */}
-        <TextInput value={id} onChangeText={setId} placeholder="이메일(ID)" autoCapitalize="none" autoCorrect={false} keyboardType="email-address" inputMode="email" style={inputStyle} />
-        <TextInput value={password} onChangeText={setPassword} placeholder="비밀번호 (8자리 이상)" secureTextEntry autoCapitalize="none" style={inputStyle} />
+        {/* 기본 입력 */}
+        <TextInput value={id} onChangeText={setId} placeholder="이메일(ID)" autoCapitalize="none" keyboardType="email-address" style={inputStyle} />
+        <TextInput value={password} onChangeText={setPassword} placeholder="비밀번호 (8자리 이상)" secureTextEntry style={inputStyle} />
         <TextInput value={age} onChangeText={setAge} placeholder="나이" keyboardType="numeric" style={inputStyle} />
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <TouchableOpacity onPress={() => setGender('F')} style={{ flex: 1, backgroundColor: gender === 'F' ? '#111827' : '#e5e7eb', padding: 12, borderRadius: 10 }}>
@@ -186,55 +156,40 @@ export default function SignupScreen({ navigation }) {
         <TextInput value={weight} onChangeText={setWeight} placeholder="체중 (kg)" keyboardType="numeric" style={inputStyle} />
         <TextInput value={height} onChangeText={setHeight} placeholder="키 (cm)" keyboardType="numeric" style={inputStyle} />
 
-        {/* 계정 만들기 → 가입 + 코드 자동발송 */}
-        <Button title={loading ? '처리 중…' : '계정 만들기'} onPress={onSubmit} disabled={loading} bg="#10b981" />
+        {/* 버튼: 인증번호 발송 */}
+        <Button title={loading ? '처리 중…' : '인증번호 발송'} onPress={onSubmit} disabled={loading} bg="#10b981" />
 
-        {/* ───────── 이메일 인증 섹션 ───────── */}
-        <View style={{ marginTop: 24, padding: 14, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12 }}>
-          <Text style={{ fontFamily: FONT, fontSize: 18, marginBottom: 8 }}>이메일 인증</Text>
-
-          {/* 버튼 합치기: 초기엔 안내만, 가입 성공 후에만 재발송 버튼 노출 */}
-          {!sent ? (
-            <Text style={{ fontFamily: FONT, color: '#6b7280' }}>
-              계정을 만들면 인증코드가 자동 발송돼요.
+        {/* 인증 섹션 */}
+        {sent && (
+          <View style={{ marginTop: 20, padding: 14, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12 }}>
+            <Text style={{ fontFamily: FONT, color: '#16a34a', marginBottom: 8 }}>
+              인증번호가 이메일로 발송되었어요
             </Text>
-          ) : (
-            <>
-              <Text style={{ fontFamily: FONT, color: '#6b7280', marginBottom: 10 }}>
-                {leftSec > 0 ? `재발송까지 대기 ${mmss(leftSec)}` : '필요하면 코드 재발송이 가능합니다.'}
-              </Text>
 
-              <Button
-                title={resendLoading ? '발송 중…' : '코드 재발송'}
-                onPress={() => requestVerificationEmail_NoBody(id.trim())}
-                disabled={resendLoading || leftSec > 0}
-                bg="#2563eb"
-              />
-            </>
-          )}
+            <Text style={{ fontFamily: FONT, color: '#6b7280', marginBottom: 10 }}>
+              {leftSec > 0 ? `재발송까지 대기 ${mmss(leftSec)}` : '필요하면 코드 재발송이 가능합니다.'}
+            </Text>
 
-          <View style={{ height: 10 }} />
+            <TextInput
+              value={code}
+              onChangeText={(t) => setCode(onlyDigits(t))}
+              placeholder="인증코드 6자리"
+              keyboardType="number-pad"
+              maxLength={6}
+              style={{ ...inputStyle, textAlign: 'center', letterSpacing: 6, fontSize: 20 }}
+            />
 
-          <TextInput
-            value={code}
-            onChangeText={(t) => setCode(onlyDigits(t))}
-            placeholder="인증코드 6자리"
-            keyboardType="number-pad"
-            inputMode="numeric"
-            maxLength={6}
-            style={{ ...inputStyle, textAlign: 'center', letterSpacing: 6, fontSize: 20 }}
-          />
+            <View style={{ height: 10 }} />
+            <Button
+              title={verifyLoading ? '확인 중…' : '인증 확인'}
+              onPress={verifyEmailCode}
+              disabled={verifyLoading || code.length !== 6}
+              bg="#2563eb"
+            />
+          </View>
+        )}
 
-          <View style={{ height: 8 }} />
-          <Button
-            title={verifyLoading ? '확인 중…' : '인증 확인'}
-            onPress={verifyEmailCode}
-            disabled={verifyLoading || code.length !== 6}
-          />
-        </View>
-        {/* ───────── 이메일 인증 섹션 끝 ───────── */}
-
-        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 8 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 8 }}>
           <Text style={{ color: '#6b7280', fontFamily: FONT }}>이미 계정이 있나요? </Text>
           <TouchableOpacity onPress={() => navigation.replace('Login')}>
             <Text style={{ color: '#2563eb', fontFamily: FONT }}>로그인</Text>
