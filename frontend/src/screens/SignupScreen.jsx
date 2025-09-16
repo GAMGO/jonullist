@@ -1,4 +1,3 @@
-// src/screens/SignupScreen.js
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
@@ -32,7 +31,7 @@ export default function SignupScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [weight, setWeight] = useState('');
   const [age, setAge] = useState('');
-  const [gender, setGender] = useState('F'); // 'F' | 'M' (백엔드 enum은 [M, F])
+  const [gender, setGender] = useState('F');
   const [height, setHeight] = useState('');
   const [loading, setLoading] = useState(false);
 
