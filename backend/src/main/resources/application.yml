@@ -26,10 +26,10 @@ spring:
 
   # 이메일 인증 설정 (야물에 직접 입력)
   mail:
-    host: smtp.sendgrid.net
+    host: smtp.gmail.com
     port: 587
-    username: apikey
-    password: ${SENDGRID_API_KEY:}
+    username: ${GMAIL_API_EMAIL:}
+    password: ${GMAIL_API_KEY:}
     properties:
       mail:
         smtp:
