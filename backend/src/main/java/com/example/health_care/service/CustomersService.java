@@ -56,7 +56,7 @@ public class CustomersService implements UserDetailsService {
                                 customersRepository.save(existingUser);
                                 
                                 // 이메일 재발송
-                                emailService.sendVerificationEmail(req.getRealEmail(), newToken);
+                                emailService.sendVerificationEmail(req.getId(), newToken);
                                 log.info("[SIGNUP:SERVICE] 이메일 인증 토큰 재발송: {}", req.getId());
                         }
                         return existingUser;
@@ -92,7 +92,7 @@ public class CustomersService implements UserDetailsService {
                 bodyRepository.save(bodyEntity);
 
         // 이메일 인증번호 발송
-        boolean emailSent = emailService.sendVerificationEmail(req.getRealEmail(), verificationCode);
+        boolean emailSent = emailService.sendVerificationEmail(req.getId(), verificationCode);
         if (emailSent) {
             log.info("[SIGNUP:SERVICE] 이메일 인증번호 발송 성공: {}", req.getId());
         } else {
