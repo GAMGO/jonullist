@@ -1,5 +1,5 @@
 // src/screens/SignupScreen.js
-import { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { apiPost, API_BASE_DEBUG } from '../config/api.js';
+import { apiPost, API_BASE_DEBUG } from '../config/api';
 import { calcBMI, classifyBMI } from '../utils/bmi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -32,11 +32,11 @@ export default function SignupScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [weight, setWeight] = useState('');
   const [age, setAge] = useState('');
-  const [gender, setGender] = useState('F');
+  const [gender, setGender] = useState('F'); // 'F' | 'M' 그대로 서버로 보냄 (백엔드 enum은 [M,F])
   const [height, setHeight] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 이메일 인증 UI (화면 내 배치)
+  // 이메일 인증
   const [code, setCode] = useState('');
   const [sent, setSent] = useState(false);
   const [leftSec, setLeftSec] = useState(0);
@@ -72,9 +72,23 @@ export default function SignupScreen({ navigation }) {
     }
     if (!isValidEmail(id)) return Alert.alert('형식 오류', '이메일 형식이 올바르지 않습니다.');
     if (String(password).length < 8) return Alert.alert('형식 오류', '비밀번호는 8자리 이상이어야 합니다.');
-    const payload = { id: id.trim(), password, weight: Number(weight), age: Number(age), gender, height: Number(height) };
-    if ([payload.weight, payload.age, payload.height].some(Number.isNaN))
-      return Alert.alert('형식 오류', '나이/체중/키는 숫자로 입력하세요.');
+
+    const w = Number(weight);
+    const a = Number(age);
+    const h = Number(height);
+    if ([w, a, h].some(Number.isNaN)) return Alert.alert('형식 오류', '나이/체중/키는 숫자로 입력하세요.');
+    if (a > 150) return Alert.alert('형식 오류', '나이는 150 이하로 입력하세요.');
+
+    // 백엔드 SignupRequest: id/password/weight/age/gender(height)/realEmail
+    const payload = {
+      id: id.trim(),
+      password,
+      weight: w,
+      age: a,
+      gender,            // 'M' 또는 'F' 그대로 보냄
+      height: h,
+      realEmail: id.trim(),
+    };
 
     try {
       setLoading(true);
@@ -82,12 +96,12 @@ export default function SignupScreen({ navigation }) {
       if (!ok) return Alert.alert('가입 실패', '다시 시도해 주세요.');
 
       await AsyncStorage.multiSet([
-        ['@profile/prefill', JSON.stringify({ id: payload.id, email: payload.id, weight: payload.weight, height: payload.height, age: payload.age, gender: payload.gender })],
-        ['goal_draft', JSON.stringify({ weight: payload.weight, height: payload.height, age: payload.age, gender: payload.gender })],
-        ['@avatar/category_prefill', String(classifyBMI(calcBMI(payload.weight, payload.height)))],
+        ['@profile/prefill', JSON.stringify({ id: payload.id, email: payload.id, weight: w, height: h, age: a, gender: payload.gender })],
+        ['goal_draft', JSON.stringify({ weight: w, height: h, age: a, gender: payload.gender })],
+        ['@avatar/category_prefill', String(classifyBMI(calcBMI(w, h)))],
       ]);
 
-      Alert.alert('가입 완료', '계정이 생성되었어요. 이메일 인증을 진행해 주세요.');
+      Alert.alert('가입 완료', '계정이 생성되었어요. 아래에서 이메일 인증번호를 요청해 주세요.');
     } catch (e) {
       Alert.alert('가입 실패', e?.message ?? '잠시 후 다시 시도해 주세요.');
     } finally {
@@ -95,19 +109,18 @@ export default function SignupScreen({ navigation }) {
     }
   };
 
-  // 바디/헤더 없이 POST: @RequestParam email 과 100% 호환
+  // @RequestParam email 호환: 바디/헤더 없이 POST
   async function requestVerificationEmail_NoBody(email) {
     try {
       setResendLoading(true);
       const url = `${API_BASE_DEBUG}/api/email/resend?email=${encodeURIComponent(email)}`;
-      const res = await fetch(url, { method: 'POST' }); // no headers, no body
+      const res = await fetch(url, { method: 'POST' });
       const data = await safeJson(res);
       if (res.ok && data?.success) {
         setSent(true);
         startTimer(300);
         return true;
       }
-      // 400일 때 서버가 message 내려주면 보여주기
       Alert.alert('발송 실패', data?.message ?? `코드 발송에 실패했습니다 (HTTP ${res.status})`);
       return false;
     } catch (e) {
@@ -125,9 +138,7 @@ export default function SignupScreen({ navigation }) {
       setVerifyLoading(true);
       const res = await apiPost('/api/email/verify', { token });
       if (res?.success) {
-        Alert.alert('인증 완료', '이메일 인증이 완료되었어요! 로그인해주세요.', {
-          cancelable: true,
-        });
+        Alert.alert('인증 완료', '이메일 인증이 완료되었어요! 로그인해주세요.');
         navigation.replace('Login');
       } else {
         Alert.alert('인증 실패', res?.message ?? '인증에 실패했어요.');
@@ -171,15 +182,15 @@ export default function SignupScreen({ navigation }) {
         <Text style={{ fontSize: 36, fontFamily: FONT, marginBottom: 20, textAlign: 'center' }}>SIGNUP</Text>
 
         {/* 기본 가입 입력 */}
-        <TextInput value={id} onChangeText={setId} placeholder="이메일" autoCapitalize="none" autoCorrect={false} keyboardType="email-address" inputMode="email" style={inputStyle} />
+        <TextInput value={id} onChangeText={setId} placeholder="이메일(ID)" autoCapitalize="none" autoCorrect={false} keyboardType="email-address" inputMode="email" style={inputStyle} />
         <TextInput value={password} onChangeText={setPassword} placeholder="비밀번호 (8자리 이상)" secureTextEntry autoCapitalize="none" style={inputStyle} />
         <TextInput value={age} onChangeText={setAge} placeholder="나이" keyboardType="numeric" style={inputStyle} />
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <TouchableOpacity onPress={() => setGender('F')} style={{ flex: 1, backgroundColor: gender === 'F' ? '#111827' : '#e5e7eb', padding: 12, borderRadius: 10 }}>
-            <Text style={{ fontFamily: FONT, color: gender === 'F' ? '#fff' : '#111', textAlign: 'center' }}>여성</Text>
+            <Text style={{ fontFamily: FONT, color: gender === 'F' ? '#fff' : '#111', textAlign: 'center' }}>여성(F)</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setGender('M')} style={{ flex: 1, backgroundColor: gender === 'M' ? '#111827' : '#e5e7eb', padding: 12, borderRadius: 10 }}>
-            <Text style={{ fontFamily: FONT, color: gender === 'M' ? '#fff' : '#111', textAlign: 'center' }}>남성</Text>
+            <Text style={{ fontFamily: FONT, color: gender === 'M' ? '#fff' : '#111', textAlign: 'center' }}>남성(M)</Text>
           </TouchableOpacity>
         </View>
         <TextInput value={weight} onChangeText={setWeight} placeholder="체중 (kg)" keyboardType="numeric" style={inputStyle} />
@@ -187,7 +198,7 @@ export default function SignupScreen({ navigation }) {
 
         <Button title={loading ? '처리 중…' : '계정 만들기'} onPress={onSubmit} disabled={loading} bg="#10b981" />
 
-        {/* ───────── 이메일 인증 섹션 (화면 내) ───────── */}
+        {/* ───────── 이메일 인증 섹션 ───────── */}
         <View style={{ marginTop: 24, padding: 14, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12 }}>
           <Text style={{ fontFamily: FONT, fontSize: 18, marginBottom: 8 }}>이메일 인증</Text>
           <Text style={{ fontFamily: FONT, color: '#6b7280', marginBottom: 10 }}>
