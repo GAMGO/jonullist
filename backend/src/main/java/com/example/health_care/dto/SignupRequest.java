@@ -10,7 +10,7 @@ public class SignupRequest {
     @NotBlank @Email
     private String id;
 
-    @NotBlank
+    @NotBlank @Email
     @Size(min = 8, max = 72)
     private String password;
 
