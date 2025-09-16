@@ -32,7 +32,7 @@ export default function SignupScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [weight, setWeight] = useState('');
   const [age, setAge] = useState('');
-  const [gender, setGender] = useState('F'); // 'F' | 'M' 그대로 서버로 보냄 (백엔드 enum은 [M,F])
+  const [gender, setGender] = useState('F'); // 'F' | 'M' (백엔드 enum은 [M, F])
   const [height, setHeight] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -79,15 +79,13 @@ export default function SignupScreen({ navigation }) {
     if ([w, a, h].some(Number.isNaN)) return Alert.alert('형식 오류', '나이/체중/키는 숫자로 입력하세요.');
     if (a > 150) return Alert.alert('형식 오류', '나이는 150 이하로 입력하세요.');
 
-    // 백엔드 SignupRequest: id/password/weight/age/gender(height)/realEmail
     const payload = {
       id: id.trim(),
       password,
       weight: w,
       age: a,
-      gender,            // 'M' 또는 'F' 그대로 보냄
+      gender,      // 'M' 또는 'F'
       height: h,
-      realEmail: id.trim(),
     };
 
     try {
@@ -101,7 +99,11 @@ export default function SignupScreen({ navigation }) {
         ['@avatar/category_prefill', String(classifyBMI(calcBMI(w, h)))],
       ]);
 
-      Alert.alert('가입 완료', '계정이 생성되었어요. 아래에서 이메일 인증번호를 요청해 주세요.');
+      // 백엔드가 가입 시 인증코드를 즉시 발송하므로 바로 인증 단계로 전환
+      setSent(true);
+      startTimer(300);
+
+      Alert.alert('가입 완료', '인증번호가 이메일로 발송되었어요. 아래에 입력해 주세요.');
     } catch (e) {
       Alert.alert('가입 실패', e?.message ?? '잠시 후 다시 시도해 주세요.');
     } finally {
@@ -202,7 +204,7 @@ export default function SignupScreen({ navigation }) {
         <View style={{ marginTop: 24, padding: 14, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12 }}>
           <Text style={{ fontFamily: FONT, fontSize: 18, marginBottom: 8 }}>이메일 인증</Text>
           <Text style={{ fontFamily: FONT, color: '#6b7280', marginBottom: 10 }}>
-            먼저 계정을 만들고(위의 [계정 만들기]) 아래 버튼으로 인증번호를 받으세요.
+            가입하면 인증코드가 자동 발송돼요. 필요하면 아래에서 재발송할 수 있어요.
           </Text>
 
           <Button

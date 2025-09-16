@@ -51,7 +51,7 @@ function getDevOrigin() {
     // ip 1개 지정 후 주석 풀고 사용
     if (Platform.OS === 'android') {
 
-      host = '192.168.0.28' // << 학원 ip
+      host = '10.182.86.1'
 
       // host = '192.168.156.43' // << 준우님 ip 192.168.0.5
       //host = '192.168.0.5' // << 준우님 집 ip 
