@@ -50,14 +50,16 @@ function getDevOrigin() {
   } else {
     // ip 1개 지정 후 주석 풀고 사용
     if (Platform.OS === 'android') {
-      host = '192.168.156.43' // << 준우님 핫스팟 ip
+      // host = '192.168.156.43' // << 준우님 핫스팟 ip
       //host = '192.168.0.5' // << 준우님 집 ip 
       // host = '172.30.1.64' // << 메가커피 ip 192.168.0.13
       // host = '192.168.0.13' // << 학원 ip 
+      host = '172.20.10.3' // << 홍 ip 
     } else if (Platform.OS === 'ios') {
       // host = '192.168.0.28'
       // host = '172.30.1.6'
-      host = '172.30.1.64'
+      // host = '172.30.1.64'
+      host = '172.20.10.3'
     } else {
       host = 'localhost'
     }
@@ -87,8 +89,11 @@ export function clearAuthToken() {
 }
 
 function withAuthHeaders(customHeaders = {}) {
-  const auth = CURRENT_TOKEN ? { Authorization: CURRENT_TOKEN } : {}
-  return { ...customHeaders, ...auth }
+   const auth = CURRENT_TOKEN ? { Authorization: CURRENT_TOKEN } : {}
+    if (__DEV__) {
+      console.log('🔑 withAuthHeaders ->', auth) // Authorization 헤더 확인 로그
+    }
+    return { ...customHeaders, ...auth }
 }
 
 const join = (base, path) =>
@@ -99,6 +104,7 @@ export async function apiGet(path, init) {
   const ctrl = new AbortController()
   const to = setTimeout(() => ctrl.abort(), 20000)
   try {
+    if (__DEV__) console.log('🌐 apiGet', url, 'headers:', withAuthHeaders(init?.headers))
     const res = await fetch(url, {
       ...(init || {}),
       method: 'GET',

@@ -142,9 +142,9 @@ export default function SignupScreen({ navigation }) {
         <Text style={{ fontSize: 36, fontFamily: FONT, marginBottom: 20, textAlign: 'center' }}>SIGNUP</Text>
 
         {/* 기본 입력 */}
-        <TextInput value={id} onChangeText={setId} placeholder="이메일(ID)" autoCapitalize="none" keyboardType="email-address" style={inputStyle} />
-        <TextInput value={password} onChangeText={setPassword} placeholder="비밀번호 (8자리 이상)" secureTextEntry style={inputStyle} />
-        <TextInput value={age} onChangeText={setAge} placeholder="나이" keyboardType="numeric" style={inputStyle} />
+        <TextInput value={id} onChangeText={setId} placeholder="이메일(ID)" placeholderTextColor="#999" autoCapitalize="none" keyboardType="email-address" style={inputStyle} />
+        <TextInput value={password} onChangeText={setPassword} placeholder="비밀번호 (8자리 이상)" placeholderTextColor="#999" secureTextEntry style={inputStyle} />
+        <TextInput value={age} onChangeText={setAge} placeholder="나이" placeholderTextColor="#999" keyboardType="numeric" style={inputStyle} />
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <TouchableOpacity onPress={() => setGender('F')} style={{ flex: 1, backgroundColor: gender === 'F' ? '#111827' : '#e5e7eb', padding: 12, borderRadius: 10 }}>
             <Text style={{ fontFamily: FONT, color: gender === 'F' ? '#fff' : '#111', textAlign: 'center' }}>여성(F)</Text>
@@ -153,8 +153,8 @@ export default function SignupScreen({ navigation }) {
             <Text style={{ fontFamily: FONT, color: gender === 'M' ? '#fff' : '#111', textAlign: 'center' }}>남성(M)</Text>
           </TouchableOpacity>
         </View>
-        <TextInput value={weight} onChangeText={setWeight} placeholder="체중 (kg)" keyboardType="numeric" style={inputStyle} />
-        <TextInput value={height} onChangeText={setHeight} placeholder="키 (cm)" keyboardType="numeric" style={inputStyle} />
+        <TextInput value={weight} onChangeText={setWeight} placeholder="체중 (kg)" placeholderTextColor="#999" keyboardType="numeric" style={inputStyle} />
+        <TextInput value={height} onChangeText={setHeight} placeholder="키 (cm)" placeholderTextColor="#999" keyboardType="numeric" style={inputStyle} />
 
         {/* 버튼: 인증번호 발송 */}
         <Button title={loading ? '처리 중…' : '인증번호 발송'} onPress={onSubmit} disabled={loading} bg="#10b981" />
