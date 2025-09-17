@@ -30,11 +30,13 @@ export default function ProfileScreen() {
   const auth = useAuth()
   const userId = auth?.user?.id || null
   const nav = useNavigation()
-  
 
   const [current, setCurrent] = useState({ id: '', weight: '', height: '', age: '', gender: '' })
   const [editingAccount, setEditingAccount] = useState(false)
   const [editingProfile, setEditingProfile] = useState(false)
+  
+  // 팝업 액션 타입 추가: 'editAccount' 또는 'recoverySetup'
+  const [modalAction, setModalAction] = useState(null);
 
   const [form, setForm] = useState({
     weight: '',
@@ -56,6 +58,11 @@ export default function ProfileScreen() {
   const [okAccount, setOkAccount] = useState('')
   const [okProfile, setOkProfile] = useState('')
   const [getEndpoint, setGetEndpoint] = useState(null)
+  
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [passwordForVerification, setPasswordForVerification] = useState('')
+  const [passwordModalError, setPasswordModalError] = useState('')
+  
 
   const getAuth = useCallback(async () => {
     const ctxType = auth?.tokenType || auth?.token_type || 'Bearer'
@@ -177,6 +184,39 @@ export default function ProfileScreen() {
 
   const update = (k, v) => setForm(prev => ({ ...prev, [k]: v }))
 
+  // 비밀번호 확인 함수 수정: modalAction에 따라 다른 동작 수행
+  const verifyPasswordAndProceed = async () => {
+    setPasswordForVerification('');
+    setPasswordModalError('');
+    try {
+      const res = await fetch(`${ORIGIN}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: current.id, password: passwordForVerification }),
+      });
+      
+      const resData = await res.json();
+      if (!res.ok) {
+        throw new Error(resData?.message || t('LOGIN_FAIL'));
+      }
+      setShowPasswordModal(false);
+      
+      if (modalAction === 'editAccount') {
+        setEditingAccount(true);
+      } else if (modalAction === 'recoverySetup') {
+        // [수정] RecoverySetupScreen으로 이동
+        nav.navigate('RecoverySetup');
+      }
+      setModalAction(null); // 액션 초기화
+      setErrAccount('');
+      setOkAccount('');
+    } catch (e) {
+      setPasswordModalError(e?.message || t('VERIFY_FAIL'));
+    }
+  };
+
   const saveAccount = async () => {
     setSavingAccount(true)
     setErrAccount('')
@@ -265,6 +305,39 @@ export default function ProfileScreen() {
       </ImageBackground>
     )
   }
+  
+  // 팝업창 UI 렌더링 수정: 반투명 배경 적용
+  if (showPasswordModal) {
+    return (
+      <View style={[styles.center, { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+        <View style={[styles.card, { width: '80%' }]}>
+          <Text style={styles.cardTitle}>비밀번호 확인</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="비밀번호를 입력하세요"
+            secureTextEntry
+            value={passwordForVerification}
+            onChangeText={setPasswordForVerification}
+          />
+          {!!passwordModalError && <Text style={styles.error}>{passwordModalError}</Text>}
+          <View style={styles.row}>
+            <Pressable
+              onPress={() => setShowPasswordModal(false)}
+              style={styles.ghostBtn}
+            >
+              <Text style={styles.ghostBtnText}>취소</Text>
+            </Pressable>
+            <Pressable
+              onPress={verifyPasswordAndProceed}
+              style={styles.primaryBtn}
+            >
+              <Text style={styles.primaryBtnText}>확인</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    )
+  }
 
   return (
     <KeyboardAvoidingView behavior={Platform.select({ ios: 'padding', android: undefined })} style={{ flex: 1 }}>
@@ -281,10 +354,12 @@ export default function ProfileScreen() {
                 </View>
                 {!!errAccount && <Text style={styles.error}>{errAccount}</Text>}
                 {!!okAccount && <Text style={styles.ok}>{okAccount}</Text>}
-                <Pressable onPress={() => { setErrAccount(''); setOkAccount(''); setEditingAccount(true) }} style={styles.primaryBtn}>
+                {/* 버튼 클릭 시 모달 액션 설정 */}
+                <Pressable onPress={() => { setModalAction('editAccount'); setShowPasswordModal(true); }} style={styles.primaryBtn}>
                   <Text style={styles.primaryBtnText}>{t('EDIT')}</Text>
                 </Pressable>
-                <Pressable onPress={() => nav.navigate('SecurityScreens')} style={styles.ghostBtn}>
+                {/* 보안 질문 버튼에 모달 액션 설정 */}
+                <Pressable onPress={() => { setModalAction('recoverySetup'); setShowPasswordModal(true); }} style={styles.ghostBtn}>
                   <Text style={styles.ghostBtnText}>{t('RECOVERY_SETUP')}</Text>
                 </Pressable>
               </>
