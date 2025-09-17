@@ -18,12 +18,7 @@ import RankingScreen from '../screens/RankingScreen'
 import HealthyCatchGameScreen from '../screens/HealthyCatchGameScreen'
 import TACoach from '../screens/TACoach'
 import VoicePickerScreen from '../screens/VoicePickerScreen'
-
-// ↓ 추가: 비밀번호 찾기(공개 플로우) 스크린
-import RecoverySetup from '../screens/RecoverySetup' // 파일명: src/screens/recovery.js
-// ✅ 두 개의 새로운 화면 컴포넌트 임포트
 import { RecoverySetupScreen } from '../screens/RecoveryScreens';
-import SecurityQnaManager from '../screens/SecurityQnaManager';
 
 const Stack = createNativeStackNavigator()
 
@@ -47,7 +42,7 @@ function AuthStack() {
       {/* ↓ 추가: 비밀번호 찾기 */}
       <Stack.Screen
         name="Recovery"
-        component={RecoverySetup}
+        component={RecoverySetupScreen}
         options={{ headerShown: true, title: '' }}
       />
       {/* ↓ 추가: 웰컴에서 바로 세팅 진입 가능 */}
@@ -69,11 +64,7 @@ function AppStack({ initialRouteName = 'Home' }) {
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="Burning" component={QuestScreen} />
       <Stack.Screen name="Ranking" component={RankingScreen} />
-      {/* 로그인 후 내 계정에 보안질문 등록/수정 */}
-      <Stack.Screen name="RecoverySetup" component={RecoverySetup} />
-      {/* 노준님 코드로 구현된 두 화면을 추가합니다. */}
         <Stack.Screen name="SecurityScreens" component={RecoverySetupScreen} />
-        <Stack.Screen name="SecurityQnaManager" component={SecurityQnaManager} />
       <Stack.Screen
         name="HealthyCatch"
         component={HealthyCatchGameScreen}
