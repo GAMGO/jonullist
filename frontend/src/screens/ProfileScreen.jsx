@@ -30,6 +30,7 @@ export default function ProfileScreen() {
   const auth = useAuth()
   const userId = auth?.user?.id || null
   const nav = useNavigation()
+  
 
   const [current, setCurrent] = useState({ id: '', weight: '', height: '', age: '', gender: '' })
   const [editingAccount, setEditingAccount] = useState(false)
@@ -283,7 +284,7 @@ export default function ProfileScreen() {
                 <Pressable onPress={() => { setErrAccount(''); setOkAccount(''); setEditingAccount(true) }} style={styles.primaryBtn}>
                   <Text style={styles.primaryBtnText}>{t('EDIT')}</Text>
                 </Pressable>
-                <Pressable onPress={() => nav.navigate('RecoverySetup')} style={styles.ghostBtn}>
+                <Pressable onPress={() => nav.navigate('SecurityScreens')} style={styles.ghostBtn}>
                   <Text style={styles.ghostBtnText}>{t('RECOVERY_SETUP')}</Text>
                 </Pressable>
               </>
