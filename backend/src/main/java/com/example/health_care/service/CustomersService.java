@@ -48,16 +48,16 @@ public class CustomersService implements UserDetailsService {
                         // 중복 ID인 경우 기존 사용자 정보 반환 (이메일 인증만 재발송)
                         CustomersEntity existingUser = customersRepository.findById(req.getId()).orElse(null);
                         if (existingUser != null && !existingUser.getEmailVerified()) {
-                                // 이메일 인증이 안된 경우 토큰 재생성
-                                String newToken = emailService.generateVerificationToken();
-                                LocalDateTime newExpires = LocalDateTime.now().plusHours(24);
-                                existingUser.setEmailVerificationToken(newToken);
+                                // 이메일 인증이 안된 경우 인증번호 재생성
+                                String newCode = emailService.generateVerificationCode(); // UUID 대신 6자리 숫자 생성
+                                LocalDateTime newExpires = LocalDateTime.now().plusMinutes(5); // 만료 시간 5분으로 설정
+                                existingUser.setEmailVerificationToken(newCode); // 인증번호 저장
                                 existingUser.setEmailVerificationExpires(newExpires);
                                 customersRepository.save(existingUser);
-                                
+
                                 // 이메일 재발송
-                                emailService.sendVerificationEmail(req.getId(), newToken);
-                                log.info("[SIGNUP:SERVICE] 이메일 인증 토큰 재발송: {}", req.getId());
+                                emailService.sendVerificationEmail(req.getId(), newCode); // 6자리 인증번호를 발송
+                                log.info("[SIGNUP:SERVICE] 이메일 인증번호 재발송: {}", req.getId());
                         }
                         return existingUser;
                 }
@@ -91,13 +91,13 @@ public class CustomersService implements UserDetailsService {
 
                 bodyRepository.save(bodyEntity);
 
-        // 이메일 인증번호 발송
-        boolean emailSent = emailService.sendVerificationEmail(req.getId(), verificationCode);
-        if (emailSent) {
-            log.info("[SIGNUP:SERVICE] 이메일 인증번호 발송 성공: {}", req.getId());
-        } else {
-            log.warn("[SIGNUP:SERVICE] 이메일 인증번호 발송 실패: {}", req.getId());
-        }
+                // 이메일 인증번호 발송
+                boolean emailSent = emailService.sendVerificationEmail(req.getId(), verificationCode);
+                if (emailSent) {
+                        log.info("[SIGNUP:SERVICE] 이메일 인증번호 발송 성공: {}", req.getId());
+                } else {
+                        log.warn("[SIGNUP:SERVICE] 이메일 인증번호 발송 실패: {}", req.getId());
+                }
 
                 return savedUser;
         }
