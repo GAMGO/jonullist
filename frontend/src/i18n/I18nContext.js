@@ -191,18 +191,28 @@ const DICT = {
       "거울이랑 눈 못 마주치게 될걸요?",
     ],
 
-    //보안질문
+    // 보안설정
     SECURITY_SETTINGS: "보안 설정",
     SECURITY_VERIFY_HINT: "보안 설정을 위해 비밀번호를 입력해주세요.",
     SECURITY_QNA: "보안 질문 & 답변",
+    SECURITY_QNA_NOT_SET: "보안 질문이 설정되지 않았습니다.",
     SECURITY_POLICY: "계정 복구를 위해 보안 질문과 답변을 설정하세요.",
+    TOKEN_INVALID_OR_EXPIRED: "토큰이 유효하지 않거나 만료되었습니다.",
+    TOKEN_INVALID: "토큰이 유효하지 않습니다.",
     ANSWER: "답변",
-    QUESTION_BIRTHPLACE: "출생지",
-    QUESTION_CHILDHOOD_AREA: "어린 시절 살았던 동네",
-    QUESTION_PET_NAME: "가장 기억에 남는 반려동물 이름",
-    QUESTION_MOTHER_NAME: "어머니 성함",
-    QUESTION_ROLE_MODEL: "가장 존경하는 인물",
+    INCORRECT_ANSWER: "답이 올바르지 않습니다.",
+    QUESTION_PET_NAME: "내 애완동물 이름은?",
+    QUESTION_BIRTHPLACE: "내가 태어난 곳은?",
+    QUESTION_MOTHER_NAME: "내 어머니 이름은?",
+    QUESTION_FAVORITE_TEACHER: "가장 기억에 남는 선생님 성함",
+    QUESTION_FAVORITE_FOOD: "가장 좋아하는 음식",
+    QUESTION_FIRST_SCHOOL: "처음 다닌 학교 이름",
+    QUESTION_FAVORITE_COLOR: "가장 좋아하는 색",
+    QUESTION_BEST_FRIEND: "가장 친한 친구 이름",
   },
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+
   en: {
     // Auth & Common
     LOGIN: "Login",
@@ -390,15 +400,25 @@ const DICT = {
     SECURITY_SETTINGS: "Security Settings",
     SECURITY_VERIFY_HINT: "Please enter your password for security settings.",
     SECURITY_QNA: "Security Q&A",
+    SECURITY_QNA_NOT_SET: "Security questions are not set.",
+    TOKEN_INVALID_OR_EXPIRED: "The token is invalid or has expired.",
+    TOKEN_INVALID: "The token is invalid.",
     SECURITY_POLICY:
-      "Set up security questions and answers for account recovery.",
+    "Set up security questions and answers for account recovery.",
     ANSWER: "Answer",
-    QUESTION_BIRTHPLACE: "Place of Birth",
-    QUESTION_CHILDHOOD_AREA: "Childhood Neighborhood",
-    QUESTION_PET_NAME: "Most memorable pet’s name",
-    QUESTION_MOTHER_NAME: "Mother’s maiden name",
-    QUESTION_ROLE_MODEL: "Most respected person",
+    INCORRECT_ANSWER: "The answer is incorrect.",
+    QUESTION_PET_NAME: "What is your pet's name?",
+    QUESTION_BIRTHPLACE: "Where were you born?",
+    QUESTION_MOTHER_NAME: "What is your mother's name?",
+    QUESTION_FAVORITE_TEACHER: "What is the name of your favorite teacher?",
+    QUESTION_FAVORITE_FOOD: "What is your favorite food?",
+    QUESTION_FIRST_SCHOOL: "What was the name of your first school?",
+    QUESTION_FAVORITE_COLOR: "What is your favorite color?",
+    QUESTION_BEST_FRIEND: "What is your best friend's name?",
   },
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+
   ja: {
     // Auth & Common
     LOGIN: "ログイン",
@@ -586,15 +606,26 @@ const DICT = {
     SECURITY_VERIFY_HINT:
       "セキュリティ設定のため、パスワードを入力してください。",
     SECURITY_QNA: "セキュリティQ&A",
+    SECURITY_QNA_NOT_SET: "セキュリティ質問が設定されていません。",
+    SECURITY_VERIFY_HINT: "セキュリティ質問を登録・修正するには、もう一度パスワードを入力してください。",
+    TOKEN_INVALID_OR_EXPIRED: "トークンが無効であるか、期限切れです。",
+    TOKEN_INVALID: "トークンが無効です。",
     SECURITY_POLICY:
-      "アカウント復旧のため、セキュリティQ&Aを設定してください。",
+    "アカウント復旧のため、セキュリティQ&Aを設定してください。",
     ANSWER: "答え",
-    QUESTION_BIRTHPLACE: "出生地",
-    QUESTION_CHILDHOOD_AREA: "幼少期に住んでいた地域",
-    QUESTION_PET_NAME: "最も記憶に残るペットの名前",
-    QUESTION_MOTHER_NAME: "母親の名前",
-    QUESTION_ROLE_MODEL: "最も尊敬する人物",
+    INCORRECT_ANSWER: "回答が正しくありません。",
+    QUESTION_PET_NAME: "あなたのペットの名前は？",
+    QUESTION_BIRTHPLACE: "あなたが生まれた場所は？",
+    QUESTION_MOTHER_NAME: "あなたのお母さんの名前は？",
+    QUESTION_FAVORITE_TEACHER: "最も記憶に残っている先生の名前は？",
+    QUESTION_FAVORITE_FOOD: "好きな食べ物は何ですか？",
+    QUESTION_FIRST_SCHOOL: "初めて通った学校の名前は？",
+    QUESTION_FAVORITE_COLOR: "好きな色は何ですか？",
+    QUESTION_BEST_FRIEND: "親友の名前は？",
   },
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+
   zh: {
     // Auth & Common
     LOGIN: "登录",
@@ -779,13 +810,21 @@ const DICT = {
   SECURITY_SETTINGS: "安全设置",
   SECURITY_VERIFY_HINT: "请输入密码进行安全设置。",
   SECURITY_QNA: "安全问答",
+  SECURITY_QNA_NOT_SET: "未设置安全问题。",
+  SECURITY_VERIFY_HINT: "要登记/修改安全问答，请再次输入密码。",
+  TOKEN_INVALID_OR_EXPIRED: "令牌无效或已过期。",
+  TOKEN_INVALID: "令牌无效。",
   SECURITY_POLICY: "请设置安全问题及答案，以便账户找回。",
   ANSWER: "答案",
-  QUESTION_BIRTHPLACE: "出生地",
-  QUESTION_CHILDHOOD_AREA: "童年居住地",
-  QUESTION_PET_NAME: "最有记忆的宠物名称",
-  QUESTION_MOTHER_NAME: "母亲姓名",
-  QUESTION_ROLE_MODEL: "最尊敬的人物",
+  INCORRECT_ANSWER: "答案不正确。",
+  QUESTION_PET_NAME: "你宠物的名字是什么？",
+  QUESTION_BIRTHPLACE: "你出生的地方是哪里？",
+  QUESTION_MOTHER_NAME: "你母亲的名字是什么？",
+  QUESTION_FAVORITE_TEACHER: "你最喜欢的老师的名字是什么？",
+  QUESTION_FAVORITE_FOOD: "你最喜欢的食物是什么？",
+  QUESTION_FIRST_SCHOOL: "你上的第一所学校的名字是什么？",
+  QUESTION_FAVORITE_COLOR: "你最喜欢的颜色是什么？",
+  QUESTION_BEST_FRIEND: "你最好的朋友的名字是什么？",
 };
 
 const Ctx = createContext(null);
