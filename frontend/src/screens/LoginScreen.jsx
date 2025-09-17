@@ -36,18 +36,18 @@ export default function LoginScreen() {
       const anyErr = raw
       const status = anyErr.status ?? anyErr.code
       const msg = String(anyErr.message ?? anyErr.error ?? '')
-      if (status === 401 || /unauthorized|401/i.test(msg)) return '비밀번호가 틀렸습니다.'
-      if (status === 404) return '존재하지 않는 아이디입니다.'
+      if (status === 401 || /unauthorized|401/i.test(msg)) return t('ERR_WRONG_PW')
+      if (status === 404) return t('ERR_ID_NOT_FOUND')
       if (status === 403) return '접근 권한이 없습니다.'
-      if (/password/i.test(msg)) return '비밀번호가 틀렸습니다.'
-      if (/user.*not.*found|no.*user|unknown.*user/i.test(msg)) return '존재하지 않는 아이디입니다.'
+      if (/password/i.test(msg)) return t('ERR_WRONG_PW')
+      if (/user.*not.*found|no.*user|unknown.*user/i.test(msg)) return t('ERR_ID_NOT_FOUND')
       if (/invalid.*credential|wrong.*credential/i.test(msg)) return '아이디 또는 비밀번호가 올바르지 않습니다.'
       if (msg) return msg
     }
     if (typeof raw === 'string') {
-      if (/password/i.test(raw)) return '비밀번호가 틀렸습니다.'
-      if (/user.*not.*found|no.*user|unknown.*user/i.test(raw)) return '존재하지 않는 아이디입니다.'
-      if (/unauthorized|401/i.test(raw)) return '비밀번호가 틀렸습니다.'
+      if (/password/i.test(raw)) return t('ERR_WRONG_PW')
+      if (/user.*not.*found|no.*user|unknown.*user/i.test(raw)) return t('ERR_ID_NOT_FOUND')
+      if (/unauthorized|401/i.test(raw)) return t('ERR_WRONG_PW')
       return raw
     }
     return '아이디 또는 비밀번호가 올바르지 않습니다.'

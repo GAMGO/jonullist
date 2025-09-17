@@ -143,7 +143,7 @@ const DICT = {
     GREETING:
       "안녕하세요! 저는 바벨몬 트레이너에요. ${tod}에도 ${mode} 신나게 해봐요!",
     REPS_UNIT: "개",
-    REPS_UNIT_TTS: "개",
+    REPS_UNIT_TTS: " ",
     AUTO_COUNT_START: "자동 카운트를 시작할게요.",
     TONE_SOFT: "부드럽게",
     TONE_HARD: "강하게",
@@ -190,6 +190,18 @@ const DICT = {
       "열정은 어디 두고 오신 거예요?",
       "거울이랑 눈 못 마주치게 될걸요?",
     ],
+
+    //보안질문
+    SECURITY_SETTINGS: "보안 설정",
+    SECURITY_VERIFY_HINT: "보안 설정을 위해 비밀번호를 입력해주세요.",
+    SECURITY_QNA: "보안 질문 & 답변",
+    SECURITY_POLICY: "계정 복구를 위해 보안 질문과 답변을 설정하세요.",
+    ANSWER: "답변",
+    QUESTION_BIRTHPLACE: "출생지",
+    QUESTION_CHILDHOOD_AREA: "어린 시절 살았던 동네",
+    QUESTION_PET_NAME: "가장 기억에 남는 반려동물 이름",
+    QUESTION_MOTHER_NAME: "어머니 성함",
+    QUESTION_ROLE_MODEL: "가장 존경하는 인물",
   },
   en: {
     // Auth & Common
@@ -373,6 +385,19 @@ const DICT = {
       "Where did you leave your passion?",
       "You won't be able to look at yourself in the mirror.",
     ],
+
+    //보안설정
+    SECURITY_SETTINGS: "Security Settings",
+    SECURITY_VERIFY_HINT: "Please enter your password for security settings.",
+    SECURITY_QNA: "Security Q&A",
+    SECURITY_POLICY:
+      "Set up security questions and answers for account recovery.",
+    ANSWER: "Answer",
+    QUESTION_BIRTHPLACE: "Place of Birth",
+    QUESTION_CHILDHOOD_AREA: "Childhood Neighborhood",
+    QUESTION_PET_NAME: "Most memorable pet’s name",
+    QUESTION_MOTHER_NAME: "Mother’s maiden name",
+    QUESTION_ROLE_MODEL: "Most respected person",
   },
   ja: {
     // Auth & Common
@@ -556,6 +581,19 @@ const DICT = {
       "情熱はどこに置いてきたんですか？",
       "鏡と目を合わせられなくなりますよ？",
     ],
+    //보안설정
+    SECURITY_SETTINGS: "セキュリティ設定",
+    SECURITY_VERIFY_HINT:
+      "セキュリティ設定のため、パスワードを入力してください。",
+    SECURITY_QNA: "セキュリティQ&A",
+    SECURITY_POLICY:
+      "アカウント復旧のため、セキュリティQ&Aを設定してください。",
+    ANSWER: "答え",
+    QUESTION_BIRTHPLACE: "出生地",
+    QUESTION_CHILDHOOD_AREA: "幼少期に住んでいた地域",
+    QUESTION_PET_NAME: "最も記憶に残るペットの名前",
+    QUESTION_MOTHER_NAME: "母親の名前",
+    QUESTION_ROLE_MODEL: "最も尊敬する人物",
   },
   zh: {
     // Auth & Common
@@ -689,7 +727,7 @@ const DICT = {
     WORKOUT: "锻炼",
     GREETING: "您好！我是Barbellmon教练。让我们在这个${tod}愉快地${mode}吧！",
     REPS_UNIT: "个",
-    REPS_UNIT_TTS: "个",
+    REPS_UNIT_TTS: " ",
     AUTO_COUNT_START: "我要开始自动计数了。",
     TONE_SOFT: "温柔地",
     TONE_HARD: "严厉地",
@@ -737,6 +775,17 @@ const DICT = {
       "你将无法直视镜子里的自己哦？",
     ],
   },
+  //보안설정
+  SECURITY_SETTINGS: "安全设置",
+  SECURITY_VERIFY_HINT: "请输入密码进行安全设置。",
+  SECURITY_QNA: "安全问答",
+  SECURITY_POLICY: "请设置安全问题及答案，以便账户找回。",
+  ANSWER: "答案",
+  QUESTION_BIRTHPLACE: "出生地",
+  QUESTION_CHILDHOOD_AREA: "童年居住地",
+  QUESTION_PET_NAME: "最有记忆的宠物名称",
+  QUESTION_MOTHER_NAME: "母亲姓名",
+  QUESTION_ROLE_MODEL: "最尊敬的人物",
 };
 
 const Ctx = createContext(null);
