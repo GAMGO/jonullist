@@ -1,26 +1,27 @@
-import { createNativeStackNavigator } from '@react-navigation/native-stack'
-import { ActivityIndicator, View } from 'react-native'
-import { useAuth } from '../context/AuthContext'
-import WelcomeScreen from '../screens/WelcomeScreen'
-import LoginScreen from '../screens/LoginScreen'
-import SignupScreen from '../screens/SignupScreen'
-import HomeScreen from '../screens/HomeScreen'
-import CameraScreen from '../screens/CameraScreen'
-import GoalScreen from '../screens/GoalScreen'
-import SettingsScreen from '../screens/SettingsScreen'
-import DietLogScreen from '../screens/DietLogScreen'
-import DirectInputScreen from '../screens/DirectInputScreen'
-import DataScreen from '../screens/DataScreen'
-import ProfileScreen from '../screens/ProfileScreen'
-import { useFonts } from 'expo-font'
-import QuestScreen from '../screens/QuestScreen'
-import RankingScreen from '../screens/RankingScreen'
-import HealthyCatchGameScreen from '../screens/HealthyCatchGameScreen'
-import TACoach from '../screens/TACoach'
-import VoicePickerScreen from '../screens/VoicePickerScreen'
-import { RecoverySetupScreen } from '../screens/RecoveryScreens';
+import React from 'react';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { ActivityIndicator, View } from 'react-native';
+import { useAuth } from '../context/AuthContext';
+import WelcomeScreen from '../screens/WelcomeScreen';
+import LoginScreen from '../screens/LoginScreen';
+import SignupScreen from '../screens/SignupScreen';
+import HomeScreen from '../screens/HomeScreen';
+import CameraScreen from '../screens/CameraScreen';
+import GoalScreen from '../screens/GoalScreen';
+import SettingsScreen from '../screens/SettingsScreen';
+import DietLogScreen from '../screens/DietLogScreen';
+import DirectInputScreen from '../screens/DirectInputScreen';
+import DataScreen from '../screens/DataScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+import QuestScreen from '../screens/QuestScreen';
+import RankingScreen from '../screens/RankingScreen';
+import HealthyCatchGameScreen from '../screens/HealthyCatchGameScreen';
+import TACoach from '../screens/TACoach';
+import VoicePickerScreen from '../screens/VoicePickerScreen';
+import { useFonts } from 'expo-font';
+import RecoveryScreens from '../screens/RecoveryScreens';
 
-const Stack = createNativeStackNavigator()
+const Stack = createNativeStackNavigator();
 
 const commonHeader = {
   headerShown: true,
@@ -31,7 +32,7 @@ const commonHeader = {
   headerBackTitleVisible: false,
   headerTintColor: '#000',
   headerTitleStyle: { fontFamily: 'DungGeunMo', fontSize: 20 },
-}
+};
 
 function AuthStack() {
   return (
@@ -39,16 +40,14 @@ function AuthStack() {
       <Stack.Screen name="Welcome" component={WelcomeScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Signup" component={SignupScreen} />
-      {/* ↓ 추가: 비밀번호 찾기 */}
       <Stack.Screen
         name="Recovery"
-        component={RecoverySetupScreen}
+        component={RecoveryScreens}
         options={{ headerShown: true, title: '' }}
       />
-      {/* ↓ 추가: 웰컴에서 바로 세팅 진입 가능 */}
       <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
-  )
+  );
 }
 
 function AppStack({ initialRouteName = 'Home' }) {
@@ -64,7 +63,13 @@ function AppStack({ initialRouteName = 'Home' }) {
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="Burning" component={QuestScreen} />
       <Stack.Screen name="Ranking" component={RankingScreen} />
-        <Stack.Screen name="SecurityScreens" component={RecoverySetupScreen} />
+
+      <Stack.Screen
+        name="RecoverySetup"
+        component={RecoveryScreens}
+        options={{ headerShown: true, title: '' }}
+      />
+
       <Stack.Screen
         name="HealthyCatch"
         component={HealthyCatchGameScreen}
@@ -73,27 +78,27 @@ function AppStack({ initialRouteName = 'Home' }) {
       <Stack.Screen name="TACoach" component={TACoach} options={{ headerShown: true, title: '' }} />
       <Stack.Screen name="VoicePicker" component={VoicePickerScreen} options={{ title: '보이스 선택' }} />
     </Stack.Navigator>
-  )
+  );
 }
 
 export default function RootNavigator() {
-  const { ready, isAuthenticated, needsGoalSetup } = useAuth()
-  const [fontsLoaded] = useFonts({ DungGeunMo: require('../../assets/fonts/DungGeunMo.otf') })
+  const { ready, isAuthenticated, needsGoalSetup } = useAuth();
+  const [fontsLoaded] = useFonts({ DungGeunMo: require('../../assets/fonts/DungGeunMo.otf') });
 
   if (!ready || !fontsLoaded) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator />
       </View>
-    )
+    );
   }
 
-  if (!isAuthenticated) return <AuthStack />
+  if (!isAuthenticated) return <AuthStack />;
 
   return (
     <AppStack
       key={needsGoalSetup ? 'app-goal' : 'app-home'}
       initialRouteName={needsGoalSetup ? 'Goal' : 'Home'}
     />
-  )
+  );
 }
