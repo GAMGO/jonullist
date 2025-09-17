@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -61,5 +62,24 @@ public class DietController {
             return ResponseEntity.badRequest().body(null);
         }
     }
+
+    // 식단 삭제
+    @DeleteMapping("/delete")
+    // 파라미터 : 로그인 사용자 정보/날짜정보/식사타입/타임스탬프
+    public ResponseEntity<String> DeleteDietRecord(Authentication authentication, @RequestParam("date") String date, @RequestParam("type") String type, @RequestParam("timestamp") Long timestamp) {
+
+        try {
+            String customerId = authentication.getName(); // 사용자 id 추출
+
+            dietService.deleteMealItem(customerId, date, type, timestamp); // 서비스 호출
+
+            return ResponseEntity.ok("식단 기록이 삭제되었습니다.");
+
+        } catch (Exception e) {
+            log.error("식단 기록 삭제 중 오류 발생", e);;
+            return ResponseEntity.badRequest().body("식단 기록 삭제에 실패했습니다.");
+        }
+    }
+
 
 }
