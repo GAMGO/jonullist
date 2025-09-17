@@ -5,14 +5,15 @@ import { useI18n } from '../i18n/I18nContext'
 import { useState, useEffect } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useFonts } from 'expo-font'
-import { useNavigation } from '@react-navigation/native'
+import { useNavigation, useRoute } from '@react-navigation/native'
 
 const FONT = 'DungGeunMo'
 const VOICE_KEY = '@tts/voiceId'
 
 export default function SettingsScreen() {
   const navigation = useNavigation()
-  const { logout } = useAuth()
+  const route = useRoute()
+  const { logout, isAuthenticated } = useAuth()
   const insets = useSafeAreaInsets()
   const { t, lang, setLang } = useI18n()
   const [fontsLoaded] = useFonts({ [FONT]: require('../../assets/fonts/DungGeunMo.otf') })
@@ -35,6 +36,9 @@ export default function SettingsScreen() {
   }
 
   const onLogout = async () => { await logout() }
+
+  // ✅ 웰컴(비로그인 경로)에서 들어왔으면 로그아웃 숨김
+  const showLogout = Boolean(isAuthenticated) && !Boolean(route.params?.public)
 
   return (
     <ImageBackground source={require('../../assets/background/home.png')} style={{ flex: 1 }}>
@@ -128,23 +132,25 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
-              onPress={onLogout}
-              style={{ backgroundColor: '#ef4444', padding: 14, borderRadius: 10, marginTop: 40 }}
-            >
-              <Text
-                style={{
-                  fontFamily: fontsLoaded ? FONT : undefined,
-                  color: '#fff',
-                  textAlign: 'center',
-                  fontSize: 18,
-                  lineHeight: 22,
-                  includeFontPadding: true
-                }}
+            {showLogout && (
+              <TouchableOpacity
+                onPress={onLogout}
+                style={{ backgroundColor: '#ef4444', padding: 14, borderRadius: 10, marginTop: 40 }}
               >
-                {t('LOGOUT')}
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={{
+                    fontFamily: fontsLoaded ? FONT : undefined,
+                    color: '#fff',
+                    textAlign: 'center',
+                    fontSize: 18,
+                    lineHeight: 22,
+                    includeFontPadding: true
+                  }}
+                >
+                  {t('LOGOUT')}
+                </Text>
+              </TouchableOpacity>
+            )}
           </ScrollView>
         </View>
       </View>
