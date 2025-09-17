@@ -249,6 +249,8 @@ const styles = StyleSheet.create({
     height: BOX_HEIGHT,
     backgroundColor: 'rgba(255,255,255,0.8)',
     borderRadius: 30,
+    borderWidth: 4,
+    borderColor: '#333',
     padding: BOX_PAD,
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
