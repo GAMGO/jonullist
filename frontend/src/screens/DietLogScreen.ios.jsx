@@ -70,6 +70,10 @@ export default function DietLogScreen() {
     }, [fetchDay, dateKey])
   );
 
+  // 끼니별 칼로리 합계
+  const calcMealCalories = (meals) =>
+    meals.reduce((sum, m) => sum + (m.calories || 0), 0);
+
   // 공통 추가 콜백 (UI 먼저 반영 후 서버 저장)
   const handleAddMeal = async (entry, type) => {
     const payload = { ...entry, timestamp: entry.timestamp ?? Date.now() };
@@ -97,10 +101,12 @@ export default function DietLogScreen() {
     }
   };
 
-  const MealSection = ({ label, type }) => (
+  const MealSection = ({ label, type, calories }) => (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{label}</Text>
+        <Text style={styles.sectionTitle}>
+          {label} <Text style={{ fontSize: 18, color: '#333'}}>[{calories} kcal]</Text>
+          </Text>
         <View style={styles.headerActions}>
           <Pressable
             style={styles.primaryBtn}
@@ -127,11 +133,20 @@ export default function DietLogScreen() {
         data={dayMeals[type]}
         keyExtractor={(_, i) => `${type}-${i}`}
         renderItem={({ item }) => (
-          <Text style={styles.item}>{item.food} - {item.calories} kcal</Text>
+          <View style={styles.mealBlock}>
+            <Text 
+              style={styles.item} 
+              numberOfLines={1}   // 한줄로 제한
+            >
+              {item.food},
+            </Text>
+          </View>
         )}
         ListEmptyComponent={<Text style={styles.empty}>아직 기록이 없어요.</Text>}
-        scrollEnabled={false}
-        contentContainerStyle={{ paddingTop: 4 }}
+        scrollEnabled={true}
+        horizontal={true}
+        showsHorizontalScrollIndicator={false}    // 스크롤바 숨김
+        ItemSeparatorComponent={() => <View style={{ width: 1 }} />} 
       />
     </View>
   );
@@ -190,9 +205,9 @@ export default function DietLogScreen() {
           
 
           {/* 섹션 3개 */}
-          <MealSection label="아침" type="morning" />
-          <MealSection label="점심" type="lunch" />
-          <MealSection label="저녁" type="dinner" />
+          <MealSection label="아침" type="morning" calories={calcMealCalories(dayMeals.morning)} />
+          <MealSection label="점심" type="lunch" calories={calcMealCalories(dayMeals.lunch)} />
+          <MealSection label="저녁" type="dinner" calories={calcMealCalories(dayMeals.dinner)} />
 
         {/* 총 칼로리 */}
         <Text style={styles.total}>Total : {totalCalories} kcal</Text>
@@ -228,6 +243,10 @@ const styles = StyleSheet.create({
 
   toolbarBtn: { fontSize: 16, color: 'tomato',  fontFamily: 'DungGeunMo' },
   toolbarTitle: { fontSize: 16, color: '#333',  fontFamily: 'DungGeunMo' },
+
+  mealBlock: {
+    padding: 6, alignItems: 'left'
+  },
 
   // 섹션
   section: {

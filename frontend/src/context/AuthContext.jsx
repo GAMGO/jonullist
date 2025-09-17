@@ -67,18 +67,35 @@ export default function AuthProvider({ children }) {
   const login = async (id, password) => {
     try {
       const res = await apiPost('/api/auth/login', { id, password })
-      const token = `${res.tokenType} ${res.token}`
+
+      // tokenType 이 있으면 그대로 사용, 없으면 기본 Bearer 사용
+      const token = res.tokenType ? `${res.tokenType} ${res.token}` : `Bearer ${res.token}`
+
+       if (__DEV__) {
+        console.log(' 로그인 응답:', res)
+        console.log(' 저장할 토큰:', token)
+       }
+
+      // 토큰 저장
       await SecureStore.setItemAsync('accessToken', token)
       await wipeLegacyTokens()
       setAuthToken(token)
+
+      // 유저 정보 파싱
       const userId = res.id ?? parseJwt(token).sub ?? id
+       if (__DEV__) {
+         console.log(' 파싱된 userId:', userId)
+         console.log(' JWT Payload:', parseJwt(token))
+       }
       setUser({ id: userId })
       setAuthed(true)
-      try { await AsyncStorage.setItem('last_user_id', String(userId)) } catch {}
+
+      try { await AsyncStorage.setItem('last_user_id', String(userId)) 
+      } catch {}
       setNeedsGoalSetup(await loadGoalFlag(userId))
       return true
     } catch (e) {
-      // >>> [ADDED] 401/인증 실패 메시지 매핑
+      // 401/인증 실패 에러 메시지 매핑
       const msg = String(e?.message || '')
       if (msg.includes('401') || /Invalid credentials|Unauthorized/i.test(msg)) {
         throw new Error(t('INVALID_CREDENTIALS'))

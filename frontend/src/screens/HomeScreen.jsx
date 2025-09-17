@@ -14,15 +14,17 @@ import { useI18n } from '../i18n/I18nContext'
 const ICON_SIZE = 72
 const FONT = 'DungGeunMo'
 const BOX_HEIGHT = Platform.select({ ios: 220, android: 170 })
-const BOX_FONT = Platform.select({ ios: 22, android: 18 })
+const BOX_FONT = 18
 const BOX_PAD = Platform.select({ ios: 20, android: 14 })
 
+// 게이지바
 function CalorieGauge({ current, target }) {
   const r = target > 0 ? current / target : 0
   const greenTo = Math.min(Math.max(r, 0), 1)
   const redTo = r > 1 ? Math.min(r - 1, 1) : 0
   const animatedGreen = useRef(new Animated.Value(0)).current
   const animatedRed = useRef(new Animated.Value(0)).current
+
   useEffect(() => {
     if (redTo > 0) {
       animatedGreen.stopAnimation()
@@ -34,17 +36,30 @@ function CalorieGauge({ current, target }) {
       Animated.timing(animatedGreen, { toValue: greenTo, duration: 600, useNativeDriver: false }).start()
     }
   }, [greenTo, redTo])
+
   const widthGreen = animatedGreen.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] })
   const widthRed = animatedRed.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] })
+
   return (
-    <View style={styles.gaugeContainer}>
-      <Animated.View style={[styles.gaugeFill, { width: widthGreen, backgroundColor: 'rgba(34,197,94,0.8)' }]} />
-      <Animated.View style={[styles.gaugeFill, { right: 0, width: widthRed, backgroundColor: 'rgba(239,68,68,0.8)' }]} />
-      <View style={styles.gaugeTextWrap}><Text style={styles.gaugeText} allowFontScaling={false}>{current}/{target} kcal</Text></View>
+    <View style={styles.gaugeWrapper}>
+      {/* EXP 텍스트 (게이지 왼쪽) */}
+      <Text style={styles.expText}>EXP.</Text>
+
+      {/* 게이지바 */}
+      <View style={styles.gaugeContainer}>
+        <Animated.View style={[styles.gaugeFill, { width: widthGreen, backgroundColor: 'rgba(34,197,94,0.8)' }]} />
+        <Animated.View style={[styles.gaugeFill, { right: 0, width: widthRed, backgroundColor: 'rgba(239,68,68,0.8)' }]} />
+        <View style={styles.gaugeTextWrap}>
+          <Text style={styles.gaugeText} allowFontScaling={false}>
+            {current}/{target} kcal
+          </Text>
+        </View>
+      </View>
     </View>
   )
 }
 
+// 캐릭터 아바타
 function EvolvingAvatar({ category, size }) {
   const [displayCat, setDisplayCat] = useState(category)
   const [isEvolving, setIsEvolving] = useState(false)
@@ -113,8 +128,13 @@ function EvolvingAvatar({ category, size }) {
   )
 }
 
-function dayKey(d = new Date()) { const t = new Date(d); t.setHours(0,0,0,0); return t.toISOString().slice(0,10) }
+function dayKey(d = new Date()) {
+  const t = new Date(d)
+  t.setHours(0, 0, 0, 0)
+  return t.toISOString().slice(0, 10)
+}
 
+// 홈 화면
 export default function HomeScreen() {
   const insets = useSafeAreaInsets()
   const nav = useNavigation()
@@ -123,7 +143,6 @@ export default function HomeScreen() {
   const [category, setCategory] = useState('normal')
   const [target, setTarget] = useState(1200)
   const [current, setCurrent] = useState(0)
-  const [questNew, setQuestNew] = useState(false)
   const [eggCount, setEggCount] = useState(0)
   const [fontsLoaded] = useFonts({ [FONT]: require('../../assets/fonts/DungGeunMo.otf') })
 
@@ -133,21 +152,11 @@ export default function HomeScreen() {
     setCurrent(current)
   }, [user?.id])
 
-  const applyPrefillCategory = useCallback(async () => {
-    try {
-      const v = await AsyncStorage.getItem('@avatar/category_prefill')
-      if (v) {
-        setCategory(v)
-        await AsyncStorage.removeItem('@avatar/category_prefill')
-      }
-    } catch {}
-  }, [])
-
   const syncFromProfile = useCallback(async () => {
     try {
       const prof = await apiGet('/api/profile')
       const tcal = prof?.targetCalories
-      if (typeof tcal === 'number' && !Number.isNaN(tcal) && tcal > 0) {
+      if (typeof tcal === 'number' && tcal > 0) {
         await setTargetCalories(tcal, user?.id)
         setTarget(tcal)
       }
@@ -161,31 +170,19 @@ export default function HomeScreen() {
     } catch {}
   }, [user?.id])
 
-  const loadQuestBadge = useCallback(async () => {
-    try {
-      const today = dayKey()
-      const v = await AsyncStorage.getItem('@quest/new_date')
-      setQuestNew(v !== today)
-    } catch {}
-  }, [])
-
   const loadAll = useCallback(async () => {
-    await applyPrefillCategory()
     await loadLocal()
     await syncFromProfile()
-    await loadQuestBadge()
-  }, [applyPrefillCategory, loadLocal, syncFromProfile, loadQuestBadge])
+  }, [loadLocal, syncFromProfile])
 
   useEffect(() => { loadAll() }, [loadAll])
   useFocusEffect(useCallback(() => { loadAll() }, [loadAll]))
 
   if (!fontsLoaded) return null
 
-  const IconLabeled = ({ iconSrc, label, to, onPress }) => (
-    <Pressable onPress={onPress ?? (() => nav.navigate(to))} style={{ alignItems: 'center', width: ICON_SIZE + 8 }}>
-      <View style={{ position: 'relative' }}>
-        <Image source={iconSrc} style={{ width: ICON_SIZE, height: ICON_SIZE, resizeMode: 'contain' }} />
-      </View>
+  const IconLabeled = ({ iconSrc, label, to }) => (
+    <Pressable onPress={() => nav.navigate(to)} style={{ alignItems: 'center', width: ICON_SIZE + 8 }}>
+      <Image source={iconSrc} style={{ width: ICON_SIZE, height: ICON_SIZE, resizeMode: 'contain' }} />
       <Text style={styles.labelText} numberOfLines={1} allowFontScaling={false}>{label}</Text>
     </Pressable>
   )
@@ -200,13 +197,19 @@ export default function HomeScreen() {
           <Text style={styles.boxText} allowFontScaling={false}>{t('HOME_DATA')}</Text>
         </Pressable>
       </View>
+
       <View style={{ flex: 1 }}>
-        <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 150 + 260, alignItems: 'center' }} pointerEvents="none">
+        {/* 게이지바: 캐릭터 머리 위 중앙 배치 */}
+        <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 150 + 260, alignItems: 'center' }}>
           <CalorieGauge current={current} target={target} />
         </View>
-        <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 150, alignItems: 'center' }} pointerEvents="none">
+
+        {/* 캐릭터 */}
+        <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 150, alignItems: 'center' }}>
           <EvolvingAvatar category={category} size={260} />
         </View>
+
+        {/* 이스터에그 터치 */}
         <Pressable
           onPress={() => {
             setEggCount(c => {
@@ -220,6 +223,8 @@ export default function HomeScreen() {
           }}
           style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 150, height: 260 }}
         />
+
+        {/* 🔹 하단 네비 */}
         <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 24 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center' }}>
             <IconLabeled iconSrc={require('../../assets/icons/profile.png')} label={t('PROFILE')} to="Profile" />
@@ -234,12 +239,84 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  topContainer: { flexDirection: 'row', paddingHorizontal: 11, gap: 12 },
-  box: { flex: 1, height: BOX_HEIGHT, backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: 30, padding: BOX_PAD, justifyContent: 'flex-start', alignItems: 'flex-start' },
-  boxText: { fontSize: BOX_FONT, height: BOX_HEIGHT, color: '#333', fontFamily: FONT, includeFontPadding: false },
-  gaugeContainer: { width: '65%', height: 20, borderWidth: 2, borderColor: 'black', borderRadius: 8, overflow: 'hidden' },
-  gaugeFill: { position: 'absolute', top: 0, bottom: 0 },
-  gaugeTextWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  gaugeText: { color: 'gray', fontSize: 12, fontFamily: FONT, includeFontPadding: false },
-  labelText: { fontSize: 18, marginTop: -8, fontFamily: FONT, color: 'tomato', includeFontPadding: false, textAlign: 'center' }
+  topContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 11,
+    gap: 12
+  },
+  box: {
+    flex: 1,
+    height: BOX_HEIGHT,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    borderRadius: 30,
+    borderWidth: 4,
+    borderColor: '#333',
+    padding: BOX_PAD,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+    shadowColor: '#000',
+    shadowOffset: { width: 5, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 10
+  },
+  boxText: {
+    fontSize: BOX_FONT,
+    height: BOX_HEIGHT,
+    color: '#111827',
+    fontFamily: FONT,
+    includeFontPadding: false
+  },
+  gaugeWrapper: {
+    flexDirection: 'row', // EXP 왼쪽 + 게이지 오른쪽
+    gap: 5
+  },
+  gaugeContainer: {
+    width: '55%',
+    height: 20,
+    borderWidth: 2,
+    borderColor: '#111827',
+    borderRadius: 8,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    shadowColor: '#000',
+    shadowOffset: { width: 5, height: 7 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 8
+  },
+  gaugeFill: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0
+  },
+  gaugeTextWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  gaugeText: {
+    color: 'grey',
+    fontSize: 15,
+    fontFamily: FONT,
+    includeFontPadding: false
+  },
+  expText: {
+    fontSize: 20,
+    fontFamily: FONT,
+    color: '#fff',
+    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowOffset: { width: 2, height: 1 },
+    textShadowRadius: 2
+  },
+  labelText: {
+    fontSize: 18,
+    marginTop: -8,
+    fontFamily: FONT,
+    color: 'tomato',
+    includeFontPadding: false,
+    textAlign: 'center'
+  }
 })

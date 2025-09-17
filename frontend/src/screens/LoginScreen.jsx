@@ -13,6 +13,8 @@ import { useAuth } from '../context/AuthContext'
 import { useFonts } from 'expo-font'
 import { useI18n } from '../i18n/I18nContext'
 import { useNavigation } from '@react-navigation/native'
+import { setAuthToken } from '../config/api'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const FONT = 'DungGeunMo'
 
@@ -34,18 +36,18 @@ export default function LoginScreen() {
       const anyErr = raw
       const status = anyErr.status ?? anyErr.code
       const msg = String(anyErr.message ?? anyErr.error ?? '')
-      if (status === 401 || /unauthorized|401/i.test(msg)) return '비밀번호가 틀렸습니다.'
-      if (status === 404) return '존재하지 않는 아이디입니다.'
+      if (status === 401 || /unauthorized|401/i.test(msg)) return t('ERR_WRONG_PW')
+      if (status === 404) return t('ERR_ID_NOT_FOUND')
       if (status === 403) return '접근 권한이 없습니다.'
-      if (/password/i.test(msg)) return '비밀번호가 틀렸습니다.'
-      if (/user.*not.*found|no.*user|unknown.*user/i.test(msg)) return '존재하지 않는 아이디입니다.'
+      if (/password/i.test(msg)) return t('ERR_WRONG_PW')
+      if (/user.*not.*found|no.*user|unknown.*user/i.test(msg)) return t('ERR_ID_NOT_FOUND')
       if (/invalid.*credential|wrong.*credential/i.test(msg)) return '아이디 또는 비밀번호가 올바르지 않습니다.'
       if (msg) return msg
     }
     if (typeof raw === 'string') {
-      if (/password/i.test(raw)) return '비밀번호가 틀렸습니다.'
-      if (/user.*not.*found|no.*user|unknown.*user/i.test(raw)) return '존재하지 않는 아이디입니다.'
-      if (/unauthorized|401/i.test(raw)) return '비밀번호가 틀렸습니다.'
+      if (/password/i.test(raw)) return t('ERR_WRONG_PW')
+      if (/user.*not.*found|no.*user|unknown.*user/i.test(raw)) return t('ERR_ID_NOT_FOUND')
+      if (/unauthorized|401/i.test(raw)) return t('ERR_WRONG_PW')
       return raw
     }
     return '아이디 또는 비밀번호가 올바르지 않습니다.'
@@ -60,6 +62,11 @@ export default function LoginScreen() {
     try {
       setLoading(true)
       const res = await login(id.trim(), password)
+      // 토큰 확인 후 저장
+      if (res?.token) {
+        setAuthToken(res.token)
+        await AsyncStorage.setItem('authToken', res.token)
+      }
       const ok = res === true || res === 'ok' || (res && typeof res === 'object' && (res.ok === true || res.success === true))
       if (!ok) {
         const errMsg = (res && typeof res === 'object' && (res.message || res.error)) || (typeof res === 'string' ? res : undefined)
