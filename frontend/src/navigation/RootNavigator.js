@@ -18,7 +18,7 @@ import RankingScreen from '../screens/RankingScreen'
 import HealthyCatchGameScreen from '../screens/HealthyCatchGameScreen'
 import TACoach from '../screens/TACoach'
 import VoicePickerScreen from '../screens/VoicePickerScreen'
-import { RecoverySetupScreen } from '../screens/RecoveryScreens';
+import RecoverySetupScreen from '../screens/RecoveryScreens';
 
 const Stack = createNativeStackNavigator()
 
