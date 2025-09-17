@@ -50,13 +50,14 @@ function getDevOrigin() {
   } else {
     // ip 1개 지정 후 주석 풀고 사용
     if (Platform.OS === 'android') {
-      // host = '192.168.0.28' // << 학원 ip
-      // host = '192.168.156.230' // << 준우님 ip
-      host = '172.20.10.3' // << 홍 ip
+      host = '192.168.156.43' // << 준우님 핫스팟 ip
+      //host = '192.168.0.5' // << 준우님 집 ip 
+      // host = '172.30.1.64' // << 메가커피 ip 192.168.0.13
+      // host = '192.168.0.13' // << 학원 ip 
     } else if (Platform.OS === 'ios') {
       // host = '192.168.0.28'
-      // host = '192.168.156.230'
-      host = '172.20.10.3'
+      // host = '172.30.1.6'
+      host = '172.30.1.64'
     } else {
       host = 'localhost'
     }
@@ -155,4 +156,3 @@ export async function apiDelete(path, body, init) {
     clearTimeout(to)
   }
 }
-

@@ -106,18 +106,18 @@ public class EmailController {
                         .body(EmailVerificationResponse.failure("이미 인증된 이메일입니다"));
             }
 
-            // 새 토큰 생성
-            String newToken = emailService.generateVerificationToken();
-            LocalDateTime expires = LocalDateTime.now().plusHours(24);
+            // 새 인증 코드 생성 (UUID 대신 6자리 숫자 사용)
+            String newCode = emailService.generateVerificationCode(); 
+            LocalDateTime expires = LocalDateTime.now().plusMinutes(5); // 만료 시간을 5분으로 설정
 
-            // 토큰 업데이트
-            customer.setEmailVerificationToken(newToken);
+            // 코드 업데이트
+            customer.setEmailVerificationToken(newCode); 
             customer.setEmailVerificationExpires(expires);
             customersRepository.save(customer);
 
-            // 야물에 방식: 이메일 재발송
-            log.info("이메일 인증 토큰 재생성: {} - 토큰: {}", email, newToken);
-            boolean emailSent = emailService.sendVerificationEmail(email, newToken);
+            // 이메일 재발송
+            log.info("이메일 인증 코드 재생성: {} - 코드: {}", email, newCode);
+            boolean emailSent = emailService.sendVerificationEmail(email, newCode);
             if (!emailSent) {
                 return ResponseEntity.internalServerError()
                         .body(EmailVerificationResponse.failure("이메일 발송에 실패했습니다"));

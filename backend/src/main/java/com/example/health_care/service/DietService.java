@@ -49,7 +49,8 @@ public class DietService {
         addCaloriesToRecord(record, request.getType(), request.getCalories());
 
         // 상세 정보를 JSON으로 저장 (timestamp 포함)
-        addMealDetailToRecord(record, request.getType(), request.getFood(), request.getCalories(), request.getTimestamp());
+        addMealDetailToRecord(record, request.getType(), request.getFood(), request.getCalories(),
+                request.getTimestamp());
 
         // 변경사항 db저장
         recordRepository.save(record);
@@ -57,7 +58,6 @@ public class DietService {
                 customers.getIdx(), request.getDate(), request.getType(), request.getFood(), request.getCalories());
     }
 
-    /**** 메소드 ****/
     // 날짜 파싱 메소드
     private Date parseDate(String dateStr) {
         try {
@@ -83,20 +83,20 @@ public class DietService {
 
     // 같은 날짜에 여러 번 식단 기록, 기존 RECORD가 있으면 사용/없으면 새로 생성
     private RecordEntity getOrCreateRecord(Long customerIdx, Date recordDate) {
-        log.info("RECORD 조회 시작: customerIdx={}, recordDate={}", customerIdx, recordDate);
+        log.info("식단 기록 조회 시작: customerIdx={}, recordDate={}", customerIdx, recordDate);
 
         List<RecordEntity> existingRecords = recordRepository.findByCustomer_IdxAndRecordDate(customerIdx, recordDate);
-        log.info("조회된 RECORD 개수: {}", existingRecords.size());
+        log.info("조회된 식단 기록 개수: {}", existingRecords.size());
 
         if (!existingRecords.isEmpty()) {
-            log.info("기존 RECORD 발견: {}개", existingRecords.size());
+            log.info("기존 식단 기록 발견: {}개", existingRecords.size());
             return existingRecords.get(0);
         }
 
-        log.info("새 RECORD 생성");
+        log.info("새 식단 기록 생성");
 
         // 없으면 새로 생성
-        log.info("새 RECORD 생성");
+        log.info("새 식단 기록 생성");
         RecordEntity newRecord = RecordEntity.builder()
                 .customer(CustomersEntity.builder().idx(customerIdx).build())
                 .recordDate(recordDate)
@@ -127,7 +127,8 @@ public class DietService {
     }
 
     // 기존 meal_details JSON 파싱 -> 새 음식 추가 -> JSON으로 저장
-    private void addMealDetailToRecord(RecordEntity record, String mealType, String foodName, Long calories, Long timestamp) {
+    private void addMealDetailToRecord(RecordEntity record, String mealType, String foodName, Long calories,
+            Long timestamp) {
         try {
             // 기존 meal_details JSON 파싱
             Map<String, Object> mealDetails = new HashMap<>();
@@ -173,6 +174,105 @@ public class DietService {
         RecordEntity record = getOrCreateRecord(customer.getIdx(), recordDate);
 
         return record;
+    }
+
+    // 식단 삭제
+    @Transactional
+    public void deleteMealItem(String customerId, String date, String type, Long timestamp) {
+
+        CustomersEntity customers = customersRepository.findById(customerId)
+                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+
+        Date recordDate = parseDate(date);
+
+        List<RecordEntity> records = recordRepository.findByCustomer_IdxAndRecordDate(customers.getIdx(), recordDate);
+
+        if (records.isEmpty()) {
+            throw new IllegalArgumentException("해당 날짜에 식단 기록이 없습니다.");
+        }
+
+        RecordEntity record = records.get(0); // 첫 번째(유일한) 기록 사용
+
+        // JSON에서 칼로리 추출
+        Long caloriesToSubtract = extractCaloriesFromMealDetail(record, type, timestamp);
+
+        // JSON에서 음식 제거
+        removeMealDetailFromRecord(record, type, timestamp);
+
+        // 기존 메소드 재사용 : 칼로리 음수로 적용
+        addCaloriesToRecord(record, type, -caloriesToSubtract);
+
+        recordRepository.save(record);
+    }
+
+    // 칼로리 추출하기
+    private Long extractCaloriesFromMealDetail(RecordEntity record, String type, Long timestamp) {
+
+        // 고객 식단 기록 JSON으로 가져오기
+        String mealDetailsJson = record.getMealDetails();
+
+        try {
+            Map<String, Object> mealDetails = new HashMap<>();
+            if (mealDetailsJson != null && !mealDetailsJson.isEmpty()) {
+                mealDetails = objectMapper.readValue(mealDetailsJson, Map.class); // JSON -> Map 변환
+            }
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> mealType = (List<Map<String, Object>>) mealDetails.get(type);
+            for (Map<String, Object> foodItem : mealType) {
+                // 타임스탬프 비교
+                Object itemTimestamp = foodItem.get("timestamp");
+                if (itemTimestamp != null && itemTimestamp.equals(timestamp)) {
+                    // 일치하는 음식 찾음
+                    Object calories = foodItem.get("calories");
+                    if (calories instanceof Number) {
+                        return ((Number) calories).longValue();
+                    }
+                }
+            }
+            log.warn("해당 타임스탬프의 음식을 찾을 수 없습니다: type={}, timestamp={}", type, timestamp);
+            return 0L;
+        } catch (JsonProcessingException e) {
+            log.error("JSON 파싱 오류", e);
+            return 0L;
+        }
+    }
+
+    // JSON에서 특정 타임스탬프의 음식 제거
+    private void removeMealDetailFromRecord(RecordEntity record, String type, Long timestamp) {
+        try {
+            // JSON 파싱
+            Map<String, Object> mealDetails = new HashMap<>();
+            if (record.getMealDetails() != null && !record.getMealDetails().isEmpty()) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> parsedDetails = objectMapper.readValue(record.getMealDetails(), Map.class);
+                mealDetails = parsedDetails;
+            }
+
+            // 해당 식사 타입의 리스트 가져오기
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> mealList = (List<Map<String, Object>>) mealDetails.getOrDefault(type, new java.util.ArrayList<>());
+
+            // 타임스탬프로 해당 음식 제거
+            boolean removed = mealList.removeIf(foodItem -> {
+                Object itemTimestamp = foodItem.get("timestamp");
+                return itemTimestamp != null && itemTimestamp.equals(timestamp);
+            });
+
+            if (removed) {
+                // 수정된 리스트를 다시 저장
+                mealDetails.put(type, mealList);
+                
+                // JSON으로 변환해서 저장
+                record.setMealDetails(objectMapper.writeValueAsString(mealDetails));
+                log.info("음식 제거 완료: type={}, timestamp={}", type, timestamp);
+            } else {
+                log.warn("해당 타임스탬프의 음식을 찾을 수 없습니다: type={}, timestamp={}", type, timestamp);
+            }
+
+        } catch (JsonProcessingException e) {
+            log.error("JSON 처리 중 오류 발생", e);
+            throw new RuntimeException("식단 상세 정보 제거 중 오류가 발생했습니다.");
+        }
     }
 
 }

@@ -1,21 +1,30 @@
 import React from 'react';
-import { View, Image, ImageBackground, Pressable, useWindowDimensions} from 'react-native';
+import { View, Image, ImageBackground, Pressable, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 
-const BG = require('../../assets/background/main.png');     
-const LOGIN = require('../../assets/ui/loginbtn.png');        
-const SIGNUP = require('../../assets/ui/signupbtn.png');     
+const BG = require('../../assets/background/main.png');
+const LOGIN = require('../../assets/ui/loginbtn.png');
+const SIGNUP = require('../../assets/ui/signupbtn.png');
+const SETTING = require('../../assets/ui/settingbtn.png');
 
 export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const nav = useNavigation();
+
   const loginMeta = Image.resolveAssetSource(LOGIN);
   const signupMeta = Image.resolveAssetSource(SIGNUP);
-  const btnWidth = Math.min(420, Math.round(width * 0.48));
-  const loginH = Math.round(btnWidth * (loginMeta.height / loginMeta.width));
-  const signupH = Math.round(btnWidth * (signupMeta.height / signupMeta.width));
+  const settingMeta = Image.resolveAssetSource(SETTING);
+
+
+  const baseBtnW = Math.min(300, Math.round(width * 0.45));
+
+  const loginH = Math.round(baseBtnW * (loginMeta.height / loginMeta.width) * 0.85);
+  const signupH = Math.round(baseBtnW * (signupMeta.height / signupMeta.width) * 0.85);
+  const settingH = Math.round(baseBtnW * (settingMeta.height / settingMeta.width) * 0.85);
+
+  const bottomOffset = insets.bottom;
 
   return (
     <ImageBackground source={BG} style={{ flex: 1 }} resizeMode="cover">
@@ -24,32 +33,22 @@ export default function WelcomeScreen() {
           position: 'absolute',
           left: 0,
           right: 0,
-          bottom: insets.bottom + 16,
+          bottom: bottomOffset,
           alignItems: 'center',
-          gap: 4,
         }}
       >
-        <Pressable
-          onPress={() => nav.navigate('Login')}
-          hitSlop={8}
-          style={{ alignItems: 'center' }}
-        >
-          <Image
-            source={LOGIN}
-            style={{ width: btnWidth, height: loginH, resizeMode: 'contain' }}
-          />
+        <Pressable onPress={() => nav.navigate('Login')} hitSlop={8}>
+          <Image source={LOGIN} style={{ width: baseBtnW, height: loginH, resizeMode: 'contain' }} />
         </Pressable>
-        <Pressable
-          onPress={() => nav.navigate('Signup')}
-          hitSlop={8}
-          style={{ alignItems: 'center' }}
-        >
-          <Image
-            source={SIGNUP}
-            style={{ width: btnWidth, height: signupH, resizeMode: 'contain' }}
-          />
+
+        <Pressable onPress={() => nav.navigate('Signup')} hitSlop={8}>
+          <Image source={SIGNUP} style={{ width: baseBtnW, height: signupH, resizeMode: 'contain' }} />
+        </Pressable>
+
+        <Pressable onPress={() => nav.navigate('Settings', { public: true })} hitSlop={8}>
+          <Image source={SETTING} style={{ width: baseBtnW, height: settingH, resizeMode: 'contain' }} />
         </Pressable>
       </View>
     </ImageBackground>
   );
-}6
+}

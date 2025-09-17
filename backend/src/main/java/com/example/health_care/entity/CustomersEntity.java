@@ -53,4 +53,4 @@ public class CustomersEntity {
     private LocalDateTime emailVerificationExpires;
 }
 /*tlqkf */
-/*..? */
+/*.더이상 REAL EMAIL은 사용하지 않습니다. */

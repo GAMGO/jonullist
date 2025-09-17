@@ -7,7 +7,7 @@ import lombok.*;
 
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class SignupRequest {
-    @NotBlank
+    @NotBlank @Email
     private String id;
 
     @NotBlank
@@ -27,8 +27,5 @@ public class SignupRequest {
     @Positive
     @Digits(integer = 3, fraction = 1)
     private Double height;
-
-    @NotBlank @Email
-    private String realEmail; // 이메일 인증에 쓰이는 실제 이메일
 
 }

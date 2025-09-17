@@ -20,7 +20,7 @@ import TACoach from '../screens/TACoach'
 import VoicePickerScreen from '../screens/VoicePickerScreen'
 
 // ↓ 추가: 비밀번호 찾기(공개 플로우) 스크린
-import RecoverySetup from '../screens/RecoverySetup'// 파일명: src/screens/recovery.js
+import RecoverySetup from '../screens/RecoverySetup' // 파일명: src/screens/recovery.js
 
 const Stack = createNativeStackNavigator()
 
@@ -47,6 +47,8 @@ function AuthStack() {
         component={RecoverySetup}
         options={{ headerShown: true, title: '' }}
       />
+      {/* ↓ 추가: 웰컴에서 바로 세팅 진입 가능 */}
+      <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   )
 }
@@ -58,7 +60,7 @@ function AppStack({ initialRouteName = 'Home' }) {
       <Stack.Screen name="Goal" component={GoalScreen} />
       <Stack.Screen name="Camera" component={CameraScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
-      <Stack.Screen name="DietLog" component={DietLogScreen}/>
+      <Stack.Screen name="DietLog" component={DietLogScreen} />
       <Stack.Screen name="DirectInput" component={DirectInputScreen} />
       <Stack.Screen name="Data" component={DataScreen} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
@@ -66,7 +68,11 @@ function AppStack({ initialRouteName = 'Home' }) {
       <Stack.Screen name="Ranking" component={RankingScreen} />
       {/* 로그인 후 내 계정에 보안질문 등록/수정 */}
       <Stack.Screen name="RecoverySetup" component={RecoverySetup} />
-      <Stack.Screen name="HealthyCatch" component={HealthyCatchGameScreen} options={{ headerShown: false }} />
+      <Stack.Screen
+        name="HealthyCatch"
+        component={HealthyCatchGameScreen}
+        options={{ headerShown: false }}
+      />
       <Stack.Screen name="TACoach" component={TACoach} options={{ headerShown: true, title: '' }} />
       <Stack.Screen name="VoicePicker" component={VoicePickerScreen} options={{ title: '보이스 선택' }} />
     </Stack.Navigator>
