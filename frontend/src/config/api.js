@@ -50,9 +50,6 @@ function getDevOrigin() {
   } else {
     // ip 1개 지정 후 주석 풀고 사용
     if (Platform.OS === 'android') {
-
-      // host = '10.182.86.1'
-
       host = '192.168.156.43' // << 준우님 핫스팟 ip
       //host = '192.168.0.5' // << 준우님 집 ip 
       // host = '172.30.1.64' // << 메가커피 ip 192.168.0.13
@@ -61,7 +58,6 @@ function getDevOrigin() {
       // host = '192.168.0.28'
       // host = '172.30.1.6'
       host = '172.30.1.64'
-
     } else {
       host = 'localhost'
     }
