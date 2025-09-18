@@ -15,7 +15,7 @@ CREATE TABLE recovery (
     answer_hash   VARCHAR2(255)   NOT NULL,
     updated_at    TIMESTAMP       NOT NULL,
     name    VARCHAR2(255)      NOT NULL,
-    birth    VARCHAR2(255)       NOT NULL,
+    birth    TIMESTAMP       NOT NULL,
     
     -- 고객 식별자(idx)와 질문 코드를 사용하여 고유 제약 조건 설정
     CONSTRAINT uq_recovery_user_code UNIQUE (customer_id, code),
