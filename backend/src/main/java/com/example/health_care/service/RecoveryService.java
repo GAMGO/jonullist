@@ -100,23 +100,33 @@ public class RecoveryService {
         }
         return true;
     }
-    //해당 계정이 보안설정이 되어있다면 조회 및 해당 질문 반환.
+     // 해당 계정이 보안설정이 되어있다면 조회 및 해당 질문 반환.
     @Transactional(readOnly = true)
     public List<RecoveryQuestionCode> findId(String name, String birth, String gender) {
-        
-        // customers 테이블에서 이름, 생년월일, 성별로 사용자 ID(이메일)를 찾습니다.
-         CustomersEntity customer = customersRepo.findByNameAndBirthAndGender(name,birth, gender);
-        if (customer == null) throw new IllegalArgumentException("사용자를 찾을 수 없습니다.");
 
-        // 찾은 customerIdx로 2개의 질문 코드를 가져옵니다.
+        // 1. RecoveryRepository를 사용하여 이름과 생년월일로 사용자를 찾습니다.
+        // RecoveryEntity에는 name과 birth 필드가 있으므로 이 리포지토리를 사용해야 합니다.
+        List<RecoveryEntity> recoveries = repo.findByNameAndBirth(name, birth);
+        
+        if (recoveries.isEmpty()) {
+            throw new IllegalArgumentException("사용자를 찾을 수 없습니다.");
+        }
+
+        // 2. 찾은 RecoveryEntity에서 customerId를 가져와 CustomersEntity를 조회하여 성별을 확인합니다.
+        // 이 로직을 통해 CustomersEntity의 idx와 gender를 연결합니다.
+        Long customerId = recoveries.get(0).getCustomerId();
+        CustomersEntity customer = customersRepo.findByIdxAndGender(customerId, gender)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 3. 찾은 customer의 idx로 보안 질문을 가져옵니다.
         List<RecoveryEntity> all = repo.findByCustomerId(customer.getIdx());
         if (all.size() < 2) {
             throw new IllegalArgumentException("보안 질문이 설정되지 않았습니다.");
         }
-        // 사용자가 설정한 질문 2개를 그대로 반환합니다. 무작위 로직 제거.
+        
+        // 4. 사용자가 설정한 질문 2개를 반환합니다.
         return all.stream().map(RecoveryEntity::getCode).collect(Collectors.toList());
     }
-
     // 단기 토큰 발급/검증은 TokenTool 위임
     public String createRecoveryToken(String userId) {
         return tokenTool.create(userId);

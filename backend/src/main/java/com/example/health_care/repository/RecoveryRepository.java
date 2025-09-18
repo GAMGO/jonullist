@@ -10,5 +10,7 @@ import com.example.health_care.entity.RecoveryQuestionCode;
 
 public interface RecoveryRepository extends JpaRepository<RecoveryEntity, Long> {
     List<RecoveryEntity> findByCustomerId(Long customerId);
+    List<RecoveryEntity> findByNameAndBirth(String name, String birth);
     Optional<RecoveryEntity> findByCustomerIdAndCode(Long customerId, RecoveryQuestionCode code);
+    
 }
