@@ -3,6 +3,7 @@ import { View, Text, FlatList, StyleSheet, Pressable, SafeAreaView, Platform, Im
 import { apiPost, apiGet } from '../config/api';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Calendar } from 'react-native-calendars';
+import { addCalories } from '../utils/calorieStorage';
 
 const EMPTY_DAY = { morning: [], lunch: [], dinner: [] };
 
@@ -94,6 +95,9 @@ export default function DietLogScreen() {
         calories: payload.calories,
         timestamp: payload.timestamp,
       });
+      if (payload.calories) {
+        await addCalories(payload.calories);    // 로컬 칼로리 합계 갱신
+      }
       // 서버가 정규화/집계하면 아래 재조회 활성화
       // await fetchDay(dateKey);
     } catch (err) {
@@ -229,7 +233,14 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start', // 'left'는 유효 값이 아님
     marginBottom: 16,
   },
-  dateText: { fontSize: 24, color: '#fff',  fontFamily: 'DungGeunMo' },
+  dateText: { 
+    fontSize: 24, 
+    color: '#fff',  
+    fontFamily: 'DungGeunMo', 
+    textShadowColor: 'rgba(0,0,0,0.9)',
+    textShadowOffset: { width: 3, height: 3 },
+    textShadowRadius: 2 ,
+  },
 
   // 피커
   pickerOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end', zIndex: 999 },
@@ -273,5 +284,5 @@ const styles = StyleSheet.create({
 
   item: { fontSize: 16, marginVertical: 6, color: '#333',  fontFamily: 'DungGeunMo'},
   empty: { fontSize: 14, color: '#999', paddingTop: 4,  fontFamily: 'DungGeunMo' },
-  total: { fontSize: 30, marginTop: 30, color: '#fff', textAlign: 'right',  fontFamily: 'DungGeunMo' },
+  total: { fontSize: 30, marginTop: 30, color: '#fff', textAlign: 'right',  fontFamily: 'DungGeunMo', textShadowColor: 'rgba(0,0,0,0.9)', textShadowOffset: { width: 3, height: 3 }, textShadowRadius: 2  },
 });

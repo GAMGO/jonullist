@@ -43,7 +43,7 @@ function CalorieGauge({ current, target }) {
   return (
     <View style={styles.gaugeWrapper}>
       {/* EXP 텍스트 (게이지 왼쪽) */}
-      <Text style={styles.expText}>EXP.</Text>
+      <Text style={styles.goalText}>GOAL.</Text>
 
       {/* 게이지바 */}
       <View style={styles.gaugeContainer}>
@@ -272,9 +272,9 @@ const styles = StyleSheet.create({
     gap: 5
   },
   gaugeContainer: {
-    width: '55%',
+    width: '52%',
     height: 20,
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: '#111827',
     borderRadius: 8,
     overflow: 'hidden',
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.7)',
     shadowColor: '#000',
-    shadowOffset: { width: 5, height: 7 },
+    shadowOffset: { width: 8, height: 7 },
     shadowOpacity: 0.25,
     shadowRadius: 5,
     elevation: 8
@@ -303,8 +303,8 @@ const styles = StyleSheet.create({
     fontFamily: FONT,
     includeFontPadding: false
   },
-  expText: {
-    fontSize: 20,
+  goalText: {
+    fontSize: 22,
     fontFamily: FONT,
     color: '#fff',
     textShadowColor: 'rgba(0,0,0,0.7)',
