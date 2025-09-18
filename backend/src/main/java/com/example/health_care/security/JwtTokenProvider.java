@@ -35,7 +35,7 @@ public class JwtTokenProvider {
 
         SecretKey secretKey = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
         return Jwts.builder()
-                .signWith(secretKey) // 아래의 정보들을 개인키로 암호화한 전자서명 생성
+                .signWith(secretKey, SignatureAlgorithm.HS512) // 🔥 HS512 알고리즘 명시
                 .subject(userPrincipal.getUsername()) // 여기서부터 토큰과 관련된 정보 저장
                 .issuer("com.example") // 발급자:서비스이름
                 .issuedAt(new Date()) // 발급날짜
@@ -75,6 +75,8 @@ public class JwtTokenProvider {
             log.error("Unsupported JWT token");
         } catch (IllegalArgumentException ex) {
             log.error("JWT claims string is empty");
+        } catch (Exception ex) {
+            log.error("JWT validation error");
         }
         return false;
     }

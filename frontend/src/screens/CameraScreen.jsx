@@ -7,7 +7,8 @@ import { LinearGradient } from "expo-linear-gradient"
 import { analyzeFoodImage } from "../api/gemini"
 import { API_BASE_DEBUG } from "../config/api"
 import { addCalories } from "../utils/calorieStorage"
-import { useNavigation } from "@react-navigation/native"
+import { useNavigation, useRoute } from "@react-navigation/native" // 🔥 useRoute 추가
+import { useAuth } from '../context/AuthContext' // 🔥 추가
 
 const BOX_RADIUS = 12      // 모서리 둥글기
 const SCAN_THICK = 90      // 스캔 라인 두께(px)
@@ -22,6 +23,10 @@ export default function CameraScreen() {
   const insets = useSafeAreaInsets()
   const scale = useRef(new Animated.Value(1)).current
   const nav = useNavigation()
+  const route = useRoute() // 🔥 추가
+  const { token } = useAuth() // 🔥 추가
+  const mealType = route.params?.type || 'lunch' // 🔥 추가
+  
   const [zoom, setZoom] = useState(0)
   const [focusPt, setFocusPt] = useState(null)
 
@@ -53,14 +58,51 @@ export default function CameraScreen() {
     setTimeout(() => setFocusPt(null), 900)
   }
 
+  // 🔥 엔드포인트 수정 및 header 및  body 에 들어가는 요청 데이터 수정 및 수정
   async function saveFoodStat({ dish, calories }) {
     try {
-      const url = typeof API_BASE_DEBUG === "string" && API_BASE_DEBUG ? `${API_BASE_DEBUG}/api/food/track` : `/api/food/track`
-      await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ foodName: dish, calories }) })
+      // 🔥 토큰 확인
+      if (!token) {
+        console.error("❌ 토큰이 없습니다! 로그인이 필요합니다.")
+        alert("로그인이 필요합니다. 다시 로그인해주세요.")
+        return
+      }
+      
+      
+      const url = typeof API_BASE_DEBUG === "string" && API_BASE_DEBUG ? `${API_BASE_DEBUG}/api/diet/save` : `/api/diet/save`
+      
+      const requestData = {
+        date: new Date().toISOString().split('T')[0],
+        type: mealType,
+        food: dish, 
+        calories: calories, 
+        timestamp: Date.now()
+      }
+      
+      
+      const response = await fetch(url, { 
+        method: "POST", 
+        headers: { 
+          "Content-Type": "application/json", 
+          "Authorization": token 
+        }, 
+        body: JSON.stringify(requestData) 
+      })
+      
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error("❌ API 오류:", errorText)
+        throw new Error(`API 오류: ${response.status}`)
+      }
+      
+      const result = await response.text()
+      
       await addCalories(calories)
-      nav.replace("Home")
+      nav.goBack()
     } catch (e) {
       console.warn("saveFoodStat error:", e)
+      alert("식단 저장에 실패했습니다. 다시 시도해주세요.")
     }
   }
 
