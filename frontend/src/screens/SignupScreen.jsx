@@ -144,7 +144,7 @@ export default function SignupScreen({ navigation }) {
         {/* 기본 입력 */}
         <TextInput value={id} onChangeText={setId} placeholder="이메일(ID)" placeholderTextColor="#999" autoCapitalize="none" keyboardType="email-address" style={inputStyle} />
         <TextInput value={password} onChangeText={setPassword} placeholder="비밀번호 (8자리 이상)" placeholderTextColor="#999" secureTextEntry style={inputStyle} />
-        <TextInput value={age} onChangeText={setAge} placeholder="나이" placeholderTextColor="#999" keyboardType="numeric" style={inputStyle} />
+        <TextInput value={age} onChangeText={setAge} placeholder="나이(만)" placeholderTextColor="#999" keyboardType="numeric" style={inputStyle} />
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <TouchableOpacity onPress={() => setGender('F')} style={{ flex: 1, backgroundColor: gender === 'F' ? '#111827' : '#e5e7eb', padding: 12, borderRadius: 10 }}>
             <Text style={{ fontFamily: FONT, color: gender === 'F' ? '#fff' : '#111', textAlign: 'center' }}>여성(F)</Text>
