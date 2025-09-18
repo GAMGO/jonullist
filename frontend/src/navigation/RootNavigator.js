@@ -64,7 +64,6 @@ function AppStack({ initialRouteName = 'Home' }) {
       <Stack.Screen name="Burning" component={QuestScreen} />
       <Stack.Screen name="Ranking" component={RankingScreen} />
 
-      {/* 보안질문 등록/수정도 같은 멀티-스텝 컴포넌트로 재사용하려면 이렇게 */}
       <Stack.Screen
         name="RecoverySetup"
         component={RecoveryScreens}
