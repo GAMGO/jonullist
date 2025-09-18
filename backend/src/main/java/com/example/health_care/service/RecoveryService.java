@@ -46,7 +46,7 @@ public class RecoveryService {
     @Transactional
     public void setQuestions(String customerId, List<SetSecurityQuestionsRequest.Item> items) {
         if (items == null || items.size() < 3)
-            throw new IllegalArgumentException("3개의 질문/답이 필요합니다.");
+            throw new IllegalArgumentException("2개의 질문/답이 필요합니다.");
 
         Set<RecoveryQuestionCode> codes = new HashSet<>();
         for (var it : items) {
@@ -77,11 +77,11 @@ public class RecoveryService {
         // String 이메일(id)을 Long idx로 변환
         Long customerIdx = getCustomerIdx(customerId);
         List<RecoveryEntity> all = repo.findByCustomerId(customerIdx);
-        if (all.size() < 3)
+        if (all.size() < 2)
             throw new IllegalStateException("보안질문 미설정");
         List<RecoveryQuestionCode> codes = all.stream().map(RecoveryEntity::getCode).collect(Collectors.toList());
-        Collections.shuffle(codes);
-        return codes.subList(0, 2);
+        // Collections.shuffle(codes); -> 2개만 설정해서 그 2개만 가져오게 수정함 랜덤셔플은 비활성화!
+        return codes;
     }
 
     @Transactional(readOnly = true)
@@ -99,6 +99,22 @@ public class RecoveryService {
                 return false;
         }
         return true;
+    }
+    //해당 계정이 보안설정이 되어있다면 조회 및 해당 질문 반환.
+    @Transactional(readOnly = true)
+    public List<RecoveryQuestionCode> findId(String name, String birth, String gender) {
+        
+        // customers 테이블에서 이름, 생년월일, 성별로 사용자 ID(이메일)를 찾습니다.
+         CustomersEntity customer = customersRepo.findByNameAndBirthAndGender(name,birth, gender);
+        if (customer == null) throw new IllegalArgumentException("사용자를 찾을 수 없습니다.");
+
+        // 찾은 customerIdx로 2개의 질문 코드를 가져옵니다.
+        List<RecoveryEntity> all = repo.findByCustomerId(customer.getIdx());
+        if (all.size() < 2) {
+            throw new IllegalArgumentException("보안 질문이 설정되지 않았습니다.");
+        }
+        // 사용자가 설정한 질문 2개를 그대로 반환합니다. 무작위 로직 제거.
+        return all.stream().map(RecoveryEntity::getCode).collect(Collectors.toList());
     }
 
     // 단기 토큰 발급/검증은 TokenTool 위임
