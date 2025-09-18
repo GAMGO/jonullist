@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { View, ImageBackground, Text, Pressable, Image, StyleSheet, Animated, Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useNavigation, useFocusEffect } from '@react-navigation/native'
+import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native'
 import AvatarByBMI from '../components/AvatarByBMI'
 import { initCalorieData, setTargetCalories } from '../utils/calorieStorage'
 import { useFonts } from 'expo-font'
@@ -27,14 +27,12 @@ function CalorieGauge({ current, target }) {
 
   useEffect(() => {
     if (redTo > 0) {
-      animatedGreen.stopAnimation()
-      animatedGreen.setValue(1)
-      Animated.timing(animatedRed, { toValue: redTo, duration: 600, useNativeDriver: false }).start()
-    } else {
-      animatedRed.stopAnimation()
-      animatedRed.setValue(0)
-      Animated.timing(animatedGreen, { toValue: greenTo, duration: 600, useNativeDriver: false }).start()
-    }
+    Animated.timing(animatedGreen, { toValue: 1, duration: 600, useNativeDriver: false }).start()
+    Animated.timing(animatedRed, { toValue: redTo, duration: 600, useNativeDriver: false }).start()
+  } else {
+    Animated.timing(animatedGreen, { toValue: greenTo, duration: 600, useNativeDriver: false }).start()
+    Animated.timing(animatedRed, { toValue: 0, duration: 600, useNativeDriver: false }).start()
+  }
   }, [greenTo, redTo])
 
   const widthGreen = animatedGreen.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] })
@@ -135,7 +133,7 @@ function dayKey(d = new Date()) {
 }
 
 // 홈 화면
-export default function HomeScreen() {
+export default function HomeScreen({route}) {
   const insets = useSafeAreaInsets()
   const nav = useNavigation()
   const { user } = useAuth()
@@ -176,8 +174,19 @@ export default function HomeScreen() {
   }, [loadLocal, syncFromProfile])
 
   useEffect(() => { loadAll() }, [loadAll])
-  useFocusEffect(useCallback(() => { loadAll() }, [loadAll]))
 
+  // 화면이 다시 포커스될 때 실행
+  useFocusEffect(
+    useCallback(() => { 
+      loadAll();
+
+      if (route.parms?.addedCalories) {
+        setCurrent(prev => prev + route.parms.addedCalories)
+      }
+    }, [loadAll, route.parms?.addedCalories])
+  )
+
+  // 폰트 로드 안되면 화면 렌더링 X
   if (!fontsLoaded) return null
 
   const IconLabeled = ({ iconSrc, label, to }) => (
@@ -224,7 +233,7 @@ export default function HomeScreen() {
           style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 150, height: 260 }}
         />
 
-        {/* 🔹 하단 네비 */}
+        {/* 하단 네비 */}
         <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 24 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center' }}>
             <IconLabeled iconSrc={require('../../assets/icons/profile.png')} label={t('PROFILE')} to="Profile" />
