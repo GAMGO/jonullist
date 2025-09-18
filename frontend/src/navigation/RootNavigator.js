@@ -19,8 +19,6 @@ import HealthyCatchGameScreen from '../screens/HealthyCatchGameScreen';
 import TACoach from '../screens/TACoach';
 import VoicePickerScreen from '../screens/VoicePickerScreen';
 import { useFonts } from 'expo-font';
-
-// ✅ 올바른 임포트 (default export)
 import RecoveryScreens from '../screens/RecoveryScreens';
 
 const Stack = createNativeStackNavigator();
