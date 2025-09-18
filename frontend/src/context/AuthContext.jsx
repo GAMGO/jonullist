@@ -16,6 +16,7 @@ export default function AuthProvider({ children }) {
   const [isAuthenticated, setAuthed] = useState(false)
   const [user, setUser] = useState(null)
   const [needsGoalSetup, setNeedsGoalSetup] = useState(false)
+  const [authToken, setAuthTokenState] = useState(null) // 🔥 토큰 상태 추가
 
   const parseJwt = (tokenWithPrefix) => {
     try {
@@ -45,6 +46,7 @@ export default function AuthProvider({ children }) {
         if (!mounted) return
         if (token) {
           setAuthToken(token)
+          setAuthTokenState(token) // 🔥 토큰 상태 설정
           let uid = null
           try { uid = parseJwt(token).sub ?? null } catch {}
           if (!mounted) return
@@ -80,6 +82,7 @@ export default function AuthProvider({ children }) {
       await SecureStore.setItemAsync('accessToken', token)
       await wipeLegacyTokens()
       setAuthToken(token)
+      setAuthTokenState(token) // 🔥 토큰 상태 설정
 
       // 유저 정보 파싱
       const userId = res.id ?? parseJwt(token).sub ?? id
@@ -110,6 +113,7 @@ export default function AuthProvider({ children }) {
     await wipeLegacyTokens()
     try { await AsyncStorage.removeItem('last_user_id') } catch {}
     clearAuthToken()
+    setAuthTokenState(null) // 🔥 토큰 상태 초기화
     setUser(null)
     setAuthed(false)
     setNeedsGoalSetup(false)
@@ -122,9 +126,9 @@ export default function AuthProvider({ children }) {
     setNeedsGoalSetup(false)
   }
 
-  const value = useMemo(() => ({
-    ready, isAuthenticated, user, needsGoalSetup, login, logout, markGoalDone,
-  }), [ready, isAuthenticated, user, needsGoalSetup])
+  const value = useMemo(() => ({ 
+    ready, isAuthenticated, user, needsGoalSetup, login, logout, markGoalDone, token: authToken,
+  }), [ready, isAuthenticated, user, needsGoalSetup, authToken])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
