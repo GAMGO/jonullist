@@ -7,8 +7,8 @@ import { LinearGradient } from "expo-linear-gradient"
 import { analyzeFoodImage } from "../api/gemini"
 import { API_BASE_DEBUG } from "../config/api"
 import { addCalories } from "../utils/calorieStorage"
-import { useNavigation, useRoute } from "@react-navigation/native"
-import { useAuth } from '../context/AuthContext' 
+import { useNavigation, useRoute } from "@react-navigation/native" // 🔥 useRoute 추가
+import { useAuth } from '../context/AuthContext' // 🔥 추가
 
 const BOX_RADIUS = 12      // 모서리 둥글기
 const SCAN_THICK = 90      // 스캔 라인 두께(px)
@@ -23,9 +23,9 @@ export default function CameraScreen() {
   const insets = useSafeAreaInsets()
   const scale = useRef(new Animated.Value(1)).current
   const nav = useNavigation()
-  const route = useRoute() 
-  const { token } = useAuth()
-  const mealType = route.params?.type || 'lunch' 
+  const route = useRoute() // 🔥 추가
+  const { token } = useAuth() // 🔥 추가
+  const mealType = route.params?.type || 'lunch' // 🔥 추가
   
   const [zoom, setZoom] = useState(0)
   const [focusPt, setFocusPt] = useState(null)
@@ -58,18 +58,15 @@ export default function CameraScreen() {
     setTimeout(() => setFocusPt(null), 900)
   }
 
-  // 엔드포인트 수정 및 header 및  body 에 들어가는 요청 데이터 수정 및 수정
+  // 🔥 엔드포인트 수정 및 header 및  body 에 들어가는 요청 데이터 수정 및 수정
   async function saveFoodStat({ dish, calories }) {
     try {
-
-      // 토큰 확인 로그
+      // 🔥 토큰 확인
       if (!token) {
         console.error("❌ 토큰이 없습니다! 로그인이 필요합니다.")
-          alert("로그인이 필요합니다. 다시 로그인해주세요.")
-      return
-      } else {
-        console.log("✅ 토큰 확인:", token)   // 토큰이 있을 때 출력
-        }
+        alert("로그인이 필요합니다. 다시 로그인해주세요.")
+        return
+      }
       
       
       const url = typeof API_BASE_DEBUG === "string" && API_BASE_DEBUG ? `${API_BASE_DEBUG}/api/diet/save` : `/api/diet/save`
@@ -87,7 +84,7 @@ export default function CameraScreen() {
         method: "POST", 
         headers: { 
           "Content-Type": "application/json", 
-          "Authorization": `Bearer ${token}`
+          "Authorization": token 
         }, 
         body: JSON.stringify(requestData) 
       })
@@ -153,26 +150,22 @@ export default function CameraScreen() {
       const manipulated = await ImageManipulator.manipulateAsync(photo.uri, [{ resize: { width: 1280 } }], { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG })
       setShotUri(manipulated.uri)
       const result = await analyzeFoodImage(manipulated.uri)
-      console.log("📷 Gemini 응답:", result)    // 디버깅용 로그
-
       const foodObject = result || {}
       const finalCalories = foodObject?.output?.calories || 0
       foodObject.calories = finalCalories
       if (!foodObject.dish) foodObject.dish = "알 수 없는 음식"
       setFood(foodObject)
     } catch (e) {
-    if (e?.message?.includes?.("503") || e?.message?.includes?.("overloaded")) {
-      setError("⚠️ 서버가 과부하 상태예요. 잠시 후 다시 시도해주세요.");
-    } else if (e?.message?.includes?.("429") || e?.message?.includes?.("quota")) {
-      setError("⚠️ 오늘 사용 가능한 분석 요청 횟수를 모두 소진했습니다.");
-    } else {
-      console.error("takeAndAnalyze 오류:", e);
-      setError("분석 중 문제가 발생했어요.");
-    }
+      if (e?.message?.includes?.("429") || e?.message?.includes?.("quota")) {
+        setError("⚠️ 오늘 사용 가능한 분석 요청 횟수를 모두 소진했습니다.")
+      } else {
+        console.error("takeAndAnalyze 오류:", e)
+        setError("분석 중 문제가 발생했어요.")
+      }
     } finally {
       setBusy(false)
     }
-  }   
+  }
 
   const resetShot = () => {
     setShotUri(null)
