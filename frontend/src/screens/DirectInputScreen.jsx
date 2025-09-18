@@ -3,10 +3,11 @@ import { View, Text, StyleSheet, TextInput, Pressable, FlatList, Alert, Platform
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { apiGet, apiPost, apiDelete } from '../config/api';
-
+import { useI18n } from '../i18n/I18nContext'
 const FAV_KEY = 'FAVORITE_MEALS_V1';
 
 export default function DirectInputScreen() {
+    const { t } = useI18n();
   const navigation = useNavigation();
   const route = useRoute();
   const { onAdd, dateKey, mealType } = route.params || {};
@@ -16,7 +17,7 @@ export default function DirectInputScreen() {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerTitle: '✍️ 직접 입력',
+      headerTitle: `✍️ ${t('DIRECT_INPUT')}`,
       headerTitleAlign: 'center',
       headerTintColor: '#fff',
     });

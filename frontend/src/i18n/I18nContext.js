@@ -109,23 +109,28 @@ const DICT = {
     RANKING_EMPTY: "표시할 랭킹이 없습니다.",
     LIST_LOAD_FAIL: "목록을 불러오지 못했습니다.",
     USERS_EMPTY: "표시할 사용자가 없습니다.",
-
-    //식단기록
-    DIET_LOG: "식단 기록",
-    MORNING: "아침",
-    LUNCH: "점심",
-    DINNER: "저녁",
     HOME_TRAINING: "홈트레이닝",
     STRETCHING: "스트레칭",
     MACHINE_WORKOUT: "기구운동",
+    RECOMMAND_VIDEO_LOAD_FAILED: "추천 영상을 불러오지 못했어요",
+    VIDEO_LOAD_FAILED: "영상을 불러오지 못했어요",
+
+    //식단기록
+    DATE: "날짜 선택",
+    MORNING: "아침",
+    LUNCH: "점심",
+    DINNER: "저녁",
+    DIRECT_INPUT: "직접 입력",
+    NO_REC: "아직 기록이 없어요.",
+    CALORIES: "Kcal",
 
     // Settings
     LANGUAGE: "언어",
     SOUND: "효과음",
     ON: "켜기",
     OFF: "끄기",
-    VOICE_STATUS : "현재 보이스 : ",
-    VOICE_DEFAULT : "기본 보이스",
+    VOICE_STATUS: "현재 보이스 : ",
+    VOICE_DEFAULT: "기본 보이스",
 
     // Password Recovery
     RECOVERY: "비밀번호 복구",
@@ -201,7 +206,15 @@ const DICT = {
       "열정은 어디 두고 오신 거예요?",
       "거울이랑 눈 못 마주치게 될걸요?",
     ],
-
+    GYM_OPTIONS: [
+      "스쿼트",
+      "벤치프레스",
+      "데드리프트",
+      "랫풀다운",
+      "레그프레스",
+      "숄더프레스",
+      "시티드코어",
+    ],
     // 보안설정
     SECURITY_SETTINGS: "보안 설정",
     SECURITY_VERIFY_HINT: "보안 설정을 위해 비밀번호를 입력해주세요.",
@@ -294,13 +307,13 @@ const DICT = {
     DIET: "Diet",
 
     //식단기록
-    DIET_LOG: "Diet Log",
-    MORNING: "Morning",
+    DATE: "Select Date",
+    MORNING: "Breakfast",
     LUNCH: "Lunch",
     DINNER: "Dinner",
-    HOME_TRAINING: "Home Training",
-    STRETCHING: "Stretching",
-    MACHINE_WORKOUT: "Machine Workout",
+    DIRECT_INPUT: "Input",
+    NO_REC: "There is no record yet",
+    CALORIES: "Kcal",
 
     // Profile
     PROFILE_TITLE: "PROFILE",
@@ -342,14 +355,19 @@ const DICT = {
     RANKING_EMPTY: "No rankings to display.",
     LIST_LOAD_FAIL: "Failed to load list.",
     USERS_EMPTY: "No users to display.",
+    HOME_TRAINING: "Home Training",
+    STRETCHING: "Stretching",
+    MACHINE_WORKOUT: "Machine Workout",
+    RECOMMAND_VIDEO_LOAD_FAILED: "FAILED TO LOAD Recommand Videos!",
+    VIDEO_LOAD_FAILED: "FAILED TO LOAD Videos!",
 
     // Settings
     LANGUAGE: "Language",
     SOUND: "Sound",
     ON: "On",
     OFF: "Off",
-    VOICE_STATUS : "Voice : ",
-    VOICE_DEFAULT : "Default",
+    VOICE_STATUS: "Voice : ",
+    VOICE_DEFAULT: "Default",
 
     // Password Recovery
     RECOVERY: "Password Recovery",
@@ -519,13 +537,13 @@ const DICT = {
     DIET: "食事",
 
     //식단기록
-    DIET_LOG: "食事記録",
+    DATE: "日付選択",
     MORNING: "朝食",
     LUNCH: "昼食",
     DINNER: "夕食",
-    HOME_TRAINING: "自宅トレーニング",
-    STRETCHING: "ストレッチ",
-    MACHINE_WORKOUT: "マシン運動",
+    DIRECT_INPUT: "入力",
+    NO_REC: "まだ記録がありません。",
+    CALORIES: "Kcal",
 
     // Profile
     PROFILE_TITLE: "プロフィール",
@@ -567,14 +585,19 @@ const DICT = {
     RANKING_EMPTY: "表示するランキングがありません。",
     LIST_LOAD_FAIL: "リストを読み込めませんでした。",
     USERS_EMPTY: "表示するユーザーがいません。",
+    HOME_TRAINING: "自宅トレーニング",
+    STRETCHING: "ストレッチ",
+    MACHINE_WORKOUT: "マシン運動",
+    RECOMMAND_VIDEO_LOAD_FAILED: "おすすめ映像を読み込めませんでした",
+    VIDEO_LOAD_FAILED: "映像を読み込めませんでした",
 
     // Settings
     LANGUAGE: "言語",
     SOUND: "効果音",
     ON: "オン",
     OFF: "オフ",
-    VOICE_STATUS : "使用中 : ",
-    VOICE_DEFAULT : "基本ボイス",
+    VOICE_STATUS: "使用中 : ",
+    VOICE_DEFAULT: "基本ボイス",
 
     // Password Recovery
     RECOVERY: "パスワード回復",
@@ -746,13 +769,13 @@ const DICT = {
     DIET: "饮食",
 
     //식단기록
-    DIET_LOG: "饮食记录",
+    DATE: "选择日期",
     MORNING: "早餐",
     LUNCH: "午餐",
     DINNER: "晚餐",
-    HOME_TRAINING: "居家训练",
-    STRETCHING: "拉伸",
-    MACHINE_WORKOUT: "器械训练",
+    DIRECT_INPUT: "输入",
+    NO_REC: "还没有记录。",
+    CALORIES: "卡",
 
     // Profile
     PROFILE_TITLE: "个人资料",
@@ -792,14 +815,19 @@ const DICT = {
     RANKING_EMPTY: "暂无可显示的排行榜。",
     LIST_LOAD_FAIL: "列表加载失败。",
     USERS_EMPTY: "暂无可显示的用户。",
+    HOME_TRAINING: "居家训练",
+    STRETCHING: "拉伸",
+    MACHINE_WORKOUT: "器械训练",
+    RECOMMAND_VIDEO_LOAD_FAILED: "没能上传推荐视频",
+    VIDEO_LOAD_FAILED: "没能装入视频",
 
     // Settings
     LANGUAGE: "语言",
     SOUND: "音效",
     ON: "开",
     OFF: "关",
-    VOICE_STATUS : "当前语音 : ",
-    VOICE_DEFAULT : "基本嗓音",
+    VOICE_STATUS: "当前语音 : ",
+    VOICE_DEFAULT: "基本嗓音",
 
     // Password Recovery
     RECOVERY: "找回密码",
@@ -874,34 +902,34 @@ const DICT = {
       "你的热情是忘在哪里了？",
       "你将无法直视镜子里的自己哦？",
     ],
-  //보안설정
-  SECURITY_SETTINGS: "安全设置",
-  SECURITY_VERIFY_HINT: "请输入密码进行安全设置。",
-  SECURITY_QNA: "安全问答",
-  SECURITY_QNA_NOT_SET: "未设置安全问题。",
-  SECURITY_VERIFY_HINT: "要登记/修改安全问答，请再次输入密码。",
-  TOKEN_INVALID_OR_EXPIRED: "令牌无效或已过期。",
-  TOKEN_INVALID: "令牌无效。",
-  SECURITY_POLICY: "请设置安全问题及答案，以便账户找回。",
-  ANSWER: "答案",
-  INCORRECT_ANSWER: "答案不正确。",
-  QUESTION_PET_NAME: "你宠物的名字是什么？",
-  QUESTION_BIRTHPLACE: "你出生的地方是哪里？",
-  QUESTION_MOTHER_NAME: "你母亲的名字是什么？",
-  QUESTION_FAVORITE_TEACHER: "你最喜欢的老师的名字是什么？",
-  QUESTION_FAVORITE_FOOD: "你最喜欢的食物是什么？",
-  QUESTION_FIRST_SCHOOL: "你上的第一所学校的名字是什么？",
-  QUESTION_FAVORITE_COLOR: "你最喜欢的颜色是什么？",
-  QUESTION_BEST_FRIEND: "你最好的朋友的名字是什么？",
+    //보안설정
+    SECURITY_SETTINGS: "安全设置",
+    SECURITY_VERIFY_HINT: "请输入密码进行安全设置。",
+    SECURITY_QNA: "安全问答",
+    SECURITY_QNA_NOT_SET: "未设置安全问题。",
+    SECURITY_VERIFY_HINT: "要登记/修改安全问答，请再次输入密码。",
+    TOKEN_INVALID_OR_EXPIRED: "令牌无效或已过期。",
+    TOKEN_INVALID: "令牌无效。",
+    SECURITY_POLICY: "请设置安全问题及答案，以便账户找回。",
+    ANSWER: "答案",
+    INCORRECT_ANSWER: "答案不正确。",
+    QUESTION_PET_NAME: "你宠物的名字是什么？",
+    QUESTION_BIRTHPLACE: "你出生的地方是哪里？",
+    QUESTION_MOTHER_NAME: "你母亲的名字是什么？",
+    QUESTION_FAVORITE_TEACHER: "你最喜欢的老师的名字是什么？",
+    QUESTION_FAVORITE_FOOD: "你最喜欢的食物是什么？",
+    QUESTION_FIRST_SCHOOL: "你上的第一所学校的名字是什么？",
+    QUESTION_FAVORITE_COLOR: "你最喜欢的颜色是什么？",
+    QUESTION_BEST_FRIEND: "你最好的朋友的名字是什么？",
 
-  // Voice picker
-  TEST_LINE: "您好。这是测试语音。",
-  LISTEN_TTS: "试听",
-  SELECTED: "已选择",
-  SELECT: "选择",
-  VOICE_PICKER_SCREEN:"选择语音",
-  USE_DEFAULT: "使用默认语音",
-  }
+    // Voice picker
+    TEST_LINE: "您好。这是测试语音。",
+    LISTEN_TTS: "试听",
+    SELECTED: "已选择",
+    SELECT: "选择",
+    VOICE_PICKER_SCREEN: "选择语音",
+    USE_DEFAULT: "使用默认语音",
+  },
 };
 
 const Ctx = createContext(null);
@@ -965,15 +993,6 @@ export function I18nProvider({ children }) {
       getSpicyMessage: () => {
         const messages = DICT[lang]?.SPICY || DICT.ko.SPICY;
         return messages[Math.floor(Math.random() * messages.length)];
-      },
-      getLocalizedNumber: (number) => {
-        if (lang === "zh") {
-          const zhNums = {
-            2: "两",
-          };
-          return zhNums[number] || String(number);
-        }
-        return String(number);
       },
     }),
     [t, lang]

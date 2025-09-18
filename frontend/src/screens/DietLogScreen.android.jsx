@@ -4,15 +4,16 @@ import { apiPost, apiGet } from '../config/api';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Constants from 'expo-constants';
 import { Calendar } from 'react-native-calendars';
+import { useI18n } from '../i18n/I18nContext'
 
 const EMPTY_DAY = { morning: [], lunch: [], dinner: [] };
 
 export default function DietLogScreen() {
   const navigation = useNavigation();
-
+  const { t } = useI18n();
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerTitle: '식단 기록',
+      headerTitle: t('HOME_MEAL'),
       headerTitleAlign: 'center',
       headerTintColor: '#fff',
        // // 헤더 타이틀 폰트 지정
@@ -104,7 +105,7 @@ export default function DietLogScreen() {
               })
             }
           >
-            <Text style={styles.secondaryBtnText}>➕직접 입력</Text>
+            <Text style={styles.secondaryBtnText}>➕ {t('DIRECT_INPUT')}</Text>
           </Pressable>
         </View>
       </View>
@@ -112,9 +113,9 @@ export default function DietLogScreen() {
         data={dayMeals[type]}
         keyExtractor={(_, i) => `${type}-${i}`}
         renderItem={({ item }) => (
-          <Text style={styles.item}>{item.food} - {item.calories} kcal</Text>
+          <Text style={styles.item}>{item.food} - {item.calories} {t('CALORIES')}</Text>
         )}
-        ListEmptyComponent={<Text style={styles.empty}>아직 기록이 없어요.</Text>}
+        ListEmptyComponent={<Text style={styles.empty}>{t('NO_REC')}</Text>}
         scrollEnabled={false}
         contentContainerStyle={{ paddingTop: 4 }}
       />
@@ -139,9 +140,9 @@ export default function DietLogScreen() {
             <Pressable style={styles.pickerBackdrop} onPress={() => setShowPicker(false)} />
             <View style={styles.pickerSheet}>
               <View style={styles.pickerToolbar}>
-                <Pressable onPress={() => setShowPicker(false)}><Text style={styles.toolbarBtn}>취소</Text></Pressable>
-                <Text style={styles.toolbarTitle}>날짜 선택</Text>
-                <Pressable onPress={() => setShowPicker(false)}><Text style={styles.toolbarBtn}>완료</Text></Pressable>
+                <Pressable onPress={() => setShowPicker(false)}><Text style={styles.toolbarBtn}>{t('CANCEL')}</Text></Pressable>
+                <Text style={styles.toolbarTitle}>{t('DATE')}</Text>
+                <Pressable onPress={() => setShowPicker(false)}><Text style={styles.toolbarBtn}>{t('DONE')}</Text></Pressable>
               </View>
               <View style={styles.pickerBody}>
                 {/* {Platform.OS === 'android' ? ( */}
@@ -174,11 +175,11 @@ export default function DietLogScreen() {
           </View>
         )}
 
-        <MealSection label="아침" type="morning" />
-        <MealSection label="점심" type="lunch" />
-        <MealSection label="저녁" type="dinner" />
+        <MealSection label={t('MORNING')} type="morning"/>
+        <MealSection label={t('LUNCH')} type="lunch" />
+        <MealSection label={t('DINNER')} type="dinner" />
 
-        <Text style={styles.total}>Total : {totalCalories} kcal</Text>
+        <Text style={styles.total}>Total : {totalCalories} {t('CALORIES')}</Text>
       </View>
     </SafeAreaView>
     </ImageBackground>
