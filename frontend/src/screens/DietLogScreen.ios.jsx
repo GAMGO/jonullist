@@ -3,6 +3,7 @@ import { View, Text, FlatList, StyleSheet, Pressable, SafeAreaView, Platform, Im
 import { apiPost, apiGet } from '../config/api';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Calendar } from 'react-native-calendars';
+import { addCalories } from '../utils/calorieStorage';
 
 const EMPTY_DAY = { morning: [], lunch: [], dinner: [] };
 
@@ -60,8 +61,18 @@ export default function DietLogScreen() {
 
   // 날짜 바뀌면 로드
   useEffect(() => {
-    fetchDay(dateKey);
-  }, [dateKey, fetchDay]);
+    const syncDayAndCalories = async () => {
+      await fetchDay(dateKey);
+
+      // 기존에 저장된 식단 칼로리도 로컬 스토리지에 반영
+      const total = [...dayMeals.morning, ...dayMeals.lunch, ...dayMeals.dinner]
+      .reduce((sum, m) => sum + (m.calories || 0),0);
+
+      await addCalories(total, true);   // 두번쨰 인자로 "덮어쓰기"
+    };
+
+    syncDayAndCalories();
+  }, [dateKey, fetchDay, dayMeals]);
 
   // 화면 복귀 시 로드
   useFocusEffect(
@@ -94,6 +105,10 @@ export default function DietLogScreen() {
         calories: payload.calories,
         timestamp: payload.timestamp,
       });
+      if (payload.calories) {
+        await addCalories(payload.calories);    // 로컬 칼로리 합계 반영
+        // navigation.navigate('Home', {addCalories: payload.calories})    // 홈 게이지바 업데이트
+      }
       // 서버가 정규화/집계하면 아래 재조회 활성화
       // await fetchDay(dateKey);
     } catch (err) {
@@ -229,7 +244,14 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start', // 'left'는 유효 값이 아님
     marginBottom: 16,
   },
-  dateText: { fontSize: 24, color: '#fff',  fontFamily: 'DungGeunMo' },
+  dateText: { 
+    fontSize: 24, 
+    color: '#fff',  
+    fontFamily: 'DungGeunMo', 
+    textShadowColor: 'rgba(0,0,0,0.9)',
+    textShadowOffset: { width: 3, height: 3 },
+    textShadowRadius: 2 ,
+  },
 
   // 피커
   pickerOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end', zIndex: 999 },
@@ -273,5 +295,5 @@ const styles = StyleSheet.create({
 
   item: { fontSize: 16, marginVertical: 6, color: '#333',  fontFamily: 'DungGeunMo'},
   empty: { fontSize: 14, color: '#999', paddingTop: 4,  fontFamily: 'DungGeunMo' },
-  total: { fontSize: 30, marginTop: 30, color: '#fff', textAlign: 'right',  fontFamily: 'DungGeunMo' },
+  total: { fontSize: 30, marginTop: 30, color: '#fff', textAlign: 'right',  fontFamily: 'DungGeunMo', textShadowColor: 'rgba(0,0,0,0.9)', textShadowOffset: { width: 3, height: 3 }, textShadowRadius: 2  },
 });
