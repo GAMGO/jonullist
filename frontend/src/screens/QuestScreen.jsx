@@ -195,7 +195,7 @@ export default function QuestScreen(){
       })).filter(v => v.id)
       setVideos(mapped)
     } catch (e) {
-      setError('영상을 불러오지 못했어요')
+      setError(t('VIDEO_LOAD_FAILED'))
     } finally {
       setLoading(false)
     }
@@ -252,22 +252,22 @@ export default function QuestScreen(){
 
         <View style={styles.quickRow}>
           <TouchableOpacity onPress={startSquat} disabled={!squatQ} style={[styles.quickBtn, !squatQ && styles.disabled]}>
-            <Text style={styles.quickTxt}>스쿼트 시작</Text>
+            <Text style={styles.quickTxt}>{t('SQUAT')} {t('START')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={startPushup} disabled={!pushupQ} style={[styles.quickBtn, !pushupQ && styles.disabled]}>
-            <Text style={styles.quickTxt}>푸쉬업 시작</Text>
+            <Text style={styles.quickTxt}>{t('PUSHUP')} {t('START')}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.tabsRow}>
           <TouchableOpacity onPress={()=>onTabChange(TAB_HOME)} style={[styles.tabBtn, tab===TAB_HOME && styles.tabActive]}>
-            <Text style={[styles.tabTxt, tab===TAB_HOME && styles.tabTxtActive]}>홈트</Text>
+            <Text style={[styles.tabTxt, tab===TAB_HOME && styles.tabTxtActive]}>{t('HOME_TRAINING')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={()=>onTabChange(TAB_STRETCH)} style={[styles.tabBtn, tab===TAB_STRETCH && styles.tabActive]}>
-            <Text style={[styles.tabTxt, tab===TAB_STRETCH && styles.tabTxtActive]}>스트레칭</Text>
+            <Text style={[styles.tabTxt, tab===TAB_STRETCH && styles.tabTxtActive]}>{t('STRETCHING')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={()=>onTabChange(TAB_GYM)} style={[styles.tabBtn, tab===TAB_GYM && styles.tabActive]}>
-            <Text style={[styles.tabTxt, tab===TAB_GYM && styles.tabTxtActive]}>기구운동</Text>
+            <Text style={[styles.tabTxt, tab===TAB_GYM && styles.tabTxtActive]}>{t('MACHINE_WORKOUT')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -310,7 +310,7 @@ export default function QuestScreen(){
                 </TouchableOpacity>
               )}
               ItemSeparatorComponent={()=> <View style={{height:10}}/>}
-              ListEmptyComponent={<Text style={styles.empty}>추천 영상을 불러오지 못했어요</Text>}
+              ListEmptyComponent={<Text style={styles.empty}>{t('RECOMMAND_VIDEO_LOAD_FAILED')}</Text>}
               contentContainerStyle={{ paddingBottom: 24 }}
               keyboardShouldPersistTaps="handled"
             />

@@ -53,7 +53,7 @@ const DICT = {
     HOME_MEAL: "🥗 식단 기록",
     HOME_DATA: "👀 한눈에",
     PROFILE: "PROFILE",
-    QUEST: "QUEST",
+    BURNING: "BURNING",
     RANKING: "RANKING",
     SETTINGS: "SETTINGS",
 
@@ -109,12 +109,28 @@ const DICT = {
     RANKING_EMPTY: "표시할 랭킹이 없습니다.",
     LIST_LOAD_FAIL: "목록을 불러오지 못했습니다.",
     USERS_EMPTY: "표시할 사용자가 없습니다.",
+    HOME_TRAINING: "홈트레이닝",
+    STRETCHING: "스트레칭",
+    MACHINE_WORKOUT: "기구운동",
+    RECOMMAND_VIDEO_LOAD_FAILED: "추천 영상을 불러오지 못했어요",
+    VIDEO_LOAD_FAILED: "영상을 불러오지 못했어요",
+
+    //식단기록
+    DATE: "날짜 선택",
+    MORNING: "아침",
+    LUNCH: "점심",
+    DINNER: "저녁",
+    DIRECT_INPUT: "직접 입력",
+    NO_REC: "아직 기록이 없어요.",
+    CALORIES: "Kcal",
 
     // Settings
     LANGUAGE: "언어",
     SOUND: "효과음",
     ON: "켜기",
     OFF: "끄기",
+    VOICE_STATUS: "현재 보이스 : ",
+    VOICE_DEFAULT: "기본 보이스",
 
     // Password Recovery
     RECOVERY: "비밀번호 복구",
@@ -190,7 +206,15 @@ const DICT = {
       "열정은 어디 두고 오신 거예요?",
       "거울이랑 눈 못 마주치게 될걸요?",
     ],
-
+    GYM_OPTIONS: [
+      "스쿼트",
+      "벤치프레스",
+      "데드리프트",
+      "랫풀다운",
+      "레그프레스",
+      "숄더프레스",
+      "시티드코어",
+    ],
     // 보안설정
     SECURITY_SETTINGS: "보안 설정",
     SECURITY_VERIFY_HINT: "보안 설정을 위해 비밀번호를 입력해주세요.",
@@ -209,6 +233,14 @@ const DICT = {
     QUESTION_FIRST_SCHOOL: "처음 다닌 학교 이름",
     QUESTION_FAVORITE_COLOR: "가장 좋아하는 색",
     QUESTION_BEST_FRIEND: "가장 친한 친구 이름",
+
+    //VoicePicker
+    TEST_LINE: "안녕하세요. 테스트 음성입니다.",
+    LISTEN_TTS: "미리듣기",
+    SELECTED: "선택됨",
+    SELECT: "선택",
+    VOICE_PICKER_SCREEN: "보이스 선택",
+    USE_DEFAULT: "기본 보이스 사용",
   },
 
   ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -256,7 +288,7 @@ const DICT = {
     HOME_MEAL: "🥗 Meal Log",
     HOME_DATA: "👀 At a Glance",
     PROFILE: "PROFILE",
-    QUEST: "QUEST",
+    BURNING: "BURNING",
     RANKING: "RANKING",
     SETTINGS: "SETTINGS",
 
@@ -273,6 +305,15 @@ const DICT = {
     FETCHING: "Fetching...",
     NO_LIST: "No items to display.",
     DIET: "Diet",
+
+    //식단기록
+    DATE: "Select Date",
+    MORNING: "Breakfast",
+    LUNCH: "Lunch",
+    DINNER: "Dinner",
+    DIRECT_INPUT: "Input",
+    NO_REC: "There is no record yet",
+    CALORIES: "Kcal",
 
     // Profile
     PROFILE_TITLE: "PROFILE",
@@ -314,12 +355,19 @@ const DICT = {
     RANKING_EMPTY: "No rankings to display.",
     LIST_LOAD_FAIL: "Failed to load list.",
     USERS_EMPTY: "No users to display.",
+    HOME_TRAINING: "Home Training",
+    STRETCHING: "Stretching",
+    MACHINE_WORKOUT: "Machine Workout",
+    RECOMMAND_VIDEO_LOAD_FAILED: "FAILED TO LOAD Recommand Videos!",
+    VIDEO_LOAD_FAILED: "FAILED TO LOAD Videos!",
 
     // Settings
     LANGUAGE: "Language",
     SOUND: "Sound",
     ON: "On",
     OFF: "Off",
+    VOICE_STATUS: "Voice : ",
+    VOICE_DEFAULT: "Default",
 
     // Password Recovery
     RECOVERY: "Password Recovery",
@@ -404,7 +452,7 @@ const DICT = {
     TOKEN_INVALID_OR_EXPIRED: "The token is invalid or has expired.",
     TOKEN_INVALID: "The token is invalid.",
     SECURITY_POLICY:
-    "Set up security questions and answers for account recovery.",
+      "Set up security questions and answers for account recovery.",
     ANSWER: "Answer",
     INCORRECT_ANSWER: "The answer is incorrect.",
     QUESTION_PET_NAME: "What is your pet's name?",
@@ -415,6 +463,14 @@ const DICT = {
     QUESTION_FIRST_SCHOOL: "What was the name of your first school?",
     QUESTION_FAVORITE_COLOR: "What is your favorite color?",
     QUESTION_BEST_FRIEND: "What is your best friend's name?",
+
+    //VoicePicker
+    TEST_LINE: "Hello, Nice to meet you",
+    LISTEN_TTS: "Listen",
+    SELECTED: "SELECTED",
+    SELECT: "SELECT",
+    VOICE_PICKER_SCREEN: "Select a voice",
+    USE_DEFAULT: "Use Default voice",
   },
 
   ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -461,10 +517,10 @@ const DICT = {
     HOME: "ホーム",
     HOME_MEAL: "🥗 食事記録",
     HOME_DATA: "👀 一目で",
-    PROFILE: "プロフィール",
-    QUEST: "クエスト",
-    RANKING: "ランキング",
-    SETTINGS: "設定",
+    PROFILE: "PROFILE",
+    BURNING: "BURNING",
+    RANKING: "RANKING",
+    SETTINGS: "SETTINGS",
 
     // Camera & Meal
     CAMERA: "カメラ",
@@ -479,6 +535,15 @@ const DICT = {
     FETCHING: "読み込み中…",
     NO_LIST: "表示する項目がありません。",
     DIET: "食事",
+
+    //식단기록
+    DATE: "日付選択",
+    MORNING: "朝食",
+    LUNCH: "昼食",
+    DINNER: "夕食",
+    DIRECT_INPUT: "入力",
+    NO_REC: "まだ記録がありません。",
+    CALORIES: "Kcal",
 
     // Profile
     PROFILE_TITLE: "プロフィール",
@@ -520,12 +585,19 @@ const DICT = {
     RANKING_EMPTY: "表示するランキングがありません。",
     LIST_LOAD_FAIL: "リストを読み込めませんでした。",
     USERS_EMPTY: "表示するユーザーがいません。",
+    HOME_TRAINING: "自宅トレーニング",
+    STRETCHING: "ストレッチ",
+    MACHINE_WORKOUT: "マシン運動",
+    RECOMMAND_VIDEO_LOAD_FAILED: "おすすめ映像を読み込めませんでした",
+    VIDEO_LOAD_FAILED: "映像を読み込めませんでした",
 
     // Settings
     LANGUAGE: "言語",
     SOUND: "効果音",
     ON: "オン",
     OFF: "オフ",
+    VOICE_STATUS: "使用中 : ",
+    VOICE_DEFAULT: "基本ボイス",
 
     // Password Recovery
     RECOVERY: "パスワード回復",
@@ -607,11 +679,12 @@ const DICT = {
       "セキュリティ設定のため、パスワードを入力してください。",
     SECURITY_QNA: "セキュリティQ&A",
     SECURITY_QNA_NOT_SET: "セキュリティ質問が設定されていません。",
-    SECURITY_VERIFY_HINT: "セキュリティ質問を登録・修正するには、もう一度パスワードを入力してください。",
+    SECURITY_VERIFY_HINT:
+      "セキュリティ質問を登録・修正するには、もう一度パスワードを入力してください。",
     TOKEN_INVALID_OR_EXPIRED: "トークンが無効であるか、期限切れです。",
     TOKEN_INVALID: "トークンが無効です。",
     SECURITY_POLICY:
-    "アカウント復旧のため、セキュリティQ&Aを設定してください。",
+      "アカウント復旧のため、セキュリティQ&Aを設定してください。",
     ANSWER: "答え",
     INCORRECT_ANSWER: "回答が正しくありません。",
     QUESTION_PET_NAME: "あなたのペットの名前は？",
@@ -622,6 +695,14 @@ const DICT = {
     QUESTION_FIRST_SCHOOL: "初めて通った学校の名前は？",
     QUESTION_FAVORITE_COLOR: "好きな色は何ですか？",
     QUESTION_BEST_FRIEND: "親友の名前は？",
+
+    //Voice picker
+    TEST_LINE: "こんにちは。テスト音声です。",
+    LISTEN_TTS: "プレビュー",
+    SELECTED: "選択済み",
+    SELECT: "選択",
+    VOICE_PICKER_SCREEN: "ボイス選択",
+    USE_DEFAULT: "デフォルトボイスを使用",
   },
 
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -669,7 +750,7 @@ const DICT = {
     HOME_MEAL: "🥗 饮食记录",
     HOME_DATA: "👀 一览",
     PROFILE: "个人资料",
-    QUEST: "任务",
+    BURNING: "任务",
     RANKING: "排行",
     SETTINGS: "设置",
 
@@ -686,6 +767,15 @@ const DICT = {
     FETCHING: "加载中…",
     NO_LIST: "没有可显示的项目。",
     DIET: "饮食",
+
+    //식단기록
+    DATE: "选择日期",
+    MORNING: "早餐",
+    LUNCH: "午餐",
+    DINNER: "晚餐",
+    DIRECT_INPUT: "输入",
+    NO_REC: "还没有记录。",
+    CALORIES: "卡",
 
     // Profile
     PROFILE_TITLE: "个人资料",
@@ -725,12 +815,19 @@ const DICT = {
     RANKING_EMPTY: "暂无可显示的排行榜。",
     LIST_LOAD_FAIL: "列表加载失败。",
     USERS_EMPTY: "暂无可显示的用户。",
+    HOME_TRAINING: "居家训练",
+    STRETCHING: "拉伸",
+    MACHINE_WORKOUT: "器械训练",
+    RECOMMAND_VIDEO_LOAD_FAILED: "没能上传推荐视频",
+    VIDEO_LOAD_FAILED: "没能装入视频",
 
     // Settings
     LANGUAGE: "语言",
     SOUND: "音效",
     ON: "开",
     OFF: "关",
+    VOICE_STATUS: "当前语音 : ",
+    VOICE_DEFAULT: "基本嗓音",
 
     // Password Recovery
     RECOVERY: "找回密码",
@@ -805,26 +902,34 @@ const DICT = {
       "你的热情是忘在哪里了？",
       "你将无法直视镜子里的自己哦？",
     ],
+    //보안설정
+    SECURITY_SETTINGS: "安全设置",
+    SECURITY_VERIFY_HINT: "请输入密码进行安全设置。",
+    SECURITY_QNA: "安全问答",
+    SECURITY_QNA_NOT_SET: "未设置安全问题。",
+    SECURITY_VERIFY_HINT: "要登记/修改安全问答，请再次输入密码。",
+    TOKEN_INVALID_OR_EXPIRED: "令牌无效或已过期。",
+    TOKEN_INVALID: "令牌无效。",
+    SECURITY_POLICY: "请设置安全问题及答案，以便账户找回。",
+    ANSWER: "答案",
+    INCORRECT_ANSWER: "答案不正确。",
+    QUESTION_PET_NAME: "你宠物的名字是什么？",
+    QUESTION_BIRTHPLACE: "你出生的地方是哪里？",
+    QUESTION_MOTHER_NAME: "你母亲的名字是什么？",
+    QUESTION_FAVORITE_TEACHER: "你最喜欢的老师的名字是什么？",
+    QUESTION_FAVORITE_FOOD: "你最喜欢的食物是什么？",
+    QUESTION_FIRST_SCHOOL: "你上的第一所学校的名字是什么？",
+    QUESTION_FAVORITE_COLOR: "你最喜欢的颜色是什么？",
+    QUESTION_BEST_FRIEND: "你最好的朋友的名字是什么？",
+
+    // Voice picker
+    TEST_LINE: "您好。这是测试语音。",
+    LISTEN_TTS: "试听",
+    SELECTED: "已选择",
+    SELECT: "选择",
+    VOICE_PICKER_SCREEN: "选择语音",
+    USE_DEFAULT: "使用默认语音",
   },
-  //보안설정
-  SECURITY_SETTINGS: "安全设置",
-  SECURITY_VERIFY_HINT: "请输入密码进行安全设置。",
-  SECURITY_QNA: "安全问答",
-  SECURITY_QNA_NOT_SET: "未设置安全问题。",
-  SECURITY_VERIFY_HINT: "要登记/修改安全问答，请再次输入密码。",
-  TOKEN_INVALID_OR_EXPIRED: "令牌无效或已过期。",
-  TOKEN_INVALID: "令牌无效。",
-  SECURITY_POLICY: "请设置安全问题及答案，以便账户找回。",
-  ANSWER: "答案",
-  INCORRECT_ANSWER: "答案不正确。",
-  QUESTION_PET_NAME: "你宠物的名字是什么？",
-  QUESTION_BIRTHPLACE: "你出生的地方是哪里？",
-  QUESTION_MOTHER_NAME: "你母亲的名字是什么？",
-  QUESTION_FAVORITE_TEACHER: "你最喜欢的老师的名字是什么？",
-  QUESTION_FAVORITE_FOOD: "你最喜欢的食物是什么？",
-  QUESTION_FIRST_SCHOOL: "你上的第一所学校的名字是什么？",
-  QUESTION_FAVORITE_COLOR: "你最喜欢的颜色是什么？",
-  QUESTION_BEST_FRIEND: "你最好的朋友的名字是什么？",
 };
 
 const Ctx = createContext(null);
@@ -888,15 +993,6 @@ export function I18nProvider({ children }) {
       getSpicyMessage: () => {
         const messages = DICT[lang]?.SPICY || DICT.ko.SPICY;
         return messages[Math.floor(Math.random() * messages.length)];
-      },
-      getLocalizedNumber: (number) => {
-        if (lang === "zh") {
-          const zhNums = {
-            2: "两",
-          };
-          return zhNums[number] || String(number);
-        }
-        return String(number);
       },
     }),
     [t, lang]

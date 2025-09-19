@@ -12,7 +12,7 @@ export default function DietLogScreen() {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerTitle: '식단 기록',
+      headerTitle: t('HOME_MEAL'),
       headerTitleAlign: 'center',
       headerTintColor: '#fff',
       // // 헤더 타이틀 폰트 지정
@@ -120,7 +120,7 @@ export default function DietLogScreen() {
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>
-          {label} <Text style={{ fontSize: 18, color: '#333'}}>[{calories} kcal]</Text>
+          {label} <Text style={{ fontSize: 18, color: '#333'}}>[{calories} {t('CALORIES')}]</Text>
           </Text>
         <View style={styles.headerActions}>
           <Pressable
@@ -139,7 +139,7 @@ export default function DietLogScreen() {
               })
             }
           >
-            <Text style={styles.secondaryBtnText}>➕직접 입력</Text>
+            <Text style={styles.secondaryBtnText}>➕ {t('DIRECT_INPUT')}</Text>
           </Pressable>
         </View>
       </View>
@@ -157,7 +157,7 @@ export default function DietLogScreen() {
             </Text>
           </View>
         )}
-        ListEmptyComponent={<Text style={styles.empty}>아직 기록이 없어요.</Text>}
+        ListEmptyComponent={<Text style={styles.empty}>{t('NO_REC')}</Text>}
         scrollEnabled={true}
         horizontal={true}
         showsHorizontalScrollIndicator={false}    // 스크롤바 숨김
@@ -186,9 +186,9 @@ export default function DietLogScreen() {
             <Pressable style={styles.pickerBackdrop} onPress={() => setShowPicker(false)} />
             <View style={styles.pickerSheet}>
               <View style={styles.pickerToolbar}>
-                <Pressable onPress={() => setShowPicker(false)}><Text style={styles.toolbarBtn}>취소</Text></Pressable>
-                <Text style={styles.toolbarTitle}>날짜 선택</Text>
-                <Pressable onPress={() => setShowPicker(false)}><Text style={styles.toolbarBtn}>완료</Text></Pressable>
+                <Pressable onPress={() => setShowPicker(false)}><Text style={styles.toolbarBtn}>{t('CANCEL')}</Text></Pressable>
+                <Text style={styles.toolbarTitle}>{t('DATE')}</Text>
+                <Pressable onPress={() => setShowPicker(false)}><Text style={styles.toolbarBtn}>{t('DONE')}</Text></Pressable>
               </View>
               <View style={styles.pickerBody}>
                   <Calendar
@@ -220,12 +220,12 @@ export default function DietLogScreen() {
           
 
           {/* 섹션 3개 */}
-          <MealSection label="아침" type="morning" calories={calcMealCalories(dayMeals.morning)} />
-          <MealSection label="점심" type="lunch" calories={calcMealCalories(dayMeals.lunch)} />
-          <MealSection label="저녁" type="dinner" calories={calcMealCalories(dayMeals.dinner)} />
+          <MealSection label={t('MORNING')} type="morning" calories={calcMealCalories(dayMeals.morning)} />
+          <MealSection label={t('LUNCH')} type="lunch" calories={calcMealCalories(dayMeals.lunch)} />
+          <MealSection label={t('DINNER')} type="dinner" calories={calcMealCalories(dayMeals.dinner)} />
 
         {/* 총 칼로리 */}
-        <Text style={styles.total}>Total : {totalCalories} kcal</Text>
+        <Text style={styles.total}>Total : {totalCalories}  {t('CALORIES')}</Text>
         </View>
         </SafeAreaView>
     </ImageBackground>

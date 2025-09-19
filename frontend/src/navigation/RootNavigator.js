@@ -20,6 +20,7 @@ import TACoach from '../screens/TACoach';
 import VoicePickerScreen from '../screens/VoicePickerScreen';
 import { useFonts } from 'expo-font';
 import RecoveryScreens from '../screens/RecoveryScreens';
+import { useI18n } from '../i18n/I18nContext';
 
 const Stack = createNativeStackNavigator();
 
@@ -51,6 +52,7 @@ function AuthStack() {
 }
 
 function AppStack({ initialRouteName = 'Home' }) {
+  const { t } = useI18n();
   return (
     <Stack.Navigator screenOptions={commonHeader} initialRouteName={initialRouteName}>
       <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
@@ -76,7 +78,7 @@ function AppStack({ initialRouteName = 'Home' }) {
         options={{ headerShown: false }}
       />
       <Stack.Screen name="TACoach" component={TACoach} options={{ headerShown: true, title: '' }} />
-      <Stack.Screen name="VoicePicker" component={VoicePickerScreen} options={{ title: '보이스 선택' }} />
+      <Stack.Screen name="VoicePicker" component={VoicePickerScreen} options={{ title:t('VOICE_PICKER_SCREEN') }} />
     </Stack.Navigator>
   );
 }
