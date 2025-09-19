@@ -1,5 +1,6 @@
 import { Platform, NativeModules } from 'react-native';
 import Constants from 'expo-constants';
+import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /* ---------- IP/Origin Utils ---------- */
@@ -38,17 +39,13 @@ function pickFirst(...vals) { return vals.find(v => v != null && v !== '') }
 function getDevOrigin() {
   if (ENV_ORIGIN) return ENV_ORIGIN;
 
-  // Emulator/simulator shortcuts
   if (Platform.OS === 'android') {
-    // Android 에뮬레이터가 PC의 localhost 접근할 때
     const host = pickFirst(getHostFromExpo(), getHostFromScriptURL());
     if (!host || !isPrivateIp(host)) {
-      // 에뮬레이터 사용 시 백엔드가 같은 PC에서 돌면 10.0.2.2
       return `http://10.0.2.2:${ENV_PORT}`;
     }
   }
   if (Platform.OS === 'ios') {
-    // iOS 시뮬레이터는 localhost 그대로 접근됨(백엔드가 같은 Mac)
     const host = pickFirst(getHostFromExpo(), getHostFromScriptURL());
     if (!host || !isPrivateIp(host)) {
       return `http://127.0.0.1:${ENV_PORT}`;
@@ -59,12 +56,10 @@ function getDevOrigin() {
   const metroHost = getHostFromScriptURL();
   const host = isPrivateIp(expoHost) ? expoHost : (isPrivateIp(metroHost) ? metroHost : null);
 
-  // 로컬 네트워크 장치(실기기)에서 접속: 개발 PC의 사설 IP나 지정 IP를 한 번에 처리
   const fallbackHost = pickFirst(
     host,
-    EXTRA.devHost,                           // app.json → extra.devHost 지원
-    process.env.EXPO_PUBLIC_DEV_HOST,        // EAS env
-    // ↓ 필요 시 여기 한 줄만 바꿔서 현장 IP 지정
+    EXTRA.devHost,
+    process.env.EXPO_PUBLIC_DEV_HOST,
     '192.168.0.13'
   );
   return `http://${fallbackHost}:${ENV_PORT}`;
@@ -77,18 +72,37 @@ export const API_BASE_DEBUG = ORIGIN;
 /* ---------- Auth Header Handling ---------- */
 let CURRENT_TOKEN = null;
 
+// 토큰 변경 브로드캐스트 (AuthContext가 구독함)
+const tokenListeners = new Set();
+export function subscribeToken(listener) {
+  tokenListeners.add(listener);
+  return () => tokenListeners.delete(listener);
+}
+function emitToken(t) { tokenListeners.forEach(fn => { try { fn(t); } catch {} }); }
+
 function normalizeAuthHeader(raw) {
   if (!raw) return null;
   const v = String(raw).trim();
   return /^(Bearer|Basic|Token)\s+/i.test(v) ? v : `Bearer ${v}`;
 }
-export function setAuthToken(t) { CURRENT_TOKEN = normalizeAuthHeader(t) }
-export function clearAuthToken() { CURRENT_TOKEN = null }
+export async function setAuthToken(t, opts = { persist: false }) {
+  CURRENT_TOKEN = normalizeAuthHeader(t);
+  if (opts.persist && CURRENT_TOKEN) {
+    try { await SecureStore.setItemAsync('accessToken', CURRENT_TOKEN); } catch {}
+  }
+  emitToken(CURRENT_TOKEN);
+}
+export async function clearAuthToken() {
+  CURRENT_TOKEN = null;
+  try { await SecureStore.deleteItemAsync('accessToken'); } catch {}
+  try { await AsyncStorage.multiRemove(['token','authToken','accessToken','@auth/token']); } catch {}
+  emitToken(null);
+}
 
 async function getAuthHeaderObject() {
   if (!CURRENT_TOKEN) {
     try {
-      const raw = await AsyncStorage.getItem('@auth/token');
+      const raw = await SecureStore.getItemAsync('accessToken');
       if (raw) CURRENT_TOKEN = normalizeAuthHeader(raw);
     } catch {}
   }
@@ -97,7 +111,54 @@ async function getAuthHeaderObject() {
   return auth;
 }
 
-/* ---------- Core Fetch ---------- */
+/* ---------- JWT helpers ---------- */
+function safeParseJwt(tokenWithPrefix) {
+  try {
+    const raw = String(tokenWithPrefix || '').replace(/^Bearer\s+/i, '');
+    const payload = raw.split('.')[1];
+    if (!payload) return null;
+    const json = JSON.parse(global.atob ? atob(payload.replace(/-/g, '+').replace(/_/g, '/')) :
+      Buffer.from(payload.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'));
+    return json;
+  } catch { return null; }
+}
+export function isTokenExpiringSoon(token, skewMs = 300000) {
+  const p = safeParseJwt(token);
+  if (!p?.exp) return false;
+  const expiryMs = p.exp * 1000;
+  return expiryMs - Date.now() < skewMs;
+}
+
+/* ---------- Refresh ---------- */
+/** 서버에 /api/auth/refresh 호출해서 새 토큰을 받아 저장 */
+export async function autoRefreshToken() {
+  const auth = await getAuthHeaderObject();
+  if (!auth.Authorization) return null;
+  try {
+    const res = await fetch(`${ORIGIN}/api/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        ...auth,
+      },
+      body: '{}',
+    });
+    const text = await res.text();
+    if (!res.ok) throw new Error(text || `HTTP ${res.status}`);
+    const data = JSON.parse(text || '{}');
+    const newToken = data.tokenType ? `${data.tokenType} ${data.token}` : (data.token ?? null);
+    if (!newToken) throw new Error('No token in refresh response');
+    await setAuthToken(newToken, { persist: true });
+    if (__DEV__) console.log('🔄 token refreshed');
+    return newToken;
+  } catch (e) {
+    if (__DEV__) console.warn('🔄 token refresh failed:', e?.message || e);
+    return null;
+  }
+}
+
+/* ---------- Core Fetch (with 401/403 1회 재시도) ---------- */
 const join = (base, path) => `${String(base).replace(/\/+$/, '')}/${String(path).replace(/^\/+/, '')}`;
 
 async function request(method, path, { body, headers, timeoutMs } = {}) {
@@ -105,7 +166,7 @@ async function request(method, path, { body, headers, timeoutMs } = {}) {
   const ctrl = new AbortController();
   const to = setTimeout(() => ctrl.abort(), timeoutMs ?? 25000);
 
-  try {
+  const doFetch = async () => {
     const auth = await getAuthHeaderObject();
     const finalHeaders = {
       Accept: 'application/json',
@@ -113,7 +174,6 @@ async function request(method, path, { body, headers, timeoutMs } = {}) {
       ...(headers || {}),
       ...auth,
     };
-
     if (__DEV__) console.log(`${method}`, url, { headers: finalHeaders, body });
 
     const res = await fetch(url, {
@@ -122,12 +182,24 @@ async function request(method, path, { body, headers, timeoutMs } = {}) {
       signal: ctrl.signal,
       ...(body != null ? { body: typeof body === 'string' ? body : JSON.stringify(body) } : {}),
     });
+    return res;
+  };
+
+  try {
+    let res = await doFetch();
+
+    // 만료/권한 문제 시 한 번만 자동 갱신 + 재시도
+    if (res.status === 401 || res.status === 403) {
+      const refreshed = await autoRefreshToken();
+      if (refreshed) {
+        res = await doFetch();
+      }
+    }
 
     const text = await res.text();
     if (__DEV__) console.log(`${method} <-`, res.status, text);
 
     if (!res.ok) {
-      // 백엔드 에러 바디 그대로 에러 메시지로 노출
       throw new Error(text || `HTTP ${res.status}`);
     }
     try { return JSON.parse(text) } catch { return text }
@@ -144,6 +216,5 @@ export async function apiPost(path, body, init) {
   return request('POST', path, { body, headers: init?.headers, timeoutMs: init?.timeoutMs });
 }
 export async function apiDelete(path, init) {
-  // Spring @DeleteMapping은 보통 쿼리스트링 사용. 바디 보내지 말자.
   return request('DELETE', path, { headers: init?.headers, timeoutMs: init?.timeoutMs });
 }

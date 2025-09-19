@@ -33,7 +33,7 @@ const DICT = {
     LOGOUT: "로그아웃",
     GO_SIGNUP: "회원가입",
     FIND_ID: "아이디 찾기",
-    PW_RECOVERY: "비밀번호 복구",
+    PW_RECOVERY: "비밀번호 찾기",
     REQUIRED: "필수 입력",
     REQUIRED_ALL: "모든 항목을 입력해 주세요.",
     FORMAT_ERROR: "형식 오류",
@@ -185,7 +185,7 @@ const DICT = {
     VOICE_DEFAULT: "기본 보이스",
 
     // Password Recovery
-    RECOVERY: "비밀번호 복구",
+    RECOVERY: "비밀번호 찾기",
     RECOVERY_SETUP: "보안질문 설정",
     RECOVERY_START_DESC: "아이디를 입력하면 질문 2개가 출제됩니다.",
     RECOVERY_ID: "아이디(이메일)",
