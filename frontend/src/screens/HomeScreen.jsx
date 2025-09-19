@@ -37,6 +37,7 @@ function CalorieGauge({ current, target }) {
     <View style={styles.gaugeWrapper}>
       <Text style={styles.goalText}>GOAL.</Text>
 
+    <View style={styles.gaugeShadowWrapper}>
       <View
         style={styles.gaugeContainer}
         onLayout={e => setWidth(e.nativeEvent.layout.width)}
@@ -70,6 +71,7 @@ function CalorieGauge({ current, target }) {
             {current}/{target} kcal
           </Text>
         </View>
+      </View>
       </View>
     </View>
   )
@@ -214,8 +216,8 @@ export default function HomeScreen({ route }) {
   if (!fontsLoaded) return null
 
   const IconLabeled = ({ iconSrc, label, to }) => (
-    <Pressable onPress={() => nav.navigate(to)} style={{ alignItems: 'center', width: ICON_SIZE + 8 }}>
-      <Image source={iconSrc} style={{ width: ICON_SIZE, height: ICON_SIZE, resizeMode: 'contain' }} />
+    <Pressable onPress={() => nav.navigate(to)}  style={styles.iconWrapper}>
+      <Image source={iconSrc} style={styles.iconImage} />
       <Text style={styles.labelText} numberOfLines={1} allowFontScaling={false}>{label}</Text>
     </Pressable>
   )
@@ -231,7 +233,7 @@ export default function HomeScreen({ route }) {
         ]}
         hitSlop={8}
       >
-        <Text style={styles.storeBadgeEmoji}>🪙</Text>
+        <Text style={styles.storeBadgeEmoji}>💰</Text>
         <Text style={styles.storeBadgeText}>상점</Text>
       </Pressable>
 
@@ -295,15 +297,17 @@ const styles = StyleSheet.create({
     height: BOX_HEIGHT,
     backgroundColor: 'rgba(255,255,255,0.8)',
     borderRadius: 30,
-    borderWidth: 4,
+    borderWidth: 3,
     borderColor: '#333',
     padding: BOX_PAD,
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
+    // ios
     shadowColor: '#000',
-    shadowOffset: { width: 5, height: 10 },
+    shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
+    shadowRadius: 1,
+    // Android
     elevation: 10
   },
   boxText: {
@@ -320,7 +324,6 @@ const styles = StyleSheet.create({
     gap: 5
   },
   gaugeContainer: {
-    width: '52%',
     height: 20,
     borderWidth: 3,
     borderColor: '#111827',
@@ -328,12 +331,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.7)',
-    shadowColor: '#000',
-    shadowOffset: { width: 4, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 2,
-    elevation: 8,
     overflow: 'hidden'
+  },
+  gaugeShadowWrapper: {
+    width: '50%',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 1,
+    elevation: 8,
   },
   gaugeFillBase: {
     position: 'absolute',
@@ -370,10 +377,28 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
 
+  iconWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: ICON_SIZE +4,
+    paddingVertical: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 1,
+    elevation: 6
+  },
+
+  iconImage: {
+    width: ICON_SIZE,
+    height: ICON_SIZE,
+    resizeMode: 'contain'
+  },
+
   /* Store badge */
   storeBadge: {
     position: 'absolute',
-    left: 0, right: 0,
+    left: -20, right: 0,
     alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
@@ -383,13 +408,17 @@ const styles = StyleSheet.create({
     height: 36,
     marginHorizontal: 'auto',
     width: 110,
-    backgroundColor: 'rgba(17,24,39,0.9)',
+    backgroundColor: 'rgba(17,24,39,0.8)',
     borderRadius: 14,
-    borderWidth: 2,
-    borderColor: '#333'
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 1,
+    elevation: 8,
   },
   storeBadgeEmoji: {
-    fontSize: 16
+    fontSize: 17
   },
   storeBadgeText: {
     fontFamily: FONT,

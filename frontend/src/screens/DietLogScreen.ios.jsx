@@ -27,7 +27,7 @@ export default function DietLogScreen() {
   // 헤더 설정
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerTitle: t('HOME_MEAL'),
+      headerTitle: t('HOME_MEAL') ,
       headerTitleAlign: 'center',
       headerTintColor: '#fff',
     });
@@ -97,7 +97,7 @@ export default function DietLogScreen() {
   //   syncDayAndCalories();
   // }, [dateKey, fetchDay]);
 
-  
+
   // 화면 다시 열릴 때 새로고침
   useFocusEffect(
     useCallback(() => {
@@ -184,7 +184,7 @@ export default function DietLogScreen() {
   return (
     <ImageBackground
       source={require('../../assets/background/dietLog.png')}
-      style={{ flex: 1 }}
+      style={ {flex: 1 }}
       resizeMode="cover"
     >
       <SafeAreaView style={styles.safeArea}>
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontFamily: 'DungGeunMo',
     textShadowColor: 'rgba(0,0,0,0.9)',
-    textShadowOffset: { width: 3, height: 3 },
+    textShadowOffset: { width: 5, height: 5 },
     textShadowRadius: 2,
   },
 
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   mealBlock: { padding: 6, alignItems: 'flex-start' },
   section: {
     borderWidth: 4,
-    borderColor: '#eee',
+    borderColor: '#fff',
     borderRadius: 12,
     padding: 22,
     height: 130,
