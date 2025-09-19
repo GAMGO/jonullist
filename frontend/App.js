@@ -81,8 +81,8 @@ export default function App() {
       // 바로 발송
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: '바벨몬 🍽️',
-          body: '혹시 식사 중이신가요? 식단을 기록해보세요!',
+          title: '바벨몬 🐯',
+          body: '선아님, 또 야식 드시나요?',
           sound: 'default',
         },
         trigger: null, // 즉시
