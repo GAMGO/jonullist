@@ -226,7 +226,7 @@ export default function HomeScreen({ route }) {
     <ImageBackground source={require('../../assets/background/home.png')} style={{ flex: 1 }} resizeMode="cover">
       {/* 상단: 상점 배지 */}
       <Pressable
-        onPress={() => nav.navigate('Store')}
+        onPress={() => nav.navigate('Camera')}
         style={[
           styles.storeBadge,
           { top: insets.top + 8 }
