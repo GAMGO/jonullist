@@ -21,6 +21,7 @@ import VoicePickerScreen from '../screens/VoicePickerScreen';
 import { useFonts } from 'expo-font';
 import RecoveryScreens from '../screens/RecoveryScreens';
 import { useI18n } from '../i18n/I18nContext';
+import FindIdScreen from '../screens/FindIdScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -41,11 +42,8 @@ function AuthStack() {
       <Stack.Screen name="Welcome" component={WelcomeScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Signup" component={SignupScreen} />
-      <Stack.Screen
-        name="Recovery"
-        component={RecoveryScreens}
-        options={{ headerShown: true, title: '' }}
-      />
+      <Stack.Screen name="FindId" component={FindIdScreen} options={{ headerShown: true, title: '' }} />
+      <Stack.Screen name="Recovery" component={RecoveryScreens} options={{ headerShown: true, title: '' }} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );
@@ -65,20 +63,10 @@ function AppStack({ initialRouteName = 'Home' }) {
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="Burning" component={QuestScreen} />
       <Stack.Screen name="Ranking" component={RankingScreen} />
-
-      <Stack.Screen
-        name="RecoverySetup"
-        component={RecoveryScreens}
-        options={{ headerShown: true, title: '' }}
-      />
-
-      <Stack.Screen
-        name="HealthyCatch"
-        component={HealthyCatchGameScreen}
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="RecoverySetup" component={RecoveryScreens} options={{ headerShown: true, title: '' }} />
+      <Stack.Screen name="HealthyCatch" component={HealthyCatchGameScreen} options={{ headerShown: false }} />
       <Stack.Screen name="TACoach" component={TACoach} options={{ headerShown: true, title: '' }} />
-      <Stack.Screen name="VoicePicker" component={VoicePickerScreen} options={{ title:t('VOICE_PICKER_SCREEN') }} />
+      <Stack.Screen name="VoicePicker" component={VoicePickerScreen} options={{ title: t('VOICE_PICKER_SCREEN') }} />
     </Stack.Navigator>
   );
 }

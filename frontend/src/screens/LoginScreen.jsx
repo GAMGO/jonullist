@@ -62,7 +62,6 @@ export default function LoginScreen() {
     try {
       setLoading(true)
       const res = await login(id.trim(), password)
-      // 토큰 확인 후 저장
       if (res?.token) {
         setAuthToken(res.token)
         await AsyncStorage.setItem('authToken', res.token)
@@ -87,6 +86,8 @@ export default function LoginScreen() {
     padding: 12,
     fontFamily: FONT,
   }
+
+  const linkStyle = { fontFamily: FONT, color: '#2563eb' }
 
   return (
     <KeyboardAvoidingView
@@ -114,6 +115,7 @@ export default function LoginScreen() {
         >
           {t('LOGIN')}
         </Text>
+
         <TextInput
           value={id}
           onChangeText={setId}
@@ -124,6 +126,7 @@ export default function LoginScreen() {
           style={inputStyle}
           returnKeyType="next"
         />
+
         <TextInput
           value={password}
           onChangeText={setPassword}
@@ -134,6 +137,7 @@ export default function LoginScreen() {
           returnKeyType="done"
           onSubmitEditing={onSubmit}
         />
+
         <TouchableOpacity
           onPress={onSubmit}
           disabled={loading}
@@ -144,23 +148,20 @@ export default function LoginScreen() {
             marginTop: 6,
           }}
         >
-          <Text
-            style={{
-              color: '#fff',
-              textAlign: 'center',
-              fontFamily: FONT,
-            }}
-          >
+          <Text style={{ color: '#fff', textAlign: 'center', fontFamily: FONT }}>
             {loading ? '...' : t('LOGIN')}
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => navigation.navigate('Recovery')}
-          style={{ alignItems: 'center', padding: 10 }}
-        >
-          <Text style={{ fontFamily: FONT, color: '#2563eb' }}>{t('RECOVERY')}</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 8 }}>
+          <TouchableOpacity onPress={() => navigation.navigate('FindId')}>
+            <Text style={linkStyle}>{t('FIND_ID') || '아이디 찾기'}</Text>
+          </TouchableOpacity>
+          <Text style={{ color: '#9ca3af' }}>|</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Recovery', { initial: 'start' })}>
+            <Text style={linkStyle}>{t('RECOVERY') || '비밀번호 찾기'}</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   )

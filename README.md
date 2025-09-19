@@ -36,6 +36,8 @@ npm install tesseract.js
 npx expo install expo-file-system
 npx expo install react-native-chart-kit react-native-svg
 npx expo install expo-linear-gradient
+npx expo install expo-notifications
+npx expo install @react-native-picker/picker
 - npx expo start
 
 
