@@ -40,81 +40,121 @@ export default function DietLogScreen() {
   }, [dayMeals]);
 
   // 백엔드에서 하루치 로드
-  const fetchDay = useCallback(async (dk) => {
-    try {
-      const rec = await apiGet(`/api/diet/get?date=${dk}`);
-      const details = typeof rec?.mealDetails === 'string'
-        ? JSON.parse(rec.mealDetails || '{}')
-        : rec?.mealDetails || {};
+      const fetchDay = useCallback(async (dk) => {
+  try {
+    const rec = await apiGet(`/api/diet/get?date=${dk}`);
 
-      const normalized = {
-        morning: Array.isArray(details.morning) ? details.morning : [],
-        lunch:   Array.isArray(details.lunch)   ? details.lunch   : [],
-        dinner:  Array.isArray(details.dinner)  ? details.dinner  : [],
-      };
-      setDayMeals(normalized);
-    } catch {
-      // 기록 없으면 빈값
-      setDayMeals(EMPTY_DAY);
-    }
-  }, []);
+    // 🔹 case 1: 배열 응답 (RecordEntity[])
+    if (Array.isArray(rec)) {
+      const grouped = { morning: [], lunch: [], dinner: [] };
 
-  // 날짜 바뀌면 로드
-  useEffect(() => {
-    const syncDayAndCalories = async () => {
-      await fetchDay(dateKey);
-
-      // 기존에 저장된 식단 칼로리도 로컬 스토리지에 반영
-      const total = [...dayMeals.morning, ...dayMeals.lunch, ...dayMeals.dinner]
-      .reduce((sum, m) => sum + (m.calories || 0),0);
-
-      await addCalories(total, true);   // 두번쨰 인자로 "덮어쓰기"
-    };
-
-    syncDayAndCalories();
-  }, [dateKey, fetchDay, dayMeals]);
-
-  // 화면 복귀 시 로드
-  useFocusEffect(
-    useCallback(() => {
-      fetchDay(dateKey);
-    }, [fetchDay, dateKey])
-  );
-
-  // 끼니별 칼로리 합계
-  const calcMealCalories = (meals) =>
-    meals.reduce((sum, m) => sum + (m.calories || 0), 0);
-
-  // 공통 추가 콜백 (UI 먼저 반영 후 서버 저장)
-  const handleAddMeal = async (entry, type) => {
-    const payload = { ...entry, timestamp: entry.timestamp ?? Date.now() };
-
-    // 1) UI 먼저 반영
-    setDayMeals(prev => ({
-      morning: type === 'morning' ? [...prev.morning, payload] : prev.morning,
-      lunch:   type === 'lunch'   ? [...prev.lunch,   payload] : prev.lunch,
-      dinner:  type === 'dinner'  ? [...prev.dinner,  payload] : prev.dinner,
-    }));
-
-    // 2) 백엔드 저장(뒤에서. UI 딜레이 방지)
-    try {
-      await apiPost('/api/diet/save', {
-        date: dateKey,
-        type,
-        food: payload.food,
-        calories: payload.calories,
-        timestamp: payload.timestamp,
+      rec.forEach(r => {
+        if (r.mealType && grouped[r.mealType]) {
+          grouped[r.mealType].push({
+            food: r.food,
+            calories: r.calories,
+            timestamp: r.timestamp
+          });
+        }
       });
-      if (payload.calories) {
-        await addCalories(payload.calories);    // 로컬 칼로리 합계 반영
-        // navigation.navigate('Home', {addCalories: payload.calories})    // 홈 게이지바 업데이트
-      }
-      // 서버가 정규화/집계하면 아래 재조회 활성화
-      // await fetchDay(dateKey);
-    } catch (err) {
-      console.error('❌ 백엔드 전송 실패', err?.message || err);
+
+      setDayMeals(grouped);
+      return;
     }
-  };
+
+    // 🔹 case 2: mealDetails 객체 응답
+    const details = typeof rec?.mealDetails === 'string'
+      ? JSON.parse(rec.mealDetails || '{}')
+      : rec?.mealDetails || {};
+
+    const normalized = {
+      morning: Array.isArray(details.morning) ? details.morning : [],
+      lunch:   Array.isArray(details.lunch)   ? details.lunch   : [],
+      dinner:  Array.isArray(details.dinner)  ? details.dinner  : [],
+    };
+    setDayMeals(normalized);
+
+  } catch (err) {
+    console.error("❌ 식단 로드 실패", err);
+    setDayMeals(EMPTY_DAY);
+  }
+}, []);
+///////////////////////////////////////////////////////////////////////////////////////////////
+  //     const rec = await apiGet(`/api/diet/get?date=${dk}`);
+
+
+  //     const details = typeof rec?.mealDetails === 'string'
+  //       ? JSON.parse(rec.mealDetails || '{}')
+  //       : rec?.mealDetails || {};
+
+  //     const normalized = {
+  //       morning: Array.isArray(details.morning) ? details.morning : [],
+  //       lunch:   Array.isArray(details.lunch)   ? details.lunch   : [],
+  //       dinner:  Array.isArray(details.dinner)  ? details.dinner  : [],
+  //     };
+  //     setDayMeals(normalized);
+  //   } catch {
+  //     // 기록 없으면 빈값
+  //     setDayMeals(EMPTY_DAY);
+  //   }
+  // }, []);
+
+  // // 날짜 바뀌면 로드
+  // useEffect(() => {
+  //   const syncDayAndCalories = async () => {
+  //     await fetchDay(dateKey);
+
+  //     // 기존에 저장된 식단 칼로리도 로컬 스토리지에 반영
+  //     const total = [...dayMeals.morning, ...dayMeals.lunch, ...dayMeals.dinner]
+  //     .reduce((sum, m) => sum + (m.calories || 0),0);
+
+  //     await addCalories(total, true);   // 두번쨰 인자로 "덮어쓰기"
+  //   };
+
+  //   syncDayAndCalories();
+  // }, [dateKey, fetchDay ]);
+
+  // // 화면 복귀 시 로드
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     fetchDay(dateKey);
+  //   }, [fetchDay, dateKey])
+  // );
+
+  // // 끼니별 칼로리 합계
+  // const calcMealCalories = (meals) =>
+  //   meals.reduce((sum, m) => sum + (m.calories || 0), 0);
+
+  // // 공통 추가 콜백 (UI 먼저 반영 후 서버 저장)
+  // const handleAddMeal = async (entry, type) => {
+  //   const payload = { ...entry, timestamp: entry.timestamp ?? Date.now() };
+
+  //   // 1) UI 먼저 반영
+  //   setDayMeals(prev => ({
+  //     morning: type === 'morning' ? [...prev.morning, payload] : prev.morning,
+  //     lunch:   type === 'lunch'   ? [...prev.lunch,   payload] : prev.lunch,
+  //     dinner:  type === 'dinner'  ? [...prev.dinner,  payload] : prev.dinner,
+  //   }));
+
+  //   // 2) 백엔드 저장(뒤에서. UI 딜레이 방지)
+  //   try {
+  //     await apiPost('/api/diet/save', {
+  //       date: dateKey,
+  //       type,
+  //       food: payload.food,
+  //       calories: payload.calories,
+  //       timestamp: payload.timestamp,
+  //     });
+  //     if (payload.calories) {
+  //       await addCalories(payload.calories);    // 로컬 칼로리 합계 반영
+  //       // navigation.navigate('Home', {addCalories: payload.calories})    // 홈 게이지바 업데이트
+  //     }
+  //     // 서버가 정규화/집계하면 아래 재조회 활성화
+  //     // await fetchDay(dateKey);
+  //   } catch (err) {
+  //     console.error('❌ 백엔드 전송 실패', err?.message || err);
+  //   }
+  // };
 
   const MealSection = ({ label, type, calories }) => (
     <View style={styles.section}>
