@@ -17,18 +17,16 @@ const BOX_HEIGHT = Platform.select({ ios: 220, android: 170 })
 const BOX_FONT = 18
 const BOX_PAD = Platform.select({ ios: 20, android: 14 })
 
-/* ===== Gauge (center-based) ===== */
+/* ===== Gauge (left green / right red) ===== */
 function CalorieGauge({ current, target }) {
-  const [width, setWidth] = useState(0)           // px width of gauge
-  const greenAnim = useRef(new Animated.Value(0)).current // px
-  const redAnim   = useRef(new Animated.Value(0)).current  // px
+  const [width, setWidth] = useState(0)
+  const greenAnim = useRef(new Animated.Value(0)).current
+  const redAnim   = useRef(new Animated.Value(0)).current
 
   const ratio = target > 0 ? current / target : 0
-  const leftMax  = width * 0.5       // green max width (left half)
-  const rightMax = width * 0.5       // red   max width (right half)
 
-  const nextGreen = Math.max(0, Math.min(ratio, 1)) * leftMax
-  const nextRed   = ratio > 1 ? Math.min(ratio - 1, 1) * rightMax : 0
+  const nextGreen = Math.max(0, Math.min(ratio, 1)) * width
+  const nextRed   = ratio > 1 ? Math.min(ratio - 1, 1) * width : 0
 
   useEffect(() => {
     Animated.timing(greenAnim, { toValue: nextGreen, duration: 600, useNativeDriver: false }).start()
@@ -43,24 +41,24 @@ function CalorieGauge({ current, target }) {
         style={styles.gaugeContainer}
         onLayout={e => setWidth(e.nativeEvent.layout.width)}
       >
-        {/* Green: center -> left */}
+        {/* Green: left -> right */}
         <Animated.View
           style={[
             styles.gaugeFillBase,
             {
-              right: '50%',
+              left: 0,
               width: greenAnim,
               backgroundColor: 'rgba(34,197,94,0.8)',
             },
           ]}
         />
 
-        {/* Red: center -> right */}
+        {/* Red: right -> left */}
         <Animated.View
           style={[
             styles.gaugeFillBase,
             {
-              left: '50%',
+              right: 0,
               width: redAnim,
               backgroundColor: 'rgba(239,68,68,0.8)',
             },
@@ -247,7 +245,7 @@ export default function HomeScreen({ route }) {
       </View>
 
       <View style={{ flex: 1 }}>
-        {/* 게이지: 캐릭터 머리 위 */}
+        {/* 게이지 */}
         <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 150 + 260, alignItems: 'center' }}>
           <CalorieGauge current={current} target={target} />
         </View>
@@ -257,7 +255,7 @@ export default function HomeScreen({ route }) {
           <EvolvingAvatar category={category} size={260} />
         </View>
 
-        {/* 이스터에그 터치 */}
+        {/* 이스터에그 */}
         <Pressable
           onPress={() => {
             setEggCount(c => {
@@ -383,7 +381,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 6,
     height: 36,
-    alignItemsCenter: 'center',
     marginHorizontal: 'auto',
     width: 110,
     backgroundColor: 'rgba(17,24,39,0.9)',
