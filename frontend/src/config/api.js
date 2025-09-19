@@ -42,13 +42,13 @@ function getDevOrigin() {
   if (Platform.OS === 'android') {
     const host = pickFirst(getHostFromExpo(), getHostFromScriptURL());
     if (!host || !isPrivateIp(host)) {
-      return `http://10.0.2.2:${ENV_PORT}`;
+      return `http://10.0.2.2:${ENV_PORT}`; // 혹시라도 안 되면 이걸 의심하시길
     }
   }
   if (Platform.OS === 'ios') {
     const host = pickFirst(getHostFromExpo(), getHostFromScriptURL());
     if (!host || !isPrivateIp(host)) {
-      return `http://127.0.0.1:${ENV_PORT}`;
+      return `http://127.0.0.1:${ENV_PORT}`; // 아이폰은 갤럭시로 바꾸시길 우헤헤
     }
   }
 
