@@ -3,6 +3,7 @@ import { View, Text, ActivityIndicator, FlatList, RefreshControl, StyleSheet, Im
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useFonts } from 'expo-font'
 import { apiGet } from '../config/api'
+import { useI18n } from '../i18n/I18nContext'; // 🥳 I18nContext import
 
 const FONT = 'DungGeunMo'
 const LIFT = 16
@@ -21,6 +22,7 @@ function maskEmail(v) {
 export default function RankingScreen() {
   const insets = useSafeAreaInsets()
   const [fontsLoaded] = useFonts({ [FONT]: require('../../assets/fonts/DungGeunMo.otf') })
+  const { t } = useI18n(); // 🥳 useI18n hook 사용
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [items, setItems] = useState([])
@@ -88,13 +90,13 @@ export default function RankingScreen() {
       const uniq = Array.from(new Set(ids))
       uniq.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
       setItems(uniq)
-      if (uniq.length === 0) setError('표시할 사용자가 없습니다.')
+      if (uniq.length === 0) setError(t('USERS_EMPTY')) // 🥳 t() 함수 적용
     } catch (e) {
-      setError(e?.message || '목록을 불러오지 못했습니다.')
+      setError(e?.message || t('LIST_LOAD_FAIL')) // 🥳 t() 함수 적용
     } finally {
       setLoading(false)
     }
-  }, [fetchAllUsers])
+  }, [fetchAllUsers, t])
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
@@ -137,7 +139,7 @@ export default function RankingScreen() {
                 <Text style={styles.email}>{maskEmail(item)}</Text>
               </View>
             )}
-            ListEmptyComponent={<Text style={styles.empty}>표시할 랭킹이 없습니다.</Text>}
+            ListEmptyComponent={<Text style={styles.empty}>{t('RANKING_EMPTY')}</Text>} // 🥳 t() 함수 적용
             contentContainerStyle={items.length === 0 ? { flex: 1, justifyContent: 'center', alignItems: 'center' } : { paddingBottom: 24 }}
           />
         </View>

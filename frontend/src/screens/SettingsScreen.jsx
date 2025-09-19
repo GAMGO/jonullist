@@ -111,7 +111,7 @@ export default function SettingsScreen() {
 
             <View style={{ gap: 8 }}>
               <Text style={{ fontFamily: fontsLoaded ? FONT : undefined, fontSize: 18, lineHeight: 22, includeFontPadding: true }}>
-                보이스
+                {t('VOICE')}
               </Text>
               <TouchableOpacity
                 onPress={() => navigation.navigate('VoicePicker')}

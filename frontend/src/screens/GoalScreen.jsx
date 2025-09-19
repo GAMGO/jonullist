@@ -1,14 +1,18 @@
+// src/screens/GoalScreen.jsx
+
 import { useState, useEffect } from 'react'
 import { View, Text, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native'
 import { apiPost, ORIGIN } from '../config/api.js'
 import { useAuth } from '../context/AuthContext'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useFonts } from 'expo-font'
+import { useI18n } from '../i18n/I18nContext' // 👈 useI18n 추가
 
 const FONT = 'DungGeunMo'
 
 export default function GoalScreen({ navigation }) {
   const { markGoalDone } = useAuth()
+  const { t } = useI18n() // 👈 t 함수 사용
   const [targetWeight, setTargetWeight] = useState('')
   const [targetCalories, setTargetCalories] = useState('')
   const [weight, setWeight] = useState('')
@@ -31,94 +35,131 @@ export default function GoalScreen({ navigation }) {
         if (d?.weight != null) setWeight(String(d.weight))
         if (d?.height != null) setHeight(String(d.height))
         if (d?.age != null) setAge(String(d.age))
-        if (d?.gender) setGender(d.gender === 'M' ? 'M' : 'F')
+        if (d?.gender != null) setGender(String(d.gender))
+        if (d?.targetWeight != null) setTargetWeight(String(d.targetWeight))
+        if (d?.targetCalories != null) setTargetCalories(String(d.targetCalories))
       } catch (e) {
-        if (__DEV__) console.warn('goal_draft load fail:', e)
+        console.error('Failed to load goal_draft', e)
       }
     })()
   }, [])
 
   const submit = async () => {
-    if (saving) return
-    if (!weight || !height) {
-      Alert.alert('입력 필요', '현재 체중과 키는 필수입니다.')
+    if (!weight || !height || !age || !gender || !targetWeight || !targetCalories) {
+      Alert.alert(t('INPUT_REQUIRED'), t('REQUIRED_ALL'))
       return
     }
+
+    const data = {
+      weight: +weight,
+      height: +height,
+      age: +age,
+      gender,
+      targetWeight: +targetWeight,
+      targetCalories: +targetCalories,
+    }
+    setSaving(true)
     try {
-      setSaving(true)
-      if (__DEV__) console.log('POST to:', ORIGIN + '/body')
-      const payload = {
-        targetWeight: targetWeight ? Number(targetWeight) : null,
-        targetCalories: targetCalories ? Number(targetCalories) : null,
-        weight: Number(weight),
-        height: Number(height),
-        age: age ? Number(age) : null,
-        gender,
-      }
-      await apiPost('/body', payload)
+      await apiPost('/api/user/goal', data)
       await AsyncStorage.removeItem('goal_draft')
-      await markGoalDone()
-      navigation.replace('Home')
+      markGoalDone()
+      Alert.alert(t('UPDATE_OK'), t('GO_HOME'))
+      navigation.navigate('Main')
     } catch (e) {
-      Alert.alert('네트워크 오류', String(e?.message ?? e))
+      console.error(e)
+      Alert.alert(t('UPDATE_FAIL'), t('ERR_COMMON'))
     } finally {
       setSaving(false)
     }
   }
 
-  const skip = async () => {
-    await AsyncStorage.removeItem('goal_draft')
-    await markGoalDone()
-    navigation.replace('Home')
+  const skip = () => {
+    markGoalDone()
+    navigation.navigate('Main')
   }
 
   const inputStyle = {
+    fontFamily: FONT,
     borderWidth: 1,
+    borderColor: '#e5e7eb',
     borderRadius: 8,
-    padding: 12,
-    fontFamily: FONT,
-  }
-
-  const labelStyle = {
-    fontFamily: FONT,
-    marginBottom: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#1f2937',
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={{ flex: 1, padding: 24, gap: 14, justifyContent: 'center' }}>
-        <Text style={{ fontSize: 26, textAlign: 'center', fontFamily: FONT, marginBottom: 12 }}>목표 설정</Text>
-
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={labelStyle}>현재 체중(kg)</Text>
-            <TextInput value={weight} onChangeText={setWeight} keyboardType="numeric" style={inputStyle} />
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1, backgroundColor: '#f3f4f6' }}
+    >
+      <View style={{ flex: 1, padding: 20 }}>
+        <Text
+          style={{
+            fontFamily: FONT,
+            fontSize: 24,
+            fontWeight: 'bold',
+            marginBottom: 20,
+            color: '#111827',
+          }}
+        >
+          {t('GOAL_SETUP')}
+        </Text>
+        <View style={{ gap: 10, flex: 1 }}>
+          <View style={{ gap: 8 }}>
+            <Text style={{ fontFamily: FONT, color: '#4b5563' }}>{t('WEIGHT')}</Text>
+            <TextInput
+              value={weight}
+              onChangeText={setWeight}
+              keyboardType="numeric"
+              placeholder={t('WEIGHT')}
+              style={inputStyle}
+            />
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={labelStyle}>키(cm)</Text>
-            <TextInput value={height} onChangeText={setHeight} keyboardType="numeric" style={inputStyle} />
+          <View style={{ gap: 8 }}>
+            <Text style={{ fontFamily: FONT, color: '#4b5563' }}>{t('HEIGHT')}</Text>
+            <TextInput
+              value={height}
+              onChangeText={setHeight}
+              keyboardType="numeric"
+              placeholder={t('HEIGHT')}
+              style={inputStyle}
+            />
           </View>
-        </View>
-
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={labelStyle}>목표 체중(kg)</Text>
-            <TextInput value={targetWeight} onChangeText={setTargetWeight} keyboardType="numeric" style={inputStyle} />
+          <View style={{ gap: 8 }}>
+            <Text style={{ fontFamily: FONT, color: '#4b5563' }}>{t('AGE')}</Text>
+            <TextInput
+              value={age}
+              onChangeText={setAge}
+              keyboardType="numeric"
+              placeholder={t('AGE')}
+              style={inputStyle}
+            />
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={labelStyle}>목표 섭취칼로리(kcal)</Text>
-            <TextInput value={targetCalories} onChangeText={setTargetCalories} keyboardType="numeric" style={inputStyle} />
+          <View style={{ gap: 8 }}>
+            <Text style={{ fontFamily: FONT, color: '#4b5563' }}>{t('TARGET_WEIGHT')}</Text>
+            <TextInput
+              value={targetWeight}
+              onChangeText={setTargetWeight}
+              keyboardType="numeric"
+              placeholder={t('TARGET_WEIGHT')}
+              style={inputStyle}
+            />
           </View>
-        </View>
-
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={labelStyle}>나이</Text>
-            <TextInput value={age} onChangeText={setAge} keyboardType="numeric" style={inputStyle} />
+          <View style={{ gap: 8 }}>
+            <Text style={{ fontFamily: FONT, color: '#4b5563' }}>{t('TARGET_CALORIES')}</Text>
+            <TextInput
+              value={targetCalories}
+              onChangeText={setTargetCalories}
+              keyboardType="numeric"
+              placeholder={t('TARGET_CALORIES')}
+              style={inputStyle}
+            />
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={labelStyle}>성별</Text>
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+          <View style={{ gap: 8 }}>
+            <Text style={{ fontFamily: FONT, color: '#4b5563' }}>{t('GENDER')}</Text>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
               <TouchableOpacity
                 onPress={() => setGender('F')}
                 style={{
@@ -130,7 +171,7 @@ export default function GoalScreen({ navigation }) {
                   alignItems: 'center',
                 }}
               >
-                <Text style={{ fontFamily: FONT }}>F</Text>
+                <Text style={{ fontFamily: FONT }}>{t('FEMALE')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setGender('M')}
@@ -143,7 +184,7 @@ export default function GoalScreen({ navigation }) {
                   alignItems: 'center',
                 }}
               >
-                <Text style={{ fontFamily: FONT }}>M</Text>
+                <Text style={{ fontFamily: FONT }}>{t('MALE')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -154,11 +195,13 @@ export default function GoalScreen({ navigation }) {
           disabled={saving}
           style={{ backgroundColor: '#ef4444', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 8 }}
         >
-          <Text style={{ color: 'white', fontFamily: FONT }}>{saving ? '저장 중...' : '저장하고 시작하기'}</Text>
+          <Text style={{ color: 'white', fontFamily: FONT }}>
+            {saving ? `${t('PROCESSING')}...` : t('SAVE_AND_START')}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={skip} style={{ alignItems: 'center', padding: 10 }}>
-          <Text style={{ fontFamily: FONT }}>나중에 설정</Text>
+          <Text style={{ fontFamily: FONT }}>{t('SAVE_LATER')}</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
