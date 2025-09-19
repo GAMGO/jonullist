@@ -20,19 +20,15 @@ const BOX_PAD = Platform.select({ ios: 20, android: 14 })
 // 게이지바
 function CalorieGauge({ current, target }) {
   const r = target > 0 ? current / target : 0
-  const greenTo = Math.min(Math.max(r, 0), 1)
-  const redTo = r > 1 ? Math.min(r - 1, 1) : 0
+  const greenTo = Math.min(r, 1)    // 0~1 (목표이내)
+  const redTo = r > 1 ? Math.min(r - 1, 1) : 0  // 초과분 (최대 1)
+
   const animatedGreen = useRef(new Animated.Value(0)).current
   const animatedRed = useRef(new Animated.Value(0)).current
 
   useEffect(() => {
-    if (redTo > 0) {
-    Animated.timing(animatedGreen, { toValue: 1, duration: 600, useNativeDriver: false }).start()
-    Animated.timing(animatedRed, { toValue: redTo, duration: 600, useNativeDriver: false }).start()
-  } else {
     Animated.timing(animatedGreen, { toValue: greenTo, duration: 600, useNativeDriver: false }).start()
-    Animated.timing(animatedRed, { toValue: 0, duration: 600, useNativeDriver: false }).start()
-  }
+    Animated.timing(animatedRed, { toValue: redTo, duration: 600, useNativeDriver: false }).start()
   }, [greenTo, redTo])
 
   const widthGreen = animatedGreen.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] })
@@ -40,18 +36,27 @@ function CalorieGauge({ current, target }) {
 
   return (
     <View style={styles.gaugeWrapper}>
-      {/* GOAL 텍스트에 테두리 추가 */}
-      <View style={{position: 'relative'}}></View>
-
-
-
-      {/* EXP 텍스트 (게이지 왼쪽) */}
       <Text style={styles.goalText}>GOAL.</Text>
 
-      {/* 게이지바 */}
       <View style={styles.gaugeContainer}>
-        <Animated.View style={[styles.gaugeFill, { width: widthGreen, backgroundColor: 'rgba(34,197,94,0.8)' }]} />
-        <Animated.View style={[styles.gaugeFill, { right: 0, width: widthRed, backgroundColor: 'rgba(239,68,68,0.8)' }]} />
+        {/* 초록 게이지 */}
+        <Animated.View
+          style={[
+            styles.gaugeFill,
+            { width: widthGreen, backgroundColor: 'rgba(34,197,94,0.8)' },
+          ]}
+        />
+
+        {/* 빨간 게이지 (초록 게이지 뒤에 이어붙임) */}
+        {redTo > 0 && (
+          <Animated.View
+            style={[
+              styles.gaugeFill,
+              { left: '100%', width: widthRed, backgroundColor: 'rgba(239,68,68,0.8)' },
+            ]}
+          />
+        )}
+
         <View style={styles.gaugeTextWrap}>
           <Text style={styles.gaugeText} allowFontScaling={false}>
             {current}/{target} kcal
@@ -61,6 +66,7 @@ function CalorieGauge({ current, target }) {
     </View>
   )
 }
+
 
 // 캐릭터 아바타
 function EvolvingAvatar({ category, size }) {
