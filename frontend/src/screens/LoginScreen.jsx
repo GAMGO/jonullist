@@ -159,7 +159,7 @@ export default function LoginScreen() {
           </TouchableOpacity>
           <Text style={{ color: '#9ca3af' }}>|</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Recovery', { initial: 'start' })}>
-            <Text style={linkStyle}>{t('RECOVERY') || '비밀번호 찾기'}</Text>
+            <Text style={linkStyle}>{t('PW_RECOVERY') || '비밀번호 찾기'}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

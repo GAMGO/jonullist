@@ -120,7 +120,7 @@ export default function ProfileScreen() {
           lastErr = e
         }
       }
-      throw lastErr || new Error('요청 실패')
+      throw lastErr || new Error(t('REQUEST_FAILED'))
     },
     [getAuth]
   )
@@ -180,7 +180,7 @@ export default function ProfileScreen() {
             setHasSecurityQuestions(true)
           } else if (res.status === 400) {
             const error = await res.json().catch(() => ({}))
-            if (error?.message === '보안 질문이 설정되지 않았습니다.') {
+            if (error?.message === t('SECURITY_QNA_NOT_SET')) {
               setHasSecurityQuestions(false)
             } else {
               setHasSecurityQuestions(false)
@@ -339,10 +339,10 @@ export default function ProfileScreen() {
     return (
       <View style={[styles.center, styles.modalOverlay]}>
         <View style={[styles.card, { width: '80%' }]}>
-          <Text style={styles.cardTitle}>비밀번호 확인</Text>
+          <Text style={styles.cardTitle}>{t('PASSWORD')} {t('CONFIRM')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="비밀번호를 입력하세요"
+            placeholder={t('ENTER_PW')}
             secureTextEntry
             value={passwordForVerification}
             onChangeText={setPasswordForVerification}
@@ -350,10 +350,10 @@ export default function ProfileScreen() {
           {!!passwordModalError && <Text style={styles.error}>{passwordModalError}</Text>}
           <View style={styles.row}>
             <Pressable onPress={() => setShowPasswordModal(false)} style={styles.ghostBtn} >
-              <Text style={styles.ghostBtnText}>취소</Text>
+              <Text style={styles.ghostBtnText}>{t('CANCEL')}</Text>
             </Pressable>
             <Pressable onPress={verifyPasswordAndProceed} style={styles.primaryBtn} >
-              <Text style={styles.primaryBtnText}>확인</Text>
+              <Text style={styles.primaryBtnText}>{t('CONFIRM')}</Text>
             </Pressable>
           </View>
         </View>

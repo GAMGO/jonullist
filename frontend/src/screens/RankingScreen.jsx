@@ -3,7 +3,7 @@ import { View, Text, ActivityIndicator, FlatList, RefreshControl, StyleSheet, Im
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useFonts } from 'expo-font'
 import { apiGet } from '../config/api'
-import { useI18n } from '../i18n/I18nContext'; // 🥳 I18nContext import
+import { useI18n } from '../i18n/I18nContext';
 
 const FONT = 'DungGeunMo'
 const LIFT = 16
@@ -90,9 +90,9 @@ export default function RankingScreen() {
       const uniq = Array.from(new Set(ids))
       uniq.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
       setItems(uniq)
-      if (uniq.length === 0) setError(t('USERS_EMPTY')) // 🥳 t() 함수 적용
+      if (uniq.length === 0) setError(t('USERS_EMPTY'))
     } catch (e) {
-      setError(e?.message || t('LIST_LOAD_FAIL')) // 🥳 t() 함수 적용
+      setError(e?.message || t('LIST_LOAD_FAIL'))
     } finally {
       setLoading(false)
     }
@@ -139,7 +139,7 @@ export default function RankingScreen() {
                 <Text style={styles.email}>{maskEmail(item)}</Text>
               </View>
             )}
-            ListEmptyComponent={<Text style={styles.empty}>{t('RANKING_EMPTY')}</Text>} // 🥳 t() 함수 적용
+            ListEmptyComponent={<Text style={styles.empty}>{t('RANKING_EMPTY')}</Text>}
             contentContainerStyle={items.length === 0 ? { flex: 1, justifyContent: 'center', alignItems: 'center' } : { paddingBottom: 24 }}
           />
         </View>

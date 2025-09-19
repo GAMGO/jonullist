@@ -45,7 +45,7 @@ export default function FindIdScreen() {
 
   const onSubmit = () => {
     if (!name || !birthMonth || !birthDay || !gender || !a1 || !a2) {
-      Alert.alert(t('INPUT_REQUIRED'), '모든 항목을 입력하세요.')
+      Alert.alert(t('INPUT_REQUIRED'), t('ANSWER_FILL'))
       return
     }
     const payload = {
@@ -76,7 +76,7 @@ export default function FindIdScreen() {
           style={styles.input}
           value={name}
           onChangeText={setName}
-          placeholder={t('PLACEHOLDER_NAME') || '이름'}
+          placeholder={t('LABEL_NAME') || '이름'}
           placeholderTextColor="rgba(0,0,0,0.35)"
         />
 
@@ -120,9 +120,9 @@ export default function FindIdScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>{t('RECOVERY_QUESTIONS') || '복구 질문'}</Text>
+        <Text style={styles.sectionTitle}>{t('RECOVERY_QUESTIONS_TITLE') || '복구 질문'}</Text>
 
-        <Text style={styles.label}>{t('LABEL_SELECT_QUESTION') || '질문 선택 1'}</Text>
+        <Text style={styles.label}>{t('SELECT_QUESTION') || '질문 선택 1'}</Text>
         <View style={styles.pickerWrap}>
           <Picker
             selectedValue={q1}
@@ -145,11 +145,11 @@ export default function FindIdScreen() {
           style={styles.input}
           value={a1}
           onChangeText={setA1}
-          placeholder={t('PLACEHOLDER_ANSWER') || '답변 입력'}
+          placeholder={t('ANSWER') || '답변 입력'}
           placeholderTextColor="rgba(0,0,0,0.35)"
         />
 
-        <Text style={styles.label}>{t('LABEL_SELECT_QUESTION') || '질문 선택 2'}</Text>
+        <Text style={styles.label}>{t('ANSWER') || '질문 선택 2'}</Text>
         <View style={styles.pickerWrap}>
           <Picker
             selectedValue={q2}
@@ -172,7 +172,7 @@ export default function FindIdScreen() {
           style={styles.input}
           value={a2}
           onChangeText={setA2}
-          placeholder={t('PLACEHOLDER_ANSWER') || '답변 입력'}
+          placeholder={t('ANSWER') || '답변 입력'}
           placeholderTextColor="rgba(0,0,0,0.35)"
         />
 

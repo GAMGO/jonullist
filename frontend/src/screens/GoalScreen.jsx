@@ -6,13 +6,13 @@ import { apiPost, ORIGIN } from '../config/api.js'
 import { useAuth } from '../context/AuthContext'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useFonts } from 'expo-font'
-import { useI18n } from '../i18n/I18nContext' // 👈 useI18n 추가
+import { useI18n } from '../i18n/I18nContext'
 
 const FONT = 'DungGeunMo'
 
 export default function GoalScreen({ navigation }) {
   const { markGoalDone } = useAuth()
-  const { t } = useI18n() // 👈 t 함수 사용
+  const { t } = useI18n()
   const [targetWeight, setTargetWeight] = useState('')
   const [targetCalories, setTargetCalories] = useState('')
   const [weight, setWeight] = useState('')
