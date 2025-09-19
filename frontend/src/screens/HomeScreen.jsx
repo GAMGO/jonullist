@@ -40,6 +40,11 @@ function CalorieGauge({ current, target }) {
 
   return (
     <View style={styles.gaugeWrapper}>
+      {/* GOAL 텍스트에 테두리 추가 */}
+      <View style={{position: 'relative'}}></View>
+
+
+
       {/* EXP 텍스트 (게이지 왼쪽) */}
       <Text style={styles.goalText}>GOAL.</Text>
 
@@ -115,6 +120,15 @@ function EvolvingAvatar({ category, size }) {
           }}
         />
       )}
+
+      {/* 캐릭터 그림자 적용 */}
+      <View style={{
+        shadowColor: '#000',
+        shadowOffset: { width: 7, height: 5 },
+        shadowOpacity: 0.4,
+        shadowRadius: 2,
+        elevation: 12,
+      }}>
       {isEvolving ? (
         <Animated.View style={{ opacity: fade, transform: [{ scale }] }}>
           <AvatarByBMI category={displayCat} size={size} />
@@ -122,6 +136,7 @@ function EvolvingAvatar({ category, size }) {
       ) : (
         <AvatarByBMI category={displayCat} size={size} />
       )}
+    </View>
     </View>
   )
 }
@@ -286,14 +301,13 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#111827',
     borderRadius: 8,
-    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.7)',
     shadowColor: '#000',
-    shadowOffset: { width: 8, height: 7 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
+    shadowOffset: { width: 4, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 2,
     elevation: 8
   },
   gaugeFill: {
@@ -316,9 +330,9 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontFamily: FONT,
     color: '#fff',
-    textShadowColor: 'rgba(0,0,0,0.7)',
-    textShadowOffset: { width: 2, height: 1 },
-    textShadowRadius: 2
+    textShadowColor: 'rgba(0,0,0,0.9)',
+    textShadowOffset: { width: 5, height: 5 },
+    textShadowRadius: 3
   },
   labelText: {
     fontSize: 18,
