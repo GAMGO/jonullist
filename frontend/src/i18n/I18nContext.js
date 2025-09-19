@@ -1,4 +1,3 @@
-// src/i18n/I18nContext.js
 import React, {
   createContext,
   useContext,
