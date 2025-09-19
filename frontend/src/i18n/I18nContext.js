@@ -41,6 +41,7 @@ const DICT = {
     PASSWORD_8: "비밀번호 (8자리 이상)",
     PASSWORD_CONFIRM: "새 비밀번호 확인",
     INPUT_REQUIRED: "입력 필요",
+    ENTER_PW: "비밀번호를 입력하세요",
     ENTER_ID_PW: "아이디와 비밀번호를 입력해주세요.",
     WRONG_ID_PW: "아이디 또는 비밀번호가 올바르지 않습니다.",
     TRY_AGAIN: "다시 시도해주세요.",
@@ -53,6 +54,8 @@ const DICT = {
     GO_SIGNUP: "회원가입",
     FIND_ID: "아이디 찾기",
     PW_RECOVERY: "비밀번호 찾기",
+    REQUEST: "요청",
+    REQUEST_FAILED: "요청 실패",
     REQUIRED: "필수 입력",
     REQUIRED_ALL: "모든 항목을 입력해 주세요.",
     FORMAT_ERROR: "형식 오류",
@@ -69,8 +72,6 @@ const DICT = {
     ERR_COMMON: "문제가 발생했습니다. 다시 시도해 주세요.",
     ERR_ANALYZING: "분석 중 문제가 발생했어요.",
     FAILED: "실패",
-
-    //추가분
 
     // Signup
     EMAIL_ID: "이메일 입력",
@@ -170,12 +171,15 @@ const DICT = {
 
     //식단기록
     DATE: "날짜 선택",
+    DATE_SELECTED: "선택일",
+    TODAY:"오늘",
     MORNING: "아침",
     LUNCH: "점심",
     DINNER: "저녁",
     DIRECT_INPUT: "직접 입력",
     NO_REC: "아직 기록이 없어요.",
     CALORIES: "Kcal",
+    CALORIES_FULL: "칼로리",
     ENTER_FOOD_NAME: "음식 이름 입력",
     ENTER_CALORIES: "칼로리 입력",
     EDIT_FAVORITES: "즐겨찾기 수정",
@@ -194,6 +198,10 @@ const DICT = {
     DAY_AGO: "일 전",
     DAYS_AGO: "일 전",
     DELETE: "삭제",
+    ALARM: "알림",
+    ALARM_WEIGHT_INQUIRY_FAILED:"현재 몸무게 조회 실패",
+    ALARM_NO_COMPARE_WEIGHTDATA: "선택한 날짜와 오늘의 몸무게 데이터가 없습니다.",
+    ALARM_NO_COMPARE_CALORIESDATA: "선택한 날짜와 오늘의 칼로리 데이터가 없습니다.",
 
     // Settings
     LANGUAGE: "언어",
@@ -205,7 +213,6 @@ const DICT = {
     VOICE_DEFAULT: "기본 보이스",
 
     // Password Recovery
-    RECOVERY: "비밀번호 찾기",
     RECOVERY_SETUP: "보안질문 설정",
     RECOVERY_START_DESC: "아이디를 입력하면 질문 2개가 출제됩니다.",
     RECOVERY_ID: "아이디(이메일)",
@@ -214,11 +221,6 @@ const DICT = {
     RECOVERY_NEW_PW: "새 비밀번호",
     RECOVERY_RESET: "비밀번호 재설정",
     RECOVERY_REGISTER_DESC: "질문 3개를 선택하고 정답/확인으로 등록하세요.",
-    QUESTION_BIRTHPLACE: "내가 태어난 곳은?",
-    QUESTION_ELEMENTARY_SCHOOL: "내가 다니던 초등학교는?",
-    QUESTION_PET_NAME: "내 애완동물 이름은?",
-    QUESTION_MOTHER_NAME: "내 어머니 이름은?",
-    ANSWER: "정답",
     ANSWER_CONFIRM: "정답 확인",
     SEND: "전송",
 
@@ -313,6 +315,7 @@ const DICT = {
     TOKEN_INVALID_OR_EXPIRED: "토큰이 유효하지 않거나 만료되었습니다.",
     TOKEN_INVALID: "토큰이 유효하지 않습니다.",
     ANSWER: "답변",
+    ANSWER_FILL: "모든 항목을 입력하세요.",
     INCORRECT_ANSWER: "답이 올바르지 않습니다.",
     QUESTION_PET_NAME: "내 애완동물 이름은?",
     QUESTION_BIRTHPLACE: "내가 태어난 곳은?",
@@ -363,6 +366,7 @@ const DICT = {
     PASSWORD_8: "Password (8+ chars)",
     PASSWORD_CONFIRM: "Confirm new password",
     INPUT_REQUIRED: "Input required",
+    ENTER_PW: "Please enter your password.",
     ENTER_ID_PW: "Please enter your ID and password.",
     WRONG_ID_PW: "Incorrect ID or password.",
     TRY_AGAIN: "Please try again.",
@@ -375,6 +379,8 @@ const DICT = {
     GO_SIGNUP: "Sign Up",
     FIND_ID: "Find ID",
     PW_RECOVERY: "Password Recovery",
+    REQUEST: "Request",
+    REQUEST_FAILED: "Request failed",
     REQUIRED: "Required",
     REQUIRED_ALL: "All fields are required.",
     FORMAT_ERROR: "Format error",
@@ -392,7 +398,7 @@ const DICT = {
     ERR_ANALYZING: "An issue occurred while analyzing.",
     FAILED: "Failed",
 
-    //추가분
+    
 
     // Signup
     EMAIL_ID: "Enter email",
@@ -444,12 +450,15 @@ const DICT = {
 
     //식단기록
     DATE: "Select Date",
+    DATE_SELECTED: "Selected Date",
+    TODAY:"Today",
     MORNING: "Breakfast",
     LUNCH: "Lunch",
     DINNER: "Dinner",
     DIRECT_INPUT: "Input",
     NO_REC: "There is no record yet",
     CALORIES: "Kcal",
+    CALORIES_FULL: "Calories",
     ENTER_FOOD_NAME: "Enter food name",
     ENTER_CALORIES: "Enter calories",
     EDIT_FAVORITES: "Edit Favorites",
@@ -468,6 +477,10 @@ const DICT = {
     DAY_AGO: "day ago",
     DAYS_AGO: "days ago",
     DELETE: "Delete",
+    ALARM: "Notification",
+    ALARM_WEIGHT_INQUIRY_FAILED:"Current Weight Check Failed",
+    ALARM_NO_COMPARE_WEIGHTDATA: "There is no weight data for the selected date and today.",
+    ALARM_NO_COMPARE_CALORIESDATA: "There is no weight data for the selected date and today.",
 
     // Profile
     PROFILE_TITLE: "PROFILE",
@@ -529,7 +542,6 @@ const DICT = {
     VOICE_DEFAULT: "Default",
 
     // Password Recovery
-    RECOVERY: "Password Recovery",
     RECOVERY_SETUP: "Security Questions",
     RECOVERY_START_DESC: "Enter your email to get 2 questions.",
     RECOVERY_ID: "ID (email)",
@@ -538,11 +550,6 @@ const DICT = {
     RECOVERY_NEW_PW: "New Password",
     RECOVERY_RESET: "Reset Password",
     RECOVERY_REGISTER_DESC: "Select 3 questions and register your answers.",
-    QUESTION_BIRTHPLACE: "Where were you born?",
-    QUESTION_ELEMENTARY_SCHOOL: "Which elementary school did you attend?",
-    QUESTION_PET_NAME: "What is your pet's name?",
-    QUESTION_MOTHER_NAME: "What is your mother's name?",
-    ANSWER: "Answer",
     ANSWER_CONFIRM: "Confirm Answer",
     SEND: "Send",
 
@@ -638,6 +645,7 @@ const DICT = {
     SECURITY_POLICY:
       "Set up security questions and answers for account recovery.",
     ANSWER: "Answer",
+    ANSWER_FILL: "Please insert answer in all blocks.",
     INCORRECT_ANSWER: "The answer is incorrect.",
     QUESTION_PET_NAME: "What is your pet's name?",
     QUESTION_BIRTHPLACE: "Where were you born?",
@@ -687,6 +695,7 @@ const DICT = {
     PASSWORD_8: "パスワード (8文字以上)",
     PASSWORD_CONFIRM: "新しいパスワードの確認",
     INPUT_REQUIRED: "入力が必要です",
+    ENTER_PW: "暗証番号を入力してください。",
     ENTER_ID_PW: "IDとパスワードを入力してください。",
     WRONG_ID_PW: "IDまたはパスワードが正しくありません。",
     TRY_AGAIN: "もう一度お試しください。",
@@ -699,6 +708,8 @@ const DICT = {
     GO_SIGNUP: "サインアップ",
     FIND_ID: "IDを探す",
     PW_RECOVERY: "パスワード回復",
+    REQUEST: "リクエスト",
+    REQUEST_FAILED: "リクエスト失敗",
     REQUIRED: "必須",
     REQUIRED_ALL: "すべての項目を入力してください。",
     FORMAT_ERROR: "形式エラー",
@@ -716,7 +727,7 @@ const DICT = {
     ERR_ANALYZING: "分析中に問題が発生しました。",
     FAILED: "失敗",
 
-    //추가분
+    
 
     // Singup
     EMAIL_ID: "メールアドレスを入力",
@@ -768,12 +779,15 @@ const DICT = {
 
     //식단기록
     DATE: "日付選択",
+    DATE_SELECTED: "選択日",
+    TODAY:"今日",    
     MORNING: "朝食",
     LUNCH: "昼食",
     DINNER: "夕食",
     DIRECT_INPUT: "入力",
     NO_REC: "まだ記録がありません。",
     CALORIES: "Kcal",
+    CALORIES_FULL: "カロリー",
     ENTER_FOOD_NAME: "料理名を入力",
     ENTER_CALORIES: "カロリーを入力",
     EDIT_FAVORITES: "お気に入り編集",
@@ -792,6 +806,10 @@ const DICT = {
     DAY_AGO: "日前",
     DAYS_AGO: "日前",
     DELETE: "削除",
+    ALARM: "お知らせ",
+    ALARM_WEIGHT_INQUIRY_FAILED:"現在の体重照会に失敗しました。",
+    ALARM_NO_COMPARE_WEIGHTDATA: "選択した日付と今日の体重データはありません。",
+    ALARM_NO_COMPARE_CALORIESDATA: "選択した日付と今日のカロリー データがありません。",
 
     // Profile
     PROFILE_TITLE: "プロフィール",
@@ -853,7 +871,6 @@ const DICT = {
     VOICE_DEFAULT: "基本ボイス",
 
     // Password Recovery
-    RECOVERY: "パスワード回復",
     RECOVERY_SETUP: "秘密の質問設定",
     RECOVERY_START_DESC: "IDを入力すると、2つの質問が出題されます。",
     RECOVERY_ID: "ID(メール)",
@@ -862,11 +879,6 @@ const DICT = {
     RECOVERY_NEW_PW: "新しいパスワード",
     RECOVERY_RESET: "パスワードをリセット",
     RECOVERY_REGISTER_DESC: "3つの質問を選択して答え/確認を登録してください。",
-    QUESTION_BIRTHPLACE: "生まれた場所は？",
-    QUESTION_ELEMENTARY_SCHOOL: "通っていた小学校は？",
-    QUESTION_PET_NAME: "ペットの名前は？",
-    QUESTION_MOTHER_NAME: "母の名前は？",
-    ANSWER: "答え",
     ANSWER_CONFIRM: "答えの確認",
     SEND: "送信",
 
@@ -965,6 +977,7 @@ const DICT = {
     SECURITY_POLICY:
       "アカウント復旧のため、セキュリティQ&Aを設定してください。",
     ANSWER: "答え",
+    ANSWER_FILL: "すべての項目を入力します。",
     INCORRECT_ANSWER: "回答が正しくありません。",
     QUESTION_PET_NAME: "あなたのペットの名前は？",
     QUESTION_BIRTHPLACE: "あなたが生まれた場所は？",
@@ -1014,6 +1027,7 @@ const DICT = {
     PASSWORD_8: "密码 (8位以上)",
     PASSWORD_CONFIRM: "确认新密码",
     INPUT_REQUIRED: "需要输入",
+    ENTER_PW: "请输入密码。",
     ENTER_ID_PW: "请输入您的账号和密码。",
     WRONG_ID_PW: "账户或密码不正确。",
     TRY_AGAIN: "请再试一次。",
@@ -1026,6 +1040,8 @@ const DICT = {
     GO_SIGNUP: "注册",
     FIND_ID: "找回账号",
     PW_RECOVERY: "找回密码",
+    REQUEST: "请求",
+    REQUEST_FAILED: "请求失败",
     REQUIRED: "必需",
     REQUIRED_ALL: "所有字段都是必需的。",
     FORMAT_ERROR: "格式错误",
@@ -1092,12 +1108,15 @@ const DICT = {
 
     //식단기록
     DATE: "选择日期",
+    DATE_SELECTED: "选择日期",
+    TODAY:"今儿个",    
     MORNING: "早餐",
     LUNCH: "午餐",
     DINNER: "晚餐",
     DIRECT_INPUT: "输入",
     NO_REC: "还没有记录。",
     CALORIES: "卡",
+    CALORIES_FULL: "卡路里",
     ENTER_FOOD_NAME: "输入食物名称",
     ENTER_CALORIES: "输入卡路里",
     EDIT_FAVORITES: "编辑收藏",
@@ -1116,6 +1135,10 @@ const DICT = {
     DAY_AGO: "天前",
     DAYS_AGO: "天前",
     DELETE: "删除",
+    ALARM: "告示",
+    ALARM_WEIGHT_INQUIRY_FAILED:"查询当前体重失败",
+    ALARM_NO_COMPARE_WEIGHTDATA: "没有选中的日期和今天的体重数据 。",
+    ALARM_NO_COMPARE_CALORIESDATA: "没有选中的日期和今天的卡路里数据。",
 
     // Profile
     PROFILE_TITLE: "个人资料",
@@ -1175,7 +1198,6 @@ const DICT = {
     VOICE_DEFAULT: "基本嗓音",
 
     // Password Recovery
-    RECOVERY: "找回密码",
     RECOVERY_SETUP: "安全问题设置",
     RECOVERY_START_DESC: "输入邮箱后将出现2个问题。",
     RECOVERY_ID: "账号 (邮箱)",
@@ -1184,11 +1206,6 @@ const DICT = {
     RECOVERY_NEW_PW: "新密码",
     RECOVERY_RESET: "重置密码",
     RECOVERY_REGISTER_DESC: "请选择3个问题并注册答案/确认。",
-    QUESTION_BIRTHPLACE: "你的出生地是？",
-    QUESTION_ELEMENTARY_SCHOOL: "你就读的小学是？",
-    QUESTION_PET_NAME: "你宠物的名字是？",
-    QUESTION_MOTHER_NAME: "你母亲的名字是？",
-    ANSWER: "答案",
     ANSWER_CONFIRM: "确认答案",
     SEND: "发送",
 
@@ -1280,6 +1297,7 @@ const DICT = {
     TOKEN_INVALID: "令牌无效。",
     SECURITY_POLICY: "请设置安全问题及答案，以便账户找回。",
     ANSWER: "答案",
+    ANSWER_FILL: "请输入全部项目。",
     INCORRECT_ANSWER: "答案不正确。",
     QUESTION_PET_NAME: "你宠物的名字是什么？",
     QUESTION_BIRTHPLACE: "你出生的地方是哪里？",

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Alert, Dimension
 import { Calendar } from 'react-native-calendars'
 import { LineChart } from 'react-native-chart-kit'
 import { apiGet } from '../config/api'
+import { useI18n } from '../i18n/I18nContext';
 
 const W = Dimensions.get('window').width
 const num = v => (Number.isFinite(+v) ? +v : NaN)
@@ -28,6 +29,7 @@ function sanitizePair(a, b, { nonNegative = false } = {}) {
 }
 
 export default function DataScreen() {
+
   const todayISO = iso(new Date())
   const [selected, setSelected] = useState(todayISO)
 
@@ -52,7 +54,7 @@ export default function DataScreen() {
       setWToday(Number.isFinite(+w) ? +w : null)
     } catch (e) {
       console.warn('GET /body 실패', e)
-      Alert.alert('알림', '현재 몸무게 조회 실패')
+      Alert.alert( t('ALARM'), t('ALARM_WEIGHT_INQUIRY_FAILED'))
       setWToday(null)
     } finally {
       setLoadingWToday(false)
@@ -157,6 +159,7 @@ export default function DataScreen() {
   }), [selected, todayISO])
 
   /* 왼쪽=선택일, 오른쪽=오늘 로 통일 */
+  const {t} = useI18n();
   const weightPair = sanitizePair(wSel, wToday)
   const kcalPair   = sanitizePair(kSel, kToday, { nonNegative: true })
   const wLabels = [pretty(selected), pretty(todayISO)]
@@ -164,10 +167,10 @@ export default function DataScreen() {
 
   const weightUnavailable = (wSel == null && wToday == null)
   const kcalUnavailable   = (kSel == null && kToday == null)
-
+  
   return (
     <ScrollView style={s.container} contentContainerStyle={{ paddingBottom: 24 }}>
-      <Text style={s.title}>한눈에</Text>
+      <Text style={s.title}>{t('HOME_DATA')}</Text>
 
       <Calendar
         onDayPress={(d) => setSelected(d.dateString)}
@@ -178,11 +181,11 @@ export default function DataScreen() {
 
       {/* 몸무게 */}
       <View style={s.card}>
-        <Text style={s.cardTitle}>몸무게 (kg)</Text>
+        <Text style={s.cardTitle}>{t('WEIGHT')}</Text>
         {(loadingWToday || loadingWSel) ? (
           <ActivityIndicator />
         ) : weightUnavailable ? (
-          <Text style={s.tip}>선택한 날짜와 오늘의 몸무게 데이터가 없습니다.</Text>
+          <Text style={s.tip}>{t('ALARM_NO_COMPARE_WEIGHTDATA')}</Text>
         ) : (
           <>
             <LineChart
@@ -198,8 +201,8 @@ export default function DataScreen() {
               style={s.chart}
             />
             <Delta
-              leftLabel="선택일"
-              rightLabel="오늘"
+              leftLabel={t('DATE_SELECTED')}
+              rightLabel={t('TODAY')}
               leftRaw={wSel ?? 0}
               rightRaw={wToday ?? 0}
               unit="kg"
@@ -210,18 +213,18 @@ export default function DataScreen() {
 
       {/* 칼로리 */}
       <View style={s.card}>
-        <Text style={s.cardTitle}>칼로리 (kcal)</Text>
+        <Text style={s.cardTitle}>{t('CALORIES_FULL')}(Kcal)</Text>
         {(loadingKToday || loadingKSel) ? (
           <ActivityIndicator />
         ) : kcalUnavailable ? (
-          <Text style={s.tip}>선택한 날짜와 오늘의 칼로리 데이터가 없습니다.</Text>
+          <Text style={s.tip}>{t('ALARM_NO_COMPARE_CALORIESDATA')}</Text>
         ) : (
           <>
             <LineChart
               data={{ labels: kLabels, datasets: [{ data: kcalPair }] }}
               width={W - 32}
               height={200}
-              yAxisSuffix="kcal"
+              yAxisSuffix={t('CALORIES')}
               chartConfig={chartConfigBlue}
               bezier
               fromZero
@@ -230,11 +233,11 @@ export default function DataScreen() {
               style={s.chart}
             />
             <Delta
-              leftLabel="선택일"
-              rightLabel="오늘"
+              leftLabel={t('DATE_SELECTED')}
+              rightLabel={t('TODAY')}
               leftRaw={kSel ?? 0}
               rightRaw={kToday ?? 0}
-              unit="kcal"
+              unit={t('CALORIES')}
             />
           </>
         )}
