@@ -33,7 +33,7 @@ export default function VoicePickerScreen() {
 
   async function preview(item) {
     Speech.stop()
-    Speech.speak('안녕하세요. 테스트 음성입니다.', {
+    Speech.speak(t('TEST_LINE'), {
       voice: item.identifier,
     })
   }

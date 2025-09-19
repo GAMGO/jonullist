@@ -38,10 +38,10 @@ export default function LoginScreen() {
       const msg = String(anyErr.message ?? anyErr.error ?? '')
       if (status === 401 || /unauthorized|401/i.test(msg)) return t('ERR_WRONG_PW')
       if (status === 404) return t('ERR_ID_NOT_FOUND')
-      if (status === 403) return '접근 권한이 없습니다.'
+      if (status === 403) return t('AUTH_DENIED')
       if (/password/i.test(msg)) return t('ERR_WRONG_PW')
       if (/user.*not.*found|no.*user|unknown.*user/i.test(msg)) return t('ERR_ID_NOT_FOUND')
-      if (/invalid.*credential|wrong.*credential/i.test(msg)) return '아이디 또는 비밀번호가 올바르지 않습니다.'
+      if (/invalid.*credential|wrong.*credential/i.test(msg)) return t('WRONG_ID_PW')
       if (msg) return msg
     }
     if (typeof raw === 'string') {
@@ -50,7 +50,7 @@ export default function LoginScreen() {
       if (/unauthorized|401/i.test(raw)) return t('ERR_WRONG_PW')
       return raw
     }
-    return '아이디 또는 비밀번호가 올바르지 않습니다.'
+    return t('WRONG_ID_PW')
   }
 
   const onSubmit = async () => {
@@ -73,7 +73,7 @@ export default function LoginScreen() {
       }
     } catch (e) {
       const msg = normalizeLoginError(e?.message ?? e)
-      Alert.alert('로그인 실패', msg)
+      Alert.alert(t('LOGIN') + " " + t('FAILED'), msg)
     } finally {
       setLoading(false)
     }

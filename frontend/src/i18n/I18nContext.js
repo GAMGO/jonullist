@@ -5,14 +5,33 @@ import React, {
   useEffect,
   useMemo,
   useState,
+  useCallback,
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // 사전은 한 파일에 몰아서 관리 (요구: 미리 준비된 번역 적용, 자동번역 X)
 const DICT = {
   ko: {
+    //유투브 검색 키워드
+    SEARCH_QUERIES: {
+      HOME: "홈트 전신 운동 10분",
+      STRETCH: "전신 스트레칭 10분",
+      GYM: {
+        SQUAT: "스쿼트 올바른 자세 루틴",
+        BENCH: "벤치프레스 폼 교정 초보 루틴",
+        DEADLIFT: "데드리프트 자세 핵심 팁",
+        LAT: "랫풀다운 등운동 루틴",
+        LEGPRESS: "레그프레스 무릎 보호 루틴",
+        SHOULDER: "숄더프레스 어깨운동 루틴",
+        ROW: "시티드 로우 등운동 루틴",
+        CABLE: "케이블 크런치 복근 운동",
+      },
+    },
+
     // Auth & Common
+    AUTH_DENIED: "접근 권한이 없습니다.",
     LOGIN: "로그인",
+    NEED_LOGIN: "로그인이 필요합니다. 다시 로그인해주세요.",
     SIGN_UP: "회원가입",
     EMAIL: "이메일",
     EMAIL_PH: "이메일",
@@ -23,6 +42,7 @@ const DICT = {
     PASSWORD_CONFIRM: "새 비밀번호 확인",
     INPUT_REQUIRED: "입력 필요",
     ENTER_ID_PW: "아이디와 비밀번호를 입력해주세요.",
+    WRONG_ID_PW: "아이디 또는 비밀번호가 올바르지 않습니다.",
     TRY_AGAIN: "다시 시도해주세요.",
     CONFIRM: "확인",
     CANCEL: "취소",
@@ -41,11 +61,31 @@ const DICT = {
     PROCESSING: "처리 중…",
     CREATE_ACCOUNT: "계정 만들기",
     ALREADY_HAVE_ACCOUNT: "이미 계정이 있나요?",
+    ERR: "오류",
     ERR_WRONG_PW: "비밀번호가 틀렸습니다.",
     ERR_ID_NOT_FOUND: "존재하지 않는 아이디입니다.",
     ERR_ID_EXISTS: "이미 사용 중인 아이디입니다.",
     ERR_TOKEN: "토큰이 만료되었습니다.",
     ERR_COMMON: "문제가 발생했습니다. 다시 시도해 주세요.",
+    ERR_ANALYZING: "분석 중 문제가 발생했어요.",
+    FAILED: "실패",
+
+    //추가분
+
+    // Signup
+    EMAIL_ID: "이메일 입력",
+    SEND_VERIFICATION_CODE: "이메일 인증하기",
+    SIGN_UP_FAIL: "가입에 실패하였습니다.",
+    VERIFICATION_SENT_MSG: "인증코드를 전송하였습니다.",
+    RESEND_WAIT: "재발송까지 대기 ${time}",
+    RESEND_HINT: "스팸메일함 확인 후 필요하면 코드 재발송이 가능합니다.",
+    VERIFICATION_CODE: "인증코드 6자리",
+    CONFIRMING: "확인 중…",
+    VERIFICATION_DONE: "인증 완료",
+    VERIFICATION_DONE_ALERT: "이메일 인증이 완료되었습니다! 로그인해주세요.",
+    VERIFICATION_FAIL: "인증 실패",
+    VERIFICATION_FAIL_MSG: "인증에 실패했어요.",
+    SERVER_ERROR: "서버 오류",
 
     // Tabs
     START: "시작",
@@ -61,15 +101,24 @@ const DICT = {
     CAMERA: "카메라",
     CAMERA_HINT: "접시가 중앙에 오도록 맞춰주세요",
     PERMISSION_CAMERA_NEEDED: "카메라 권한이 필요합니다",
+    PERMISSION_CAMERA_DETAIL_LOG:
+      "음식 사진을 찍어 칼로리를 추정하려면 카메라 접근을 허용해 주세요.",
     PERMISSION_ALLOW: "권한 허용",
+    ANALYZING: "분석중",
+    CENTER_PLZ: "음식이 중앙에 오도록 맞춰주세요",
     SAVE: "저장",
+    SAVE_FOOD_FAILED: "식단 저장에 실패했습니다. 다시 시도해주세요.",
     RETAKE: "다시 찍기",
     RESULT: "분석 결과",
     GOAL_SETUP: "목표 설정",
     LATER: "나중에 설정",
     FETCHING: "불러오는 중…",
     NO_LIST: "표시할 항목이 없습니다.",
+    NO_TOKEN: "토큰이 없습니다! 로그인이 필요합니다.",
+    RANOUT_COUNT_RESPONSE:
+      "오늘 사용 가능한 분석 요청 횟수를 모두 소진했습니다.",
     DIET: "식단",
+    UNIDENTIFY_FOOD: "알 수 없는 음식",
 
     // Profile
     PROFILE_TITLE: "PROFILE",
@@ -109,6 +158,10 @@ const DICT = {
     RANKING_EMPTY: "표시할 랭킹이 없습니다.",
     LIST_LOAD_FAIL: "목록을 불러오지 못했습니다.",
     USERS_EMPTY: "표시할 사용자가 없습니다.",
+    HOME_GREETING: "${tod}이에요. 오늘 운동할 준비되셨나요?",
+    HOME_MOTIVATE: "오늘도 멋진 하루 되세요!",
+    HOME_RANKING: "랭킹",
+    HOME_QUEST: "퀘스트",
     HOME_TRAINING: "홈트레이닝",
     STRETCHING: "스트레칭",
     MACHINE_WORKOUT: "기구운동",
@@ -123,12 +176,31 @@ const DICT = {
     DIRECT_INPUT: "직접 입력",
     NO_REC: "아직 기록이 없어요.",
     CALORIES: "Kcal",
+    ENTER_FOOD_NAME: "음식 이름 입력",
+    ENTER_CALORIES: "칼로리 입력",
+    EDIT_FAVORITES: "즐겨찾기 수정",
+    NO_FAVORITES: "즐겨찾기 목록이 비어있습니다.",
+    ADD_FAVORITES: "즐겨찾기 추가",
+    ENTER_VALID_INPUT: "유효한 값을 입력해주세요.",
+    SELECT_MEAL_TYPE: "식사 종류를 선택해주세요.",
+    ADD_MEAL: "식사 추가",
+    TOTAL_CALORIES: "총 섭취 칼로리",
+    CHART_WEIGHT_CHANGE: "체중 변화량",
+    CHART_CALORIE_CHANGE: "섭취 칼로리 변화량",
+    GOAL_CALORIES: "목표 칼로리",
+    DATA_TITLE_WEIGHT: "체중 변화",
+    DATA_TITLE_CALORIE: "칼로리 변화",
+    CHANGE_COMPARE: "이전과 비교",
+    DAY_AGO: "일 전",
+    DAYS_AGO: "일 전",
+    DELETE: "삭제",
 
     // Settings
     LANGUAGE: "언어",
     SOUND: "효과음",
     ON: "켜기",
     OFF: "끄기",
+    VOICE: "보이스",
     VOICE_STATUS: "현재 보이스 : ",
     VOICE_DEFAULT: "기본 보이스",
 
@@ -215,6 +287,23 @@ const DICT = {
       "숄더프레스",
       "시티드코어",
     ],
+    TAUNTS_MAP_NONE: [
+      "0.00km… 산책 앱을 켰는데 산책은 안 함",
+      "첫 좌표에서 평생 살 계획?",
+      "오늘도 바닥이랑 베프네",
+      "다리는 절전 모드, 폰만 고성능",
+      "앉아있는 재능 국가대표",
+    ],
+    TAUNTS_MAP_DONE: [
+      "오케이 인정. 오늘만",
+      "완료. 변명 금지 모드 진입",
+      "터보 엔진 잠깐 켰네",
+    ],
+    TAUNTS_MAP_UNAVAILABLE: [
+      "위치 권한부터 허락하고 훈수 두자",
+      "GPS가 못 잡아도 핑계는 잘 잡네",
+    ],
+
     // 보안설정
     SECURITY_SETTINGS: "보안 설정",
     SECURITY_VERIFY_HINT: "보안 설정을 위해 비밀번호를 입력해주세요.",
@@ -246,8 +335,25 @@ const DICT = {
   ////////////////////////////////////////////////////////////////////////////////////////////////
 
   en: {
+    SEARCH_QUERIES: {
+      HOME: "10-minute full-body home workout",
+      STRETCH: "10-minute full-body stretching",
+      GYM: {
+        SQUAT: "Correct squat form routine",
+        BENCH: "Bench press form correction routine for beginners",
+        DEADLIFT: "Key tips for deadlift form",
+        LAT: "Lat pulldown back workout routine",
+        LEGPRESS: "Knee protection routine for leg press",
+        SHOULDER: "Shoulder press shoulder workout routine",
+        ROW: "Seated row back workout routine",
+        CABLE: "Cable crunch ab workout",
+      },
+    },
+
     // Auth & Common
+    AUTH_DENIED: "Access denied.",
     LOGIN: "Login",
+    NEED_LOGIN: "Login is required. Please log in again.",
     SIGN_UP: "Sign Up",
     EMAIL: "Email",
     EMAIL_PH: "Email",
@@ -258,6 +364,7 @@ const DICT = {
     PASSWORD_CONFIRM: "Confirm new password",
     INPUT_REQUIRED: "Input required",
     ENTER_ID_PW: "Please enter your ID and password.",
+    WRONG_ID_PW: "Incorrect ID or password.",
     TRY_AGAIN: "Please try again.",
     CONFIRM: "Confirm",
     CANCEL: "Cancel",
@@ -276,11 +383,31 @@ const DICT = {
     PROCESSING: "Processing…",
     CREATE_ACCOUNT: "Create Account",
     ALREADY_HAVE_ACCOUNT: "Already have an account?",
+    ERR: "Error",
     ERR_WRONG_PW: "Incorrect password.",
     ERR_ID_NOT_FOUND: "ID not found.",
     ERR_ID_EXISTS: "This ID is already in use.",
     ERR_TOKEN: "Token expired.",
     ERR_COMMON: "An error occurred. Please try again.",
+    ERR_ANALYZING: "An issue occurred while analyzing.",
+    FAILED: "Failed",
+
+    //추가분
+
+    // Signup
+    EMAIL_ID: "Enter email",
+    SEND_VERIFICATION_CODE: "Verify Email",
+    SIGN_UP_FAIL: "Sign-up failed.",
+    VERIFICATION_SENT_MSG: "A verification code has been sent.",
+    RESEND_WAIT: "Resend in ${time}",
+    RESEND_HINT: "Check your spam folder. You can resend the code if needed.",
+    VERIFICATION_CODE: "6-digit verification code",
+    CONFIRMING: "Confirming...",
+    VERIFICATION_DONE: "Verification complete",
+    VERIFICATION_DONE_ALERT: "Email verification is complete! Please log in.",
+    VERIFICATION_FAIL: "Verification failed",
+    VERIFICATION_FAIL_MSG: "Verification failed.",
+    SERVER_ERROR: "Server error",
 
     // Tabs
     START: "Start",
@@ -296,15 +423,24 @@ const DICT = {
     CAMERA: "Camera",
     CAMERA_HINT: "Please center the plate in the frame",
     PERMISSION_CAMERA_NEEDED: "Camera permission is required",
+    PERMISSION_CAMERA_DETAIL_LOG:
+      "Please allow camera access to estimate calorie content of food photos.",
     PERMISSION_ALLOW: "Allow",
+    ANALYZING: "Analyzing",
+    CENTER_PLZ: "Please center the food in the frame.",
     SAVE: "Save",
-    RETAKE: "Retake",
+    SAVE_FOOD_FAILED: "Failed to save the meal. Please try again.",
+    RETAKE: "Retry",
     RESULT: "Analysis Result",
     GOAL_SETUP: "Set Goals",
     LATER: "Later",
     FETCHING: "Fetching...",
     NO_LIST: "No items to display.",
+    NO_TOKEN: "No token! Login is required.",
+    RANOUT_COUNT_RESPONSE:
+      "You have used up all available analysis requests for today.",
     DIET: "Diet",
+    UNIDENTIFY_FOOD: "Unidentified food",
 
     //식단기록
     DATE: "Select Date",
@@ -314,6 +450,24 @@ const DICT = {
     DIRECT_INPUT: "Input",
     NO_REC: "There is no record yet",
     CALORIES: "Kcal",
+    ENTER_FOOD_NAME: "Enter food name",
+    ENTER_CALORIES: "Enter calories",
+    EDIT_FAVORITES: "Edit Favorites",
+    NO_FAVORITES: "No favorite meals yet.",
+    ADD_FAVORITES: "Add to Favorites",
+    ENTER_VALID_INPUT: "Please enter a valid value.",
+    SELECT_MEAL_TYPE: "Please select a meal type.",
+    ADD_MEAL: "Add Meal",
+    TOTAL_CALORIES: "Total Calories",
+    CHART_WEIGHT_CHANGE: "Weight Change",
+    CHART_CALORIE_CHANGE: "Calorie Change",
+    GOAL_CALORIES: "Goal Calories",
+    DATA_TITLE_WEIGHT: "Weight Change",
+    DATA_TITLE_CALORIE: "Calorie Change",
+    CHANGE_COMPARE: "Compare with previous",
+    DAY_AGO: "day ago",
+    DAYS_AGO: "days ago",
+    DELETE: "Delete",
 
     // Profile
     PROFILE_TITLE: "PROFILE",
@@ -355,9 +509,13 @@ const DICT = {
     RANKING_EMPTY: "No rankings to display.",
     LIST_LOAD_FAIL: "Failed to load list.",
     USERS_EMPTY: "No users to display.",
-    HOME_TRAINING: "Home Training",
+    HOME_GREETING: "It's ${tod}. Ready to work out today?",
+    HOME_MOTIVATE: "Have a great day!",
+    HOME_RANKING: "Ranking",
+    HOME_QUEST: "Quest",
+    HOME_TRAINING: "At Home",
     STRETCHING: "Stretching",
-    MACHINE_WORKOUT: "Machine Workout",
+    MACHINE_WORKOUT: "Gym Equip",
     RECOMMAND_VIDEO_LOAD_FAILED: "FAILED TO LOAD Recommand Videos!",
     VIDEO_LOAD_FAILED: "FAILED TO LOAD Videos!",
 
@@ -366,6 +524,7 @@ const DICT = {
     SOUND: "Sound",
     ON: "On",
     OFF: "Off",
+    VOICE: "VOICE",
     VOICE_STATUS: "Voice : ",
     VOICE_DEFAULT: "Default",
 
@@ -443,6 +602,31 @@ const DICT = {
       "Where did you leave your passion?",
       "You won't be able to look at yourself in the mirror.",
     ],
+    GYM_OPTIONS: [
+      "Squat",
+      "Bench Press",
+      "Deadlift",
+      "Lat Pulldown",
+      "Leg Press",
+      "Shoulder Press",
+      "Seated Core",
+    ],
+    TAUNTS_MAP_NONE: [
+      "0.00km… Opened the app but no walk",
+      "Planning to live at the first GPS point forever?",
+      "Best friends with the floor again",
+      "Legs in power save, phone on turbo",
+      "National-team level at sitting",
+    ],
+    TAUNTS_MAP_DONE: [
+      "Okay, respect. Today only",
+      "Done. Excuse-free mode engaged",
+      "Turbo engine briefly on",
+    ],
+    TAUNTS_MAP_UNAVAILABLE: [
+      "Grant location first, then coach me",
+      "GPS can’t lock but excuses can",
+    ],
 
     //보안설정
     SECURITY_SETTINGS: "Security Settings",
@@ -476,8 +660,24 @@ const DICT = {
   ////////////////////////////////////////////////////////////////////////////////////////////////
 
   ja: {
+    SEARCH_QUERIES: {
+      HOME: "自宅で全身トレーニング10分",
+      STRETCH: "全身ストレッチ10分",
+      GYM: {
+        SQUAT: "スクワットの正しいフォームルーティン",
+        BENCH: "ベンチプレス初心者向けフォーム矯正ルーティン",
+        DEADLIFT: "デッドリフトのフォームのコツ",
+        LAT: "ラットプルダウン背中のトレーニング",
+        LEGPRESS: "レッグプレス膝保護ルーティン",
+        SHOULDER: "ショルダープレス肩のトレーニング",
+        ROW: "シーテッドロー背中のトレーニング",
+        CABLE: "ケーブルクランチ腹筋トレーニング",
+      },
+    },
     // Auth & Common
+    AUTH_DENIED: "アクセスが拒否されました。",
     LOGIN: "ログイン",
+    NEED_LOGIN: "ログインが必要です。再度ログインしてください。",
     SIGN_UP: "サインアップ",
     EMAIL: "メール",
     EMAIL_PH: "メール",
@@ -488,6 +688,7 @@ const DICT = {
     PASSWORD_CONFIRM: "新しいパスワードの確認",
     INPUT_REQUIRED: "入力が必要です",
     ENTER_ID_PW: "IDとパスワードを入力してください。",
+    WRONG_ID_PW: "IDまたはパスワードが正しくありません。",
     TRY_AGAIN: "もう一度お試しください。",
     CONFIRM: "確認",
     CANCEL: "キャンセル",
@@ -506,11 +707,32 @@ const DICT = {
     PROCESSING: "処理中…",
     CREATE_ACCOUNT: "アカウントを作成",
     ALREADY_HAVE_ACCOUNT: "すでにアカウントを持っていますか？",
+    ERR: "エラー",
     ERR_WRONG_PW: "パスワードが正しくありません。",
     ERR_ID_NOT_FOUND: "存在しないIDです。",
     ERR_ID_EXISTS: "このIDはすでに使用されています。",
     ERR_TOKEN: "トークンが期限切れです。",
     ERR_COMMON: "問題が発生しました。もう一度お試しください。",
+    ERR_ANALYZING: "分析中に問題が発生しました。",
+    FAILED: "失敗",
+
+    //추가분
+
+    // Singup
+    EMAIL_ID: "メールアドレスを入力",
+    SEND_VERIFICATION_CODE: "メール認証を行う",
+    SIGN_UP_FAIL: "サインアップに失敗しました。",
+    VERIFICATION_SENT_MSG: "認証コードを送信しました。",
+    RESEND_WAIT: "再送信まで ${time} 待機",
+    RESEND_HINT:
+      "迷惑メールフォルダを確認し、必要であればコードを再送信できます。",
+    VERIFICATION_CODE: "6桁の認証コード",
+    CONFIRMING: "確認中…",
+    VERIFICATION_DONE: "認証完了",
+    VERIFICATION_DONE_ALERT: "メール認証が完了しました！ログインしてください。",
+    VERIFICATION_FAIL: "認証失敗",
+    VERIFICATION_FAIL_MSG: "認証に失敗しました。",
+    SERVER_ERROR: "サーバーエラー",
 
     // Tabs
     START: "開始",
@@ -526,15 +748,23 @@ const DICT = {
     CAMERA: "カメラ",
     CAMERA_HINT: "お皿が中央に来るように合わせてください",
     PERMISSION_CAMERA_NEEDED: "カメラの権限が必要です",
+    PERMISSION_CAMERA_DETAIL_LOG:
+      "食事の写真を撮ってカロリーを推定するには、カメラへのアクセスを許可してください。",
     PERMISSION_ALLOW: "権限を許可",
+    ANALYZING: "分析中",
+    CENTER_PLZ: "食べ物が中央に来るように合わせてください。",
     SAVE: "保存",
+    SAVE_FOOD_FAILED: "食事の保存に失敗しました。再度お試しください。",
     RETAKE: "撮り直し",
     RESULT: "分析結果",
     GOAL_SETUP: "目標設定",
     LATER: "後で設定",
     FETCHING: "読み込み中…",
     NO_LIST: "表示する項目がありません。",
+    NO_TOKEN: "トークンがありません！ログインが必要です。",
+    RANOUT_COUNT_RESPONSE: "本日の分析リクエスト回수를 모두使い切りました。",
     DIET: "食事",
+    UNIDENTIFY_FOOD: "不明な食べ物",
 
     //식단기록
     DATE: "日付選択",
@@ -544,6 +774,24 @@ const DICT = {
     DIRECT_INPUT: "入力",
     NO_REC: "まだ記録がありません。",
     CALORIES: "Kcal",
+    ENTER_FOOD_NAME: "料理名を入力",
+    ENTER_CALORIES: "カロリーを入力",
+    EDIT_FAVORITES: "お気に入り編集",
+    NO_FAVORITES: "お気に入りリストは空です。",
+    ADD_FAVORITES: "お気に入りに追加",
+    ENTER_VALID_INPUT: "有効な値を入力してください。",
+    SELECT_MEAL_TYPE: "食事の種類を選択してください。",
+    ADD_MEAL: "食事を追加",
+    TOTAL_CALORIES: "総摂取カロリー",
+    CHART_WEIGHT_CHANGE: "体重変動",
+    CHART_CALORIE_CHANGE: "摂取カロリー変動",
+    GOAL_CALORIES: "目標カロリー",
+    DATA_TITLE_WEIGHT: "体重変動",
+    DATA_TITLE_CALORIE: "カロリー変動",
+    CHANGE_COMPARE: "前回と比較",
+    DAY_AGO: "日前",
+    DAYS_AGO: "日前",
+    DELETE: "削除",
 
     // Profile
     PROFILE_TITLE: "プロフィール",
@@ -585,7 +833,11 @@ const DICT = {
     RANKING_EMPTY: "表示するランキングがありません。",
     LIST_LOAD_FAIL: "リストを読み込めませんでした。",
     USERS_EMPTY: "表示するユーザーがいません。",
-    HOME_TRAINING: "自宅トレーニング",
+    HOME_GREETING: "今日は${tod}です。運動の準備はできましたか？",
+    HOME_MOTIVATE: "今日も良い一日を！",
+    HOME_RANKING: "ランキング",
+    HOME_QUEST: "クエスト",
+    HOME_TRAINING: "宅トレ",
     STRETCHING: "ストレッチ",
     MACHINE_WORKOUT: "マシン運動",
     RECOMMAND_VIDEO_LOAD_FAILED: "おすすめ映像を読み込めませんでした",
@@ -596,6 +848,7 @@ const DICT = {
     SOUND: "効果音",
     ON: "オン",
     OFF: "オフ",
+    VOICE: "ボイス",
     VOICE_STATUS: "使用中 : ",
     VOICE_DEFAULT: "基本ボイス",
 
@@ -673,6 +926,32 @@ const DICT = {
       "情熱はどこに置いてきたんですか？",
       "鏡と目を合わせられなくなりますよ？",
     ],
+    GYM_OPTIONS: [
+      "スクワット",
+      "ベンチプレス",
+      "デッドリフト",
+      "ラットプルダウン",
+      "レッグプレス",
+      "ショルダープレス",
+      "シーテッドコア",
+    ],
+    TAUNTS_MAP_NONE: [
+      "0.00km… アプリ開いたのに歩いてない",
+      "最初の座標で一生暮らすの？",
+      "今日も床と親友",
+      "足は省電力、スマホはハイスペ",
+      "座りっぱなしの才能は代表クラス",
+    ],
+    TAUNTS_MAP_DONE: [
+      "オーケー認めよう。今日はね",
+      "完了。言い訳禁止モード突入",
+      "ターボ一瞬ON",
+    ],
+    TAUNTS_MAP_UNAVAILABLE: [
+      "まず位置情報を許可してから指示して",
+      "GPSは掴めないのに言い訳は掴む",
+    ],
+
     //보안설정
     SECURITY_SETTINGS: "セキュリティ設定",
     SECURITY_VERIFY_HINT:
@@ -708,8 +987,24 @@ const DICT = {
   ///////////////////////////////////////////////////////////////////////////////////////////////
 
   zh: {
+    SEARCH_QUERIES: {
+      HOME: "10分钟全身居家健身",
+      STRETCH: "10分钟全身拉伸",
+      GYM: {
+        SQUAT: "深蹲正确姿势教程",
+        BENCH: "卧推初学者姿势矫正教程",
+        DEADLIFT: "硬拉姿势核心技巧",
+        LAT: "高位下拉背部训练教程",
+        LEGPRESS: "腿举保护膝盖教程",
+        SHOULDER: "肩部推举肩部训练教程",
+        ROW: "坐姿划船背部训练教程",
+        CABLE: "绳索卷腹腹肌训练",
+      },
+    },
     // Auth & Common
+    AUTH_DENIED: "没有访问权限。",
     LOGIN: "登录",
+    NEED_LOGIN: "需要登录。请重新登录。",
     SIGN_UP: "注册",
     EMAIL: "邮箱",
     EMAIL_PH: "邮箱",
@@ -720,6 +1015,7 @@ const DICT = {
     PASSWORD_CONFIRM: "确认新密码",
     INPUT_REQUIRED: "需要输入",
     ENTER_ID_PW: "请输入您的账号和密码。",
+    WRONG_ID_PW: "账户或密码不正确。",
     TRY_AGAIN: "请再试一次。",
     CONFIRM: "确认",
     CANCEL: "取消",
@@ -738,11 +1034,30 @@ const DICT = {
     PROCESSING: "处理中…",
     CREATE_ACCOUNT: "创建账户",
     ALREADY_HAVE_ACCOUNT: "已有账户？",
+    ERR: "错误",
     ERR_WRONG_PW: "密码不正确。",
     ERR_ID_NOT_FOUND: "找不到此账号。",
     ERR_ID_EXISTS: "该账号已被使用。",
     ERR_TOKEN: "令牌已过期。",
     ERR_COMMON: "发生错误。请重试。",
+    ERR_ANALYZING: "分析时发生问题。",
+    FAILED: "失败",
+    // 추가분
+
+    // Singup
+    EMAIL_ID: "输入邮箱",
+    SEND_VERIFICATION_CODE: "验证邮箱",
+    SIGN_UP_FAIL: "注册失败。",
+    VERIFICATION_SENT_MSG: "已发送验证码。",
+    RESEND_WAIT: "请等待 ${time} 后重新发送",
+    RESEND_HINT: "请检查垃圾邮件。如果需要，可以重新发送验证码。",
+    VERIFICATION_CODE: "6位验证码",
+    CONFIRMING: "确认中...",
+    VERIFICATION_DONE: "验证完成",
+    VERIFICATION_DONE_ALERT: "邮箱验证已完成！请登录。",
+    VERIFICATION_FAIL: "验证失败",
+    VERIFICATION_FAIL_MSG: "验证失败。",
+    SERVER_ERROR: "服务器错误",
 
     // Tabs
     START: "开始",
@@ -758,15 +1073,22 @@ const DICT = {
     CAMERA: "相机",
     CAMERA_HINT: "请将盘子放在正中央",
     PERMISSION_CAMERA_NEEDED: "需要相机权限",
+    PERMISSION_CAMERA_DETAIL_LOG: "请允许访问相机，以便估算食物照片的卡路里。",
     PERMISSION_ALLOW: "允许",
+    ANALYZING: "分析中",
+    CENTER_PLZ: "请将食物对准中心。",
     SAVE: "保存",
+    SAVE_FOOD_FAILED: "保存食物失败。请再试一次。",
     RETAKE: "重拍",
     RESULT: "分析结果",
     GOAL_SETUP: "设置目标",
     LATER: "稍后设置",
     FETCHING: "加载中…",
     NO_LIST: "没有可显示的项目。",
+    NO_TOKEN: "没有令牌！需要登录。",
+    RANOUT_COUNT_RESPONSE: "您已用完今天可用的所有分析请求次数。",
     DIET: "饮食",
+    UNIDENTIFY_FOOD: "无法识别的食物",
 
     //식단기록
     DATE: "选择日期",
@@ -776,6 +1098,24 @@ const DICT = {
     DIRECT_INPUT: "输入",
     NO_REC: "还没有记录。",
     CALORIES: "卡",
+    ENTER_FOOD_NAME: "输入食物名称",
+    ENTER_CALORIES: "输入卡路里",
+    EDIT_FAVORITES: "编辑收藏",
+    NO_FAVORITES: "暂无收藏食物。",
+    ADD_FAVORITES: "添加收藏",
+    ENTER_VALID_INPUT: "请输入有效值。",
+    SELECT_MEAL_TYPE: "请选择餐食类型。",
+    ADD_MEAL: "添加餐食",
+    TOTAL_CALORIES: "总卡路里",
+    CHART_WEIGHT_CHANGE: "体重变化",
+    CHART_CALORIE_CHANGE: "卡路里变化",
+    GOAL_CALORIES: "目标卡路里",
+    DATA_TITLE_WEIGHT: "体重变化",
+    DATA_TITLE_CALORIE: "卡路里变化",
+    CHANGE_COMPARE: "与之前比较",
+    DAY_AGO: "天前",
+    DAYS_AGO: "天前",
+    DELETE: "删除",
 
     // Profile
     PROFILE_TITLE: "个人资料",
@@ -815,6 +1155,10 @@ const DICT = {
     RANKING_EMPTY: "暂无可显示的排行榜。",
     LIST_LOAD_FAIL: "列表加载失败。",
     USERS_EMPTY: "暂无可显示的用户。",
+    HOME_GREETING: "现在是${tod}。准备好今天锻炼了吗？",
+    HOME_MOTIVATE: "祝您有个美好的一天！",
+    HOME_RANKING: "排行榜",
+    HOME_QUEST: "任务",
     HOME_TRAINING: "居家训练",
     STRETCHING: "拉伸",
     MACHINE_WORKOUT: "器械训练",
@@ -826,6 +1170,7 @@ const DICT = {
     SOUND: "音效",
     ON: "开",
     OFF: "关",
+    VOICE: "嗓音",
     VOICE_STATUS: "当前语音 : ",
     VOICE_DEFAULT: "基本嗓音",
 
@@ -902,6 +1247,29 @@ const DICT = {
       "你的热情是忘在哪里了？",
       "你将无法直视镜子里的自己哦？",
     ],
+    GYM_OPTIONS: [
+      "深蹲",
+      "卧推",
+      "硬拉",
+      "高位下拉",
+      "腿举",
+      "肩部推举",
+      "坐姿划船",
+    ],
+    TAUNTS_MAP_NONE: [
+      "0.00km… 打开了应用却没走",
+      "打算一辈子待在第一个坐标？",
+      "今天又和地板做朋友",
+      "腿在省电模式，手机在高性能",
+      "坐着的天赋国家级",
+    ],
+    TAUNTS_MAP_DONE: [
+      "行，认可。仅限今天",
+      "完成。进入无借口模式",
+      "涡轮短暂开启",
+    ],
+    TAUNTS_MAP_UNAVAILABLE: ["先给定位权限，再来指点", "GPS锁不住，借口倒挺多"],
+
     //보안설정
     SECURITY_SETTINGS: "安全设置",
     SECURITY_VERIFY_HINT: "请输入密码进行安全设置。",
