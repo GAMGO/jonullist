@@ -22,6 +22,7 @@ import { useFonts } from 'expo-font';
 import RecoveryScreens from '../screens/RecoveryScreens';
 import { useI18n } from '../i18n/I18nContext';
 import FindIdScreen from '../screens/FindIdScreen';
+import CoinStoreScreen from '../screens/CoinStoreScreen'; // ✅ 상점 추가
 
 const Stack = createNativeStackNavigator();
 
@@ -67,6 +68,8 @@ function AppStack({ initialRouteName = 'Home' }) {
       <Stack.Screen name="HealthyCatch" component={HealthyCatchGameScreen} options={{ headerShown: false }} />
       <Stack.Screen name="TACoach" component={TACoach} options={{ headerShown: true, title: '' }} />
       <Stack.Screen name="VoicePicker" component={VoicePickerScreen} options={{ title: t('VOICE_PICKER_SCREEN') }} />
+      {/* ✅ 상점 스크린 */}
+      <Stack.Screen name="Store" component={CoinStoreScreen} options={{ headerShown: true, title: '' }} />
     </Stack.Navigator>
   );
 }
