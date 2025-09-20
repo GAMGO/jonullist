@@ -31,7 +31,8 @@ public class JwtTokenProvider {
 
     public String createToken(Authentication authentication) {
         UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
-        Date expiryDate = new Date(System.currentTimeMillis() + jwtExpirationInMs);
+        // 토큰 생성 시점 : 현재시간 + 만료시간 = 토큰 만료 시점 
+        Date expiryDate = new Date(System.currentTimeMillis() + jwtExpirationInMs); 
 
         SecretKey secretKey = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
         return Jwts.builder()

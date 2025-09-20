@@ -3,6 +3,7 @@ package com.example.health_care.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @Configuration
+@EnableScheduling
 public class SecurityConfig {
         
         private final CorsConfig corsConfig;
@@ -56,7 +58,7 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/email/**").permitAll() // 이메일 인증 명시적 허용
                                                 .requestMatchers(HttpMethod.GET, "/ranking").permitAll()
                                                 .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/signup").permitAll()
-                                                .requestMatchers("/api/auth/logout", "/body", "/api/profile", "/api/diet/**").authenticated() // 로그아웃, 바디프로필, 프로필, 식단 기록 추가
+                                                .requestMatchers("/api/auth/logout", "/body", "/api/profile", "/api/diet/**", "/api/meal-alarm/**").authenticated() // 로그아웃, 바디프로필, 프로필, 식단 기록, 식단 알림 기능
                                                 .requestMatchers("/api/food/public/**").permitAll()
                                                 .requestMatchers("/api/youtube/**").permitAll()
                                                 .anyRequest().authenticated())

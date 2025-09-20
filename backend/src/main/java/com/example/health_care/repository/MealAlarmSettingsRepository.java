@@ -15,5 +15,5 @@ public interface MealAlarmSettingsRepository extends JpaRepository<MealAlarmSett
 
     // 알림 활성화된 사용자들 조회
     List<MealAlarmSettingsEntity> findByAlarmEnabled(Boolean alarmEnabled);
-
 }
+
