@@ -17,3 +17,4 @@ public interface MealAlarmSettingsRepository extends JpaRepository<MealAlarmSett
     List<MealAlarmSettingsEntity> findByAlarmEnabled(Boolean alarmEnabled);
 }
 
+

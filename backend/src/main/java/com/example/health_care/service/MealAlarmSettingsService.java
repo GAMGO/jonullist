@@ -91,4 +91,14 @@ public class MealAlarmSettingsService {
         mealAlarmSettingsRepository.save(setting);
         log.info("식사 알림 설정 수정 완료 - 사용자: {}", customerId);
     }
+
+    // 모든 사용자의 알림 설정 조회 (스케줄러용)
+    public List<MealAlarmSettingsEntity> getAllSettings() {
+        return mealAlarmSettingsRepository.findAll();
+    }
+
+    // 알림 활성화된 사용자들의 설정만 조회 (스케줄러용)
+    public List<MealAlarmSettingsEntity> getActiveSettings() {
+        return mealAlarmSettingsRepository.findByAlarmEnabled(true);
+    }
 }

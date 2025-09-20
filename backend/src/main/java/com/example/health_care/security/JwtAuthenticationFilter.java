@@ -41,10 +41,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // 1) 블랙리스트 토큰 즉시 차단
                 if (tokenBlacklistService.isBlacklisted(jwt)) {
                     log.debug("[JWT] blacklisted token blocked");
-
-                    return;
-                }
-   // 2) 유효성 검증 + 아직 인증 안된 경우만 컨텍스트 설정
+                    return; // 블랙리스트 토큰이면 더 이상 처리하지 않음. "여기서 멈춰!"
+                }           // 밑 else if 실행안하고 여기서 종료함
+                // 2) 유효성 검증 + 아직 인증 안된 경우만 컨텍스트 설정
                 else if (tokenProvider.validateToken(jwt)
                         && SecurityContextHolder.getContext().getAuthentication() == null) {
 
