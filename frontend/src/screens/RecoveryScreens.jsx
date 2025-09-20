@@ -40,15 +40,22 @@ const API = {
   findId: '/api/recover/find-id',
 };
 
+/* ---------- UI: Simple Dropdown ---------- */
 function Dropdown({ value, onChange, options, labelRenderer }) {
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.value === value);
   return (
     <>
-      <Pressable onPress={() => setOpen(true)} style={({ pressed }) => [styles.selectBox, pressed && { opacity: 0.85 }]}>
-        <Text style={styles.selectText}>{selected ? labelRenderer(selected) : '—'}</Text>
+      <Pressable
+        onPress={() => setOpen(true)}
+        style={({ pressed }) => [styles.selectBox, pressed && { opacity: 0.85 }]}
+      >
+        <Text numberOfLines={1} ellipsizeMode="tail" style={styles.selectText}>
+          {selected ? labelRenderer(selected) : '—'}
+        </Text>
         <Text style={styles.selectArrow}>▾</Text>
       </Pressable>
+
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)} />
         <View style={styles.modalCard}>
@@ -64,7 +71,9 @@ function Dropdown({ value, onChange, options, labelRenderer }) {
                   }}
                   style={({ pressed }) => [styles.optionRow, active && styles.optionRowActive, pressed && { opacity: 0.9 }]}
                 >
-                  <Text style={[styles.optionText, active && styles.optionTextActive]}>{labelRenderer(opt)}</Text>
+                  <Text style={[styles.optionText, active && styles.optionTextActive]}>
+                    {labelRenderer(opt)}
+                  </Text>
                 </Pressable>
               );
             })}
@@ -99,7 +108,7 @@ function StartScreen({ t, loginId, setLoginId, setQuestionsToAnswer, setCurrentS
   };
   return (
     <View style={styles.screenContainer}>
-      <Text style={styles.title}>{t('TITLE_RECOVERY') || t('RECOVERY_TITLE') || '비밀번호 복구'}</Text>
+      <Text style={styles.title}>{t('TITLE_RECOVERY') || '비밀번호 복구'}</Text>
       <Text style={styles.label}>{t('ENTER_EMAIL') || '이메일 입력'}</Text>
       <TextInput
         style={styles.input}
@@ -114,12 +123,10 @@ function StartScreen({ t, loginId, setLoginId, setQuestionsToAnswer, setCurrentS
         <Text style={styles.primaryBtnText}>{t('BTN_RECOVER_START') || '질문 받기'}</Text>
       </Pressable>
 
-      {/* 아이디 찾기 이동 */}
       <Pressable onPress={() => setCurrentScreen('findId')} style={[styles.primaryBtn, { backgroundColor: '#10B981' }]}>
         <Text style={styles.primaryBtnText}>{t('BTN_FIND_ID') || '아이디 찾기'}</Text>
       </Pressable>
 
-      {/* 질문 등록 화면 이동(내 계정에서 설정) */}
       <Pressable onPress={() => setCurrentScreen('setQuestions')} style={[styles.primaryBtn, { backgroundColor: '#6B7280' }]}>
         <Text style={styles.primaryBtnText}>{t('BTN_SET_QUESTIONS') || '보안질문 설정'}</Text>
       </Pressable>
@@ -130,33 +137,40 @@ function StartScreen({ t, loginId, setLoginId, setQuestionsToAnswer, setCurrentS
 /* ======================
  * 2) 아이디 찾기 (이름/월/일/성별)
  * ====================== */
-function FindIdScreen({ t, setQuestionsToAnswer, setCurrentScreen }) {
+function FindIdScreen({ t, setQuestionsToAnswer, setCurrentScreen, setLoginId }) {
   const [name, setName] = useState('');
   const [birthMonth, setBirthMonth] = useState(1);
   const [birthDay, setBirthDay] = useState(1);
-  const [gender, setGender] = useState('F'); // 백엔드 enum/문자와 맞추기
+  const [gender, setGender] = useState('F'); // 서버 enum과 맞추기
 
   const submit = async () => {
     if (!name.trim()) {
       Alert.alert(t('ALERT_WARNING'), t('INPUT_REQUIRED_NAME') || '이름을 입력하세요.');
       return;
     }
+    if (!birthMonth || !birthDay) {
+      Alert.alert(t('ALERT_WARNING'), t('INPUT_REQUIRED_BIRTH') || '생월/생일을 선택하세요.');
+      return;
+    }
     try {
       const mm = String(birthMonth).padStart(2, '0');
       const dd = String(birthDay).padStart(2, '0');
-      // 백엔드 FindIdRequest: { name, birth, gender }
-      // birth 포맷은 서버 정의에 맞게. (여기선 "MM-DD" 사용, YYYY-MM-DD면 `${yyyy}-${mm}-${dd}`로 변경)
+
+      // 서버: { name, birth:"MM-DD", gender } → { id, questions }
       const res = await apiPost(API.findId, { name: name.trim(), birth: `${mm}-${dd}`, gender });
-      // 컨트롤러는 new FindIdResponse(questions) 반환 → { questions: [...] }
-      const qs = res?.data?.questions || res?.data || [];
-      if (!qs.length) {
+
+      const foundId = res?.data?.id;
+      const qs = res?.data?.questions || [];
+      if (!foundId || !qs.length) {
         Alert.alert(t('ALERT_ERROR'), t('ALERT_INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
         return;
       }
-      setQuestionsToAnswer(qs);
-      setCurrentScreen('verify'); // 바로 질문 검증으로
+
+      setLoginId(foundId);          // verify에서 필요
+      setQuestionsToAnswer(qs);     // 2개 코드
+      setCurrentScreen('verify');   // 바로 검증으로
     } catch {
-      Alert.alert(t('ALERT_ERROR'), '일치하는 사용자 정보가 없습니다.');
+      Alert.alert(t('ALERT_ERROR'), t('ALERT_INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
     }
   };
 
@@ -305,9 +319,15 @@ function ResetScreen({ t, recoveryToken, setCurrentScreen }) {
 }
 
 /* ======================
- * 5) 내 계정에 질문 2개 등록/수정
+ * 5) 보안질문 설정 + 이름/월/일 저장
  * ====================== */
 function SetQuestionsScreen({ t }) {
+  // 이름/월/일
+  const [name, setName] = useState('');
+  const [birthMonth, setBirthMonth] = useState(1);
+  const [birthDay, setBirthDay] = useState(1);
+
+  // 질문 2개
   const [qna, setQna] = useState([
     { code: QUESTIONS[0].code, answer: '' },
     { code: QUESTIONS[1].code, answer: '' },
@@ -316,10 +336,9 @@ function SetQuestionsScreen({ t }) {
 
   const getAvailable = (idx) => {
     const self = qna[idx].code;
-    return QUESTIONS.filter((q) => q.code === self || !usedCodes.has(q.code)).map((q) => ({
-      value: q.code,
-      labelKey: q.labelKey,
-    }));
+    return QUESTIONS
+      .filter((q) => q.code === self || !usedCodes.has(q.code))
+      .map((q) => ({ value: q.code, labelKey: q.labelKey }));
   };
 
   const setCodeAt = (idx, code) => {
@@ -339,13 +358,23 @@ function SetQuestionsScreen({ t }) {
   };
 
   const handleSave = async () => {
+    if (!name.trim()) {
+      Alert.alert(t('ALERT_WARNING'), t('INPUT_REQUIRED_NAME') || '이름을 입력하세요.');
+      return;
+    }
+    if (!birthMonth || !birthDay) {
+      Alert.alert(t('ALERT_WARNING'), t('INPUT_REQUIRED_BIRTH') || '생월/생일을 선택하세요.');
+      return;
+    }
+
     const codes = qna.map((x) => x.code);
     const unique = new Set(codes);
     if (unique.size !== qna.length) {
       Alert.alert(t('ALERT_ERROR'), t('ALERT_DUPLICATE_QUESTIONS') || '같은 질문은 선택할 수 없습니다.');
       return;
     }
-    const payload = qna
+
+    const answers = qna
       .map(({ code, answer }) => {
         const a = (answer || '').trim();
         if (!a) return null;
@@ -353,13 +382,20 @@ function SetQuestionsScreen({ t }) {
       })
       .filter(Boolean);
 
-    if (payload.length !== qna.length) {
+    if (answers.length !== qna.length) {
       Alert.alert(t('ALERT_ERROR'), t('ALERT_ANSWER_ALL_QUESTIONS') || '모든 답을 입력하세요.');
       return;
     }
 
+    const mm = String(birthMonth).padStart(2, '0');
+    const dd = String(birthDay).padStart(2, '0');
+
     try {
-      await apiPut(API.set, { answers: payload }); // 백엔드는 answers만 받음
+      await apiPut(API.set, {
+        name: name.trim(),
+        birth: `${mm}-${dd}`, // 서버가 YYYY-MM-DD를 기대하면 여기만 바꿔줘
+        answers,
+      });
       Alert.alert(t('ALERT_SUCCESS'), t('ALERT_QUESTIONS_SAVE_SUCCESS') || '저장되었습니다.');
     } catch {
       Alert.alert(t('ALERT_ERROR'), t('ALERT_SAVE_QUESTIONS_FAIL') || '저장 실패');
@@ -369,6 +405,35 @@ function SetQuestionsScreen({ t }) {
   return (
     <View style={styles.screenContainer}>
       <Text style={styles.title}>{t('TITLE_SET_QUESTIONS') || '보안질문 설정'}</Text>
+
+      {/* 이름 */}
+      <Text style={styles.label}>{t('LABEL_NAME') || '이름'}</Text>
+      <TextInput
+        style={styles.input}
+        value={name}
+        onChangeText={setName}
+        placeholder={t('PLACEHOLDER_NAME') || '이름'}
+        placeholderTextColor="rgba(0,0,0,0.35)"
+      />
+
+      {/* 생월/생일 */}
+      <Text style={[styles.label, { marginTop: 8 }]}>{t('LABEL_BIRTH_MONTH') || '월'}</Text>
+      <Dropdown
+        value={birthMonth}
+        onChange={setBirthMonth}
+        options={MONTHS.map((m) => ({ value: m }))}
+        labelRenderer={(opt) => String(opt.value)}
+      />
+
+      <Text style={[styles.label, { marginTop: 8 }]}>{t('LABEL_BIRTH_DAY') || '일'}</Text>
+      <Dropdown
+        value={birthDay}
+        onChange={setBirthDay}
+        options={DAYS.map((d) => ({ value: d }))}
+        labelRenderer={(opt) => String(opt.value)}
+      />
+
+      {/* 질문 2개 */}
       {qna.map((row, idx) => {
         const options = getAvailable(idx);
         return (
@@ -410,7 +475,7 @@ export default function RecoveryScreens({ route }) {
   const [currentScreen, setCurrentScreen] = useState(initial);
   const [loginId, setLoginId] = useState(prefillEmail);
   const [recoveryToken, setRecoveryToken] = useState('');
-  const [questionsToAnswer, setQuestionsToAnswer] = useState([]);
+const [questionsToAnswer, setQuestionsToAnswer] = useState([]);
   const [answers, setAnswers] = useState({});
 
   if (!fontsLoaded) return <ActivityIndicator size="large" color="#0000ff" />;
@@ -431,6 +496,7 @@ export default function RecoveryScreens({ route }) {
         return (
           <FindIdScreen
             t={t}
+            setLoginId={setLoginId}
             setQuestionsToAnswer={setQuestionsToAnswer}
             setCurrentScreen={setCurrentScreen}
           />
@@ -510,8 +576,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  selectText: { fontFamily: FONT, fontSize: 16, color: '#111827' },
-  selectArrow: { fontFamily: FONT, fontSize: 16, color: '#111827' },
+  selectText: { fontFamily: FONT, fontSize: 16, color: '#111827', flexShrink: 1 },
+  selectArrow: { fontFamily: FONT, fontSize: 16, color: '#111827', marginLeft: 8 },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' },
   modalCard: {
     position: 'absolute',
