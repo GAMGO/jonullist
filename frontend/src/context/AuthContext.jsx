@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { decode as atob } from 'base-64';
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import {
   apiPost,
   setAuthToken as setApiAuthToken,
@@ -10,6 +12,7 @@ import {
   autoRefreshToken,
   subscribeToken,
 } from '../config/api';
+import { registerPushToken, deletePushToken } from '../api/alarm';
 import { useI18n } from '../i18n/I18nContext';
 
 const Ctx = createContext(null);
@@ -42,6 +45,71 @@ export default function AuthProvider({ children }) {
 
   const wipeLegacyTokens = async () => {
     try { await AsyncStorage.multiRemove(['token','authToken','accessToken','@auth/token']); } catch {}
+  };
+
+  // ✅ 현재 기기의 Expo Push Token 가져와 서버에 등록
+  const tryRegisterDevicePushToken = async () => {
+    try {
+      // 권한 확인/요청 (로그인 직후에도 안전)
+      const perm = await Notifications.getPermissionsAsync();
+      if (perm.status !== 'granted') {
+        const req = await Notifications.requestPermissionsAsync();
+        if (req.status !== 'granted') return;
+      }
+
+      // Android 채널 보장 (헤드업)
+      // 채널 존재 시 재설정해도 무해
+      // 중요: 실제 알림 발송은 서버에서 하므로 이건 포그라운드/테스트용
+      // (앱 단에서도 채널 없으면 토스트만 보일 수 있음)
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('default', {
+          name: 'default',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 200, 120, 200],
+          sound: 'default',
+          lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+        });
+      }
+
+      // projectId가 설정되어 있어야 최신 SDK에서 안정적
+      const projectId =
+        Constants?.expoConfig?.extra?.eas?.projectId ||
+        Constants?.easConfig?.projectId;
+
+      const tokenResp = await Notifications.getExpoPushTokenAsync(
+        projectId ? { projectId } : undefined
+      );
+      const expoToken = tokenResp?.data;
+      if (!expoToken) return;
+
+      await registerPushToken({
+        token: expoToken,
+        platform: Platform.OS === 'ios' ? 'ios' : 'android',
+      });
+      // console.log('Push token registered:', expoToken);
+    } catch (e) {
+      // 서버 인증 전이거나 일시적 네트워크 이슈면 무시해도 됨
+      // console.warn('register token skipped:', e?.message);
+    }
+  };
+
+  // ✅ 현재 기기의 Expo Push Token을 서버에서 삭제
+  const tryDeleteDevicePushToken = async () => {
+    try {
+      const projectId =
+        Constants?.expoConfig?.extra?.eas?.projectId ||
+        Constants?.easConfig?.projectId;
+
+      const tokenResp = await Notifications.getExpoPushTokenAsync(
+        projectId ? { projectId } : undefined
+      );
+      const expoToken = tokenResp?.data;
+      if (!expoToken) return;
+      await deletePushToken(expoToken);
+    } catch (e) {
+      // 로그아웃 진행은 계속
+      // console.warn('delete token skipped:', e?.message);
+    }
   };
 
   // api.js가 토큰을 갱신했을 때 로컬 state 동기화
@@ -82,6 +150,9 @@ export default function AuthProvider({ children }) {
             const need = await loadGoalFlag(uid);
             if (mounted) setNeedsGoalSetup(need);
           } catch {}
+
+          // ✅ 앱을 다시 켰는데 이미 로그인 상태였다면 이 시점에 토큰 등록 보장
+          await tryRegisterDevicePushToken();
         }
       } catch {
       } finally {
@@ -120,6 +191,10 @@ export default function AuthProvider({ children }) {
 
       try { await AsyncStorage.setItem('last_user_id', String(userId)); } catch {}
       setNeedsGoalSetup(await loadGoalFlag(userId));
+
+      // ✅ 로그인 성공 직후 토큰 등록
+      await tryRegisterDevicePushToken();
+
       return true;
     } catch (e) {
       const msg = String(e?.message || '');
@@ -131,6 +206,10 @@ export default function AuthProvider({ children }) {
   };
 
   const logout = async () => {
+    try {
+      // ✅ 서버에서 현재 기기 푸시 토큰 제거 (가능하면 먼저)
+      await tryDeleteDevicePushToken();
+    } catch {}
     try { await apiPost('/api/auth/logout', {}); } catch {}
     try { await SecureStore.deleteItemAsync('accessToken'); } catch {}
     await wipeLegacyTokens();

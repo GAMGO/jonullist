@@ -60,6 +60,7 @@ export default function SettingsScreen() {
       <View style={{ flex: 1, paddingHorizontal: 20, paddingBottom: insets.bottom + 20 }}>
         <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 16, padding: 20 }}>
           <ScrollView contentContainerStyle={{ rowGap: 20 }}>
+            {/* 언어 */}
             <View style={{ gap: 10 }}>
               <Text style={{ fontFamily: fontsLoaded ? FONT : undefined, fontSize: 18, lineHeight: 22, includeFontPadding: true }}>
                 {t('LANGUAGE')}
@@ -99,6 +100,7 @@ export default function SettingsScreen() {
               </View>
             </View>
 
+            {/* 사운드 */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <Text style={{ fontFamily: fontsLoaded ? FONT : undefined, marginRight: 8, fontSize: 16, lineHeight: 20, includeFontPadding: true }}>
                 {t('SOUND')}
@@ -109,6 +111,7 @@ export default function SettingsScreen() {
               </Text>
             </View>
 
+            {/* 음성 선택 */}
             <View style={{ gap: 8 }}>
               <Text style={{ fontFamily: fontsLoaded ? FONT : undefined, fontSize: 18, lineHeight: 22, includeFontPadding: true }}>
                 {t('VOICE')}
@@ -132,6 +135,28 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             </View>
 
+            {/* ✅ 식사 알림 설정 */}
+            <View style={{ gap: 8 }}>
+              <Text style={{ fontFamily: fontsLoaded ? FONT : undefined, fontSize: 18, lineHeight: 22, includeFontPadding: true }}>
+                식사 알림
+              </Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('AlarmSettings')}
+                style={{
+                  backgroundColor: '#111827',
+                  paddingVertical: 12,
+                  paddingHorizontal: 14,
+                  borderRadius: 10,
+                  justifyContent: 'center'
+                }}
+              >
+                <Text style={{ fontFamily: fontsLoaded ? FONT : undefined, color: '#fff', fontSize: 16, lineHeight: 20, includeFontPadding: true }}>
+                  식사 알림 설정 열기
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* 로그아웃 */}
             {showLogout && (
               <TouchableOpacity
                 onPress={onLogout}
