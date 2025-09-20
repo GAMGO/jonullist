@@ -2,6 +2,7 @@ import { Platform, NativeModules } from 'react-native';
 import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { decode as b64decode } from 'base-64'; // ✅ atob 대체
 
 /* ---------- IP/Origin Utils ---------- */
 function isPrivateIp(h) {
@@ -20,7 +21,7 @@ function getHostFromExpo() {
 function getHostFromScriptURL() {
   const u = NativeModules?.SourceCode?.scriptURL;
   if (!u) return undefined;
-  try { return new URL(u).hostname } catch { return undefined }
+  try { return new URL(u).hostname; } catch { return undefined; }
 }
 function getExtra() {
   return (
@@ -34,32 +35,35 @@ const EXTRA = getExtra();
 const ENV_ORIGIN = normalizeOrigin(process.env.EXPO_PUBLIC_API_ORIGIN || EXTRA.apiOrigin || null);
 const ENV_PORT = Number(process.env.EXPO_PUBLIC_API_PORT ?? EXTRA.apiPort ?? 3000);
 
-function pickFirst(...vals) { return vals.find(v => v != null && v !== '') }
+function pickFirst(...vals) { return vals.find(v => v != null && v !== ''); }
 
+/** Dev에서 API ORIGIN 추론 */
 function getDevOrigin() {
-
   if (ENV_ORIGIN) return ENV_ORIGIN;
-
-  if (Platform.OS === 'android') {
-    const host = pickFirst(getHostFromExpo(), getHostFromScriptURL());
-    if (!host || !isPrivateIp(host)) {
-      return `http://10.0.2.2:${ENV_PORT}`; // 혹시라도 안 되면 이걸 의심하시길
-
-    }
-  }
-  if (Platform.OS === 'ios') {
-    const host = pickFirst(getHostFromExpo(), getHostFromScriptURL());
-    if (!host || !isPrivateIp(host)) {
-      return `http://127.0.0.1:${ENV_PORT}`; // 아이폰은 갤럭시로 바꾸시길 우헤헤
-    }
-  }
 
   const expoHost = getHostFromExpo();
   const metroHost = getHostFromScriptURL();
-  const host = isPrivateIp(expoHost) ? expoHost : (isPrivateIp(metroHost) ? metroHost : null);
+
+  let chosenHost = null;
+  if (isPrivateIp(expoHost)) chosenHost = expoHost;
+  else if (isPrivateIp(metroHost)) chosenHost = metroHost;
+
+  if (!chosenHost) {
+    if (Platform.OS === 'android') {
+      chosenHost = '192.168.0.5';
+    } else if (Platform.OS === 'ios') {
+      chosenHost = '172.20.10.3';
+    } else {
+      chosenHost = 'localhost';
+    }
+  }
+
+  if (Platform.OS === 'ios' && (!chosenHost || !isPrivateIp(chosenHost))) {
+    return `http://127.0.0.1:${ENV_PORT}`;
+  }
 
   const fallbackHost = pickFirst(
-    host,
+    chosenHost,
     EXTRA.devHost,
     process.env.EXPO_PUBLIC_DEV_HOST,
     '192.168.0.13'
@@ -74,7 +78,6 @@ export const API_BASE_DEBUG = ORIGIN;
 /* ---------- Auth Header Handling ---------- */
 let CURRENT_TOKEN = null;
 
-// 토큰 변경 브로드캐스트 (AuthContext가 구독함)
 const tokenListeners = new Set();
 export function subscribeToken(listener) {
   tokenListeners.add(listener);
@@ -119,10 +122,11 @@ function safeParseJwt(tokenWithPrefix) {
     const raw = String(tokenWithPrefix || '').replace(/^Bearer\s+/i, '');
     const payload = raw.split('.')[1];
     if (!payload) return null;
-    const json = JSON.parse(global.atob ? atob(payload.replace(/-/g, '+').replace(/_/g, '/')) :
-      Buffer.from(payload.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'));
-    return json;
-  } catch { return null; }
+    const jsonStr = b64decode(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(jsonStr);
+  } catch {
+    return null;
+  }
 }
 export function isTokenExpiringSoon(token, skewMs = 300000) {
   const p = safeParseJwt(token);
@@ -132,7 +136,6 @@ export function isTokenExpiringSoon(token, skewMs = 300000) {
 }
 
 /* ---------- Refresh ---------- */
-/** 서버에 /api/auth/refresh 호출해서 새 토큰을 받아 저장 */
 export async function autoRefreshToken() {
   const auth = await getAuthHeaderObject();
   if (!auth.Authorization) return null;
@@ -160,7 +163,7 @@ export async function autoRefreshToken() {
   }
 }
 
-/* ---------- Core Fetch (with 401/403 1회 재시도) ---------- */
+/* ---------- Core Fetch ---------- */
 const join = (base, path) => `${String(base).replace(/\/+$/, '')}/${String(path).replace(/^\/+/, '')}`;
 
 async function request(method, path, { body, headers, timeoutMs } = {}) {
@@ -190,7 +193,6 @@ async function request(method, path, { body, headers, timeoutMs } = {}) {
   try {
     let res = await doFetch();
 
-    // 만료/권한 문제 시 한 번만 자동 갱신 + 재시도
     if (res.status === 401 || res.status === 403) {
       const refreshed = await autoRefreshToken();
       if (refreshed) {
@@ -204,7 +206,7 @@ async function request(method, path, { body, headers, timeoutMs } = {}) {
     if (!res.ok) {
       throw new Error(text || `HTTP ${res.status}`);
     }
-    try { return JSON.parse(text) } catch { return text }
+    try { return JSON.parse(text); } catch { return text; }
   } finally {
     clearTimeout(to);
   }
@@ -219,4 +221,10 @@ export async function apiPost(path, body, init) {
 }
 export async function apiDelete(path, init) {
   return request('DELETE', path, { headers: init?.headers, timeoutMs: init?.timeoutMs });
+}
+export async function apiPut(path, body, init) {
+  return request('PUT', path, { body, headers: init?.headers, timeoutMs: init?.timeoutMs });
+}
+export async function apiPatch(path, body, init) {
+  return request('PATCH', path, { body, headers: init?.headers, timeoutMs: init?.timeoutMs });
 }
