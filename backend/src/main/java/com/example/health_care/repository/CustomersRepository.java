@@ -14,4 +14,6 @@ public interface CustomersRepository extends JpaRepository<CustomersEntity, Long
 
      // 이메일 인증 토큰으로 사용자 조회
      Optional<CustomersEntity> findByEmailVerificationToken(String token);
+
+    Optional<CustomersEntity> findByIdxAndGender(Long idx, String gender);
 }

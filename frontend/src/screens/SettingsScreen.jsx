@@ -111,7 +111,7 @@ export default function SettingsScreen() {
 
             <View style={{ gap: 8 }}>
               <Text style={{ fontFamily: fontsLoaded ? FONT : undefined, fontSize: 18, lineHeight: 22, includeFontPadding: true }}>
-                보이스
+                {t('VOICE')}
               </Text>
               <TouchableOpacity
                 onPress={() => navigation.navigate('VoicePicker')}
@@ -124,10 +124,10 @@ export default function SettingsScreen() {
                 }}
               >
                 <Text style={{ fontFamily: fontsLoaded ? FONT : undefined, color: '#fff', fontSize: 16, lineHeight: 20, includeFontPadding: true }}>
-                  보이스 선택
+                  {t('VOICE_PICKER_SCREEN')}
                 </Text>
                 <Text style={{ fontFamily: fontsLoaded ? FONT : undefined, color: '#9ca3af', fontSize: 12, lineHeight: 16, includeFontPadding: true, marginTop: 4 }}>
-                  {voiceId ? `현재: ${voiceId}` : '현재: 기본 보이스'}
+                  {voiceId ? `${t('VOICE_STATUS')} ${voiceId}` : `${t('VOICE_STATUS')} ${t('VOICE_DEFAULT')}`}
                 </Text>
               </TouchableOpacity>
             </View>

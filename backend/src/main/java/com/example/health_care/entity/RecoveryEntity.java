@@ -17,7 +17,6 @@ import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-
 /**
  * 비밀번호 복구 엔티티
  * recovery 테이블과 매핑됩니다.
@@ -31,7 +30,7 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 @Entity
 @Table(name = "recovery", uniqueConstraints = {
-        @UniqueConstraint(name = "uq_recovery_user_code", columnNames = {"customer_id", "code"})
+        @UniqueConstraint(name = "uq_recovery_user_code", columnNames = { "customer_id", "code" })
 })
 public class RecoveryEntity {
 
@@ -53,4 +52,11 @@ public class RecoveryEntity {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+    
+    @Column(name = "name", nullable = true, length = 100)
+    private String name;
+
+    @Column(name = "birth", nullable = true, length = 100)
+    private String birth;
+
 }

@@ -34,9 +34,9 @@ export default function ProfileScreen() {
   const [current, setCurrent] = useState({ id: '', weight: '', height: '', age: '', gender: '' })
   const [editingAccount, setEditingAccount] = useState(false)
   const [editingProfile, setEditingProfile] = useState(false)
-  
-  // 팝업 액션 타입 추가: 'editAccount' 또는 'recoverySetup'
-  const [modalAction, setModalAction] = useState(null);
+
+  // 'editAccount' | 'recoverySetup'
+  const [modalAction, setModalAction] = useState(null)
 
   const [form, setForm] = useState({
     weight: '',
@@ -58,11 +58,13 @@ export default function ProfileScreen() {
   const [okAccount, setOkAccount] = useState('')
   const [okProfile, setOkProfile] = useState('')
   const [getEndpoint, setGetEndpoint] = useState(null)
-  
+
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [passwordForVerification, setPasswordForVerification] = useState('')
   const [passwordModalError, setPasswordModalError] = useState('')
-  
+
+  // 보안 질문 설정 여부
+  const [hasSecurityQuestions, setHasSecurityQuestions] = useState(false)
 
   const getAuth = useCallback(async () => {
     const ctxType = auth?.tokenType || auth?.token_type || 'Bearer'
@@ -118,7 +120,7 @@ export default function ProfileScreen() {
           lastErr = e
         }
       }
-      throw lastErr || new Error('요청 실패')
+      throw lastErr || new Error(t('REQUEST_FAILED'))
     },
     [getAuth]
   )
@@ -164,7 +166,32 @@ export default function ProfileScreen() {
     try {
       const { data, used } = await fetchFirstOK('GET', ['/api/profile', '/api/profile/'])
       setGetEndpoint(used || '/api/profile')
-      if (data) applyToState(data)
+      if (data) {
+        applyToState(data)
+
+        // 보안 질문 설정 여부 조회 (백엔드 계약에 맞게 조정)
+        try {
+          const res = await fetch(`${ORIGIN}/api/recover/start`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: data?.id || userId }),
+          })
+          if (res.ok) {
+            setHasSecurityQuestions(true)
+          } else if (res.status === 400) {
+            const error = await res.json().catch(() => ({}))
+            if (error?.message === t('SECURITY_QNA_NOT_SET')) {
+              setHasSecurityQuestions(false)
+            } else {
+              setHasSecurityQuestions(false)
+            }
+          } else {
+            setHasSecurityQuestions(false)
+          }
+        } catch {
+          setHasSecurityQuestions(false)
+        }
+      }
       setLoading(false)
       try { await AsyncStorage.removeItem('@profile/prefill') } catch {}
     } catch (e) {
@@ -184,38 +211,39 @@ export default function ProfileScreen() {
 
   const update = (k, v) => setForm(prev => ({ ...prev, [k]: v }))
 
-  // 비밀번호 확인 함수 수정: modalAction에 따라 다른 동작 수행
+  // 비밀번호 확인 후 액션 진행
   const verifyPasswordAndProceed = async () => {
-    setPasswordForVerification('');
-    setPasswordModalError('');
+    setPasswordModalError('')
+    const pwd = passwordForVerification // 스냅샷
+
     try {
       const res = await fetch(`${ORIGIN}/api/auth/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id: current.id, password: passwordForVerification }),
-      });
-      
-      const resData = await res.json();
-      if (!res.ok) {
-        throw new Error(resData?.message || t('LOGIN_FAIL'));
-      }
-      setShowPasswordModal(false);
-      
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: current.id, password: pwd }),
+      })
+      const resData = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(resData?.message || t('LOGIN_FAIL'))
+
+      setShowPasswordModal(false)
+      setPasswordForVerification('') // ✅ 성공 후 초기화
+
       if (modalAction === 'editAccount') {
-        setEditingAccount(true);
+        setEditingAccount(true)
       } else if (modalAction === 'recoverySetup') {
-        // [수정] RecoverySetupScreen으로 이동
-        nav.navigate('RecoverySetup');
+        // ✅ AppStack의 "RecoverySetup"으로 이동 (이름 일치)
+        nav.navigate('RecoverySetup', {
+          initial: 'setQuestions',       // 필요에 따라 'start'로 변경 가능
+          email: current.id || '',
+        })
       }
-      setModalAction(null); // 액션 초기화
-      setErrAccount('');
-      setOkAccount('');
+      setModalAction(null)
+      setErrAccount('')
+      setOkAccount('')
     } catch (e) {
-      setPasswordModalError(e?.message || t('VERIFY_FAIL'));
+      setPasswordModalError(e?.message || t('VERIFY_FAIL'))
     }
-  };
+  }
 
   const saveAccount = async () => {
     setSavingAccount(true)
@@ -305,33 +333,27 @@ export default function ProfileScreen() {
       </ImageBackground>
     )
   }
-  
-  // 팝업창 UI 렌더링 수정: 반투명 배경 적용
+
+  // 모달
   if (showPasswordModal) {
     return (
-      <View style={[styles.center, { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+      <View style={[styles.center, styles.modalOverlay]}>
         <View style={[styles.card, { width: '80%' }]}>
-          <Text style={styles.cardTitle}>비밀번호 확인</Text>
+          <Text style={styles.cardTitle}>{t('PASSWORD')} {t('CONFIRM')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="비밀번호를 입력하세요"
+            placeholder={t('ENTER_PW')}
             secureTextEntry
             value={passwordForVerification}
             onChangeText={setPasswordForVerification}
           />
           {!!passwordModalError && <Text style={styles.error}>{passwordModalError}</Text>}
           <View style={styles.row}>
-            <Pressable
-              onPress={() => setShowPasswordModal(false)}
-              style={styles.ghostBtn}
-            >
-              <Text style={styles.ghostBtnText}>취소</Text>
+            <Pressable onPress={() => setShowPasswordModal(false)} style={styles.ghostBtn} >
+              <Text style={styles.ghostBtnText}>{t('CANCEL')}</Text>
             </Pressable>
-            <Pressable
-              onPress={verifyPasswordAndProceed}
-              style={styles.primaryBtn}
-            >
-              <Text style={styles.primaryBtnText}>확인</Text>
+            <Pressable onPress={verifyPasswordAndProceed} style={styles.primaryBtn} >
+              <Text style={styles.primaryBtnText}>{t('CONFIRM')}</Text>
             </Pressable>
           </View>
         </View>
@@ -340,7 +362,10 @@ export default function ProfileScreen() {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.select({ ios: 'padding', android: undefined })} style={{ flex: 1 }}>
+    <KeyboardAvoidingView
+      behavior={Platform.select({ ios: 'padding', android: undefined })}
+      style={{ flex: 1 }}
+    >
       <ImageBackground source={require('../../assets/background/home.png')} style={{ flex: 1 }} resizeMode="cover">
         <Text style={[styles.screenTitle, { top: insets.top + 8 }]}>{t('PROFILE_TITLE')}</Text>
         <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 108, paddingBottom: insets.bottom + 24 }]}>
@@ -354,14 +379,15 @@ export default function ProfileScreen() {
                 </View>
                 {!!errAccount && <Text style={styles.error}>{errAccount}</Text>}
                 {!!okAccount && <Text style={styles.ok}>{okAccount}</Text>}
-                {/* 버튼 클릭 시 모달 액션 설정 */}
-                <Pressable onPress={() => { setModalAction('editAccount'); setShowPasswordModal(true); }} style={styles.primaryBtn}>
-                  <Text style={styles.primaryBtnText}>{t('EDIT')}</Text>
-                </Pressable>
-                {/* 보안 질문 버튼에 모달 액션 설정 */}
-                <Pressable onPress={() => { setModalAction('recoverySetup'); setShowPasswordModal(true); }} style={styles.ghostBtn}>
-                  <Text style={styles.ghostBtnText}>{t('RECOVERY_SETUP')}</Text>
-                </Pressable>
+                {hasSecurityQuestions ? (
+                  <Pressable onPress={() => { setModalAction('editAccount'); setShowPasswordModal(true); }} style={styles.primaryBtn}>
+                    <Text style={styles.primaryBtnText}>{t('EDIT')}</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable onPress={() => { setModalAction('recoverySetup'); setShowPasswordModal(true); }} style={styles.ghostBtn}>
+                    <Text style={styles.ghostBtnText}>{t('RECOVERY_SETUP')}</Text>
+                  </Pressable>
+                )}
               </>
             ) : (
               <>
@@ -377,12 +403,9 @@ export default function ProfileScreen() {
                   <Pressable onPress={saveAccount} disabled={savingAccount} style={[styles.primaryBtn, savingAccount && { opacity: 0.6 }]}>
                     {savingAccount ? <ActivityIndicator /> : <Text style={styles.primaryBtnText}>{t('CONFIRM')}</Text>}
                   </Pressable>
-                  <Pressable
-                    onPress={() => {
-                      setEditingAccount(false)
-                      setForm(f => ({ ...f, newId: current.id || '', newPassword: '', confirmPassword: '' }))
-                    }}
-                    style={styles.ghostBtn}
+                  <Pressable onPress={() => { setEditingAccount(false)
+                    setForm(f => ({ ...f, newId: current.id || '', newPassword: '', confirmPassword: '' }))
+                  }} style={styles.ghostBtn}
                   >
                     <Text style={styles.ghostBtnText}>{t('CANCEL')}</Text>
                   </Pressable>
@@ -395,79 +418,83 @@ export default function ProfileScreen() {
             <Text style={styles.cardTitle}>{t('PROFILE_INFO')}</Text>
             {!editingProfile ? (
               <>
-                <View style={styles.rowBetween}><Text style={styles.label}>{t('WEIGHT')}</Text><Text style={styles.value}>{current.weight !== '' ? String(current.weight) : '-'}</Text></View>
-                <View style={styles.rowBetween}><Text style={styles.label}>{t('HEIGHT')}</Text><Text style={styles.value}>{current.height !== '' ? String(current.height) : '-'}</Text></View>
-                <View style={styles.rowBetween}><Text style={styles.label}>{t('AGE')}</Text><Text style={styles.value}>{current.age !== '' ? String(current.age) : '-'}</Text></View>
-                <View style={styles.rowBetween}><Text style={styles.label}>{t('GENDER')}</Text><Text style={styles.value}>{current.gender === 'M' ? t('MALE') : current.gender === 'F' ? t('FEMALE') : '-'}</Text></View>
+                <View style={styles.rowBetween}>
+                  <Text style={styles.label}>{t('WEIGHT')}</Text>
+                  <Text style={styles.value}>{current.weight ? `${current.weight}kg` : '-'}</Text>
+                </View>
+                <View style={styles.rowBetween}>
+                  <Text style={styles.label}>{t('HEIGHT')}</Text>
+                  <Text style={styles.value}>{current.height ? `${current.height}cm` : '-'}</Text>
+                </View>
+                <View style={styles.rowBetween}>
+                  <Text style={styles.label}>{t('AGE')}</Text>
+                  <Text style={styles.value}>{current.age ? `${current.age}` : '-'}</Text>
+                </View>
+                <View style={styles.rowBetween}>
+                  <Text style={styles.label}>{t('GENDER')}</Text>
+                  <Text style={styles.value}>{current.gender ? `${t(current.gender)}` : '-'}</Text>
+                </View>
+                <View style={styles.rowBetween}>
+                  <Text style={styles.label}>{t('TARGET_WEIGHT')}</Text>
+                  <Text style={styles.value}>{form.targetWeight ? `${form.targetWeight}kg` : '-'}</Text>
+                </View>
+                <View style={styles.rowBetween}>
+                  <Text style={styles.label}>{t('TARGET_CALORIES')}</Text>
+                  <Text style={styles.value}>{form.targetCalories ? `${form.targetCalories}kcal` : '-'}</Text>
+                </View>
                 {!!errProfile && <Text style={styles.error}>{errProfile}</Text>}
                 {!!okProfile && <Text style={styles.ok}>{okProfile}</Text>}
-                <Pressable onPress={() => { setErrProfile(''); setOkProfile(''); setEditingProfile(true) }} style={styles.primaryBtn}>
+                <Pressable onPress={() => setEditingProfile(true)} style={styles.primaryBtn}>
                   <Text style={styles.primaryBtnText}>{t('EDIT')}</Text>
                 </Pressable>
               </>
             ) : (
               <>
-                <View style={styles.row2}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.label}>{t('WEIGHT')}</Text>
-                    <TextInput value={form.weight} onChangeText={v => update('weight', v)} keyboardType="decimal-pad" style={styles.input} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.label}>{t('HEIGHT')}</Text>
-                    <TextInput value={form.height} onChangeText={v => update('height', v)} keyboardType="number-pad" style={styles.input} />
-                  </View>
-                </View>
-                <View style={styles.row2}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.label}>{t('AGE')}</Text>
-                    <TextInput value={form.age} onChangeText={v => update('age', v)} keyboardType="number-pad" style={styles.input} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.label}>{t('GENDER')}</Text>
-                    <View style={styles.segmentWrap}>
-                      <Pressable onPress={() => update('gender', form.gender === 'M' ? '' : 'M')} style={[styles.segmentBtn, form.gender === 'M' && styles.segmentBtnActive]}>
-                        <Text style={[styles.segmentText, form.gender === 'M' && styles.segmentTextActive]}>{t('MALE')}</Text>
-                      </Pressable>
-                      <Pressable onPress={() => update('gender', form.gender === 'F' ? '' : 'F')} style={[styles.segmentBtn, form.gender === 'F' && styles.segmentBtnActive]}>
-                        <Text style={[styles.segmentText, form.gender === 'F' && styles.segmentTextActive]}>{t('FEMALE')}</Text>
-                      </Pressable>
-                    </View>
+                <Text style={styles.label}>{t('WEIGHT')}</Text>
+                <TextInput value={form.weight} onChangeText={v => update('weight', v)} keyboardType="numeric" style={styles.input} />
+                <Text style={styles.label}>{t('HEIGHT')}</Text>
+                <TextInput value={form.height} onChangeText={v => update('height', v)} keyboardType="numeric" style={styles.input} />
+                <Text style={styles.label}>{t('AGE')}</Text>
+                <TextInput value={form.age} onChangeText={v => update('age', v)} keyboardType="numeric" style={styles.input} />
+                <Text style={styles.label}>{t('GENDER')}</Text>
+                <View style={styles.rowBetween}>
+                  <View style={styles.segmentWrap}>
+                    <Pressable
+                      onPress={() => update('gender', 'male')}
+                      style={[styles.segmentBtn, form.gender === 'male' && styles.segmentBtnActive]}
+                    >
+                      <Text style={[styles.segmentText, form.gender === 'male' && styles.segmentTextActive]}>{t('MALE')}</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => update('gender', 'female')}
+                      style={[styles.segmentBtn, form.gender === 'female' && styles.segmentBtnActive]}
+                    >
+                      <Text style={[styles.segmentText, form.gender === 'female' && styles.segmentTextActive]}>{t('FEMALE')}</Text>
+                    </Pressable>
                   </View>
                 </View>
-                <View style={styles.row2}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.label}>{t('TARGET_WEIGHT')}</Text>
-                    <TextInput value={form.targetWeight} onChangeText={v => update('targetWeight', v)} keyboardType="decimal-pad" style={styles.input} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.label}>{t('TARGET_CALORIES')}</Text>
-                    <TextInput value={form.targetCalories} onChangeText={v => update('targetCalories', v)} keyboardType="number-pad" style={styles.input} />
-                  </View>
-                </View>
+                <Text style={styles.label}>{t('TARGET_WEIGHT')}</Text>
+                <TextInput value={form.targetWeight} onChangeText={v => update('targetWeight', v)} keyboardType="numeric" style={styles.input} />
+                <Text style={styles.label}>{t('TARGET_CALORIES')}</Text>
+                <TextInput value={form.targetCalories} onChangeText={v => update('targetCalories', v)} keyboardType="numeric" style={styles.input} />
                 {!!errProfile && <Text style={styles.error}>{errProfile}</Text>}
                 {!!okProfile && <Text style={styles.ok}>{okProfile}</Text>}
                 <View style={styles.row}>
                   <Pressable onPress={saveProfile} disabled={savingProfile} style={[styles.primaryBtn, savingProfile && { opacity: 0.6 }]}>
                     {savingProfile ? <ActivityIndicator /> : <Text style={styles.primaryBtnText}>{t('CONFIRM')}</Text>}
                   </Pressable>
-                  <Pressable
-                    onPress={() => {
-                      setEditingProfile(false)
-                      setForm(f => ({
-                        ...f,
-                        weight: current.weight === '' ? '' : String(current.weight),
-                        height: current.height === '' ? '' : String(current.height),
-                        age: current.age === '' ? '' : String(current.age),
-                        gender: current.gender ?? '',
-                      }))
-                    }}
-                    style={styles.ghostBtn}
-                  >
+                  <Pressable onPress={() => { setEditingProfile(false); load(); }} style={styles.ghostBtn}>
                     <Text style={styles.ghostBtnText}>{t('CANCEL')}</Text>
                   </Pressable>
                 </View>
               </>
             )}
+          </View>
+
+          <View style={styles.buttonContainer}>
+            <Pressable onPress={auth?.signOut} style={styles.primaryBtn}>
+              <Text style={styles.primaryBtnText}>{t('LOGOUT')}</Text>
+            </Pressable>
           </View>
         </ScrollView>
       </ImageBackground>
@@ -476,51 +503,97 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  appContainer: { flex: 1 },
   screenTitle: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-    color: '#000',
-    fontSize: 26,
-    lineHeight: 32,
-    textShadowColor: 'rgba(255,255,255,0.28)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-    zIndex: 10,
     fontFamily: FONT,
-    fontWeight: 'normal',
-    includeFontPadding: true,
+    fontWeight: 'bold',
+    fontSize: 28,
+    position: 'absolute',
+    width: '100%',
+    textAlign: 'center',
+    color: '#fff',
+    zIndex: 10,
   },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  container: { paddingHorizontal: 16, gap: 16 },
+  container: { flexGrow: 1, paddingHorizontal: 20 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  scrollContainer: { flexGrow: 1, justifyContent: 'center', padding: 20 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   card: {
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.72)',
-    padding: 16,
-    gap: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 10,
+    padding: 20,
+    width: '100%',
     shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    marginBottom: 20,
   },
   cardTitle: {
-    fontSize: 18,
-    lineHeight: 22,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
     fontFamily: FONT,
-    fontWeight: 'normal',
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  label: {
+    fontFamily: FONT,
+    fontSize: 16,
+    color: '#111827',
+  },
+  text: {
+    fontFamily: FONT,
+    fontSize: 16,
+    color: '#111827',
+  },
+  input: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginTop: 5,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.15)',
+    fontFamily: FONT,
+    fontSize: 16,
+    lineHeight: 20,
     includeFontPadding: true,
   },
-  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
-  label: { color: '#111827', fontFamily: FONT, fontWeight: 'normal', fontSize: 16, lineHeight: 20, includeFontPadding: true },
-  value: { color: '#111827', fontFamily: FONT, fontWeight: 'normal', fontSize: 16, lineHeight: 20, includeFontPadding: true },
-  input: { borderWidth: 1, borderColor: 'rgba(0,0,0,0.12)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.9)', fontFamily: FONT, fontSize: 16, lineHeight: 20 },
+  error: {
+    fontFamily: FONT,
+    color: 'red',
+    fontSize: 14,
+    marginTop: -10,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  ok: {
+    fontFamily: FONT,
+    color: 'green',
+    fontSize: 14,
+    marginTop: -10,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  value: {
+    fontFamily: FONT,
+    fontSize: 16,
+    color: '#111827',
+    fontWeight: 'normal',
+  },
   row: { flexDirection: 'row', gap: 10, marginTop: 6 },
   row2: { flexDirection: 'row', gap: 12 },
   segmentWrap: { flexDirection: 'row', gap: 8 },
@@ -530,8 +603,16 @@ const styles = StyleSheet.create({
   segmentTextActive: { color: '#fff', fontFamily: FONT, fontWeight: 'normal', fontSize: 16, lineHeight: 20, includeFontPadding: true },
   primaryBtn: { flex: 1, backgroundColor: '#111827', paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
   primaryBtnText: { color: '#fff', fontFamily: FONT, fontWeight: 'normal', fontSize: 16, lineHeight: 20, includeFontPadding: true },
-  ghostBtn: { flex: 1, borderWidth: 1, borderColor: 'rgba(0,0,0,0.15)', paddingVertical: 12, borderRadius: 10, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.9)' },
+  ghostBtn: { flex: 1, borderWidth: 1, borderColor: 'rgba(0,0,0,0.15)', paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
   ghostBtnText: { color: '#111827', fontFamily: FONT, fontWeight: 'normal', fontSize: 16, lineHeight: 20, includeFontPadding: true },
-  error: { color: '#dc2626', marginTop: 6, fontFamily: FONT, fontSize: 14, lineHeight: 18, includeFontPadding: true },
-  ok: { color: '#16a34a', marginTop: 6, fontFamily: FONT, fontSize: 14, lineHeight: 18, includeFontPadding: true },
+  buttonContainer: {
+    marginTop: 20,
+  },
+  modalOverlay: {
+    position: 'absolute',
+    left: 0, right: 0, top: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 20,
+    zIndex: 999,
+  },
 })

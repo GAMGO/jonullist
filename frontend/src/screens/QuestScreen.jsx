@@ -12,33 +12,6 @@ const FONT = 'DungGeunMo'
 if (Text.defaultProps == null) Text.defaultProps = {}
 Text.defaultProps.includeFontPadding = true
 
-const TAUNTS_MAP = {
-  none: {
-    ko: ['0.00km… 산책 앱을 켰는데 산책은 안 함','첫 좌표에서 평생 살 계획?','오늘도 바닥이랑 베프네','다리는 절전 모드, 폰만 고성능','앉아있는 재능 국가대표'],
-    en: ['0.00km… Opened the app but no walk','Planning to live at the first GPS point forever?','Best friends with the floor again','Legs in power save, phone on turbo','National-team level at sitting'],
-    ja: ['0.00km… アプリ開いたのに歩いてない','最初の座標で一生暮らすの？','今日も床と親友','足は省電力、スマホはハイスペ','座りっぱなしの才能は代表クラス'],
-    zh: ['0.00km… 打开了应用却没走','打算一辈子待在第一个坐标？','今天又和地板做朋友','腿在省电模式，手机在高性能','坐着的天赋国家级'],
-  },
-  done: {
-    ko: ['오케이 인정. 오늘만','완료. 변명 금지 모드 진입','터보 엔진 잠깐 켰네'],
-    en: ['Okay, respect. Today only','Done. Excuse-free mode engaged','Turbo engine briefly on'],
-    ja: ['オーケー認めよう。今日はね','完了。言い訳禁止モード突入','ターボ一瞬ON'],
-    zh: ['行，认可。仅限今天','完成。进入无借口模式','涡轮短暂开启'],
-  },
-  unavailable: {
-    ko: ['위치 권한부터 허락하고 훈수 두자','GPS가 못 잡아도 핑계는 잘 잡네'],
-    en: ['Grant location first, then coach me','GPS can’t lock but excuses can'],
-    ja: ['まず位置情報を許可してから指示して','GPSは掴めないのに言い訳は掴む'],
-    zh: ['先给定位权限，再来指点','GPS锁不住，借口倒挺多'],
-  },
-}
-
-const TAUNTS = (lang) => ({
-  none: TAUNTS_MAP.none[lang] || TAUNTS_MAP.none.ko,
-  done: TAUNTS_MAP.done[lang] || TAUNTS_MAP.done.ko,
-  unavailable: TAUNTS_MAP.unavailable[lang] || TAUNTS_MAP.unavailable.ko,
-})
-
 function pick(a){return a[Math.floor(Math.random()*a.length)]}
 function dayKey(d=new Date()){const t=new Date(d);t.setHours(0,0,0,0);return t.toISOString().slice(0,10)}
 function haversineFix(lat1,lon1,lat2,lon2){const R=6371000,toRad=x=>x*Math.PI/180;const dLat=toRad(lat2-lat1),dLon=toRad(lon2-lon1);const s1=Math.sin(dLat/2),s2=Math.sin(dLon/2);const a=s1*s1+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*s2*s2;return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
@@ -47,27 +20,21 @@ const TAB_HOME = 'home'
 const TAB_STRETCH = 'stretch'
 const TAB_GYM = 'gym'
 
-const PRESETS = {
-  [TAB_HOME]: '홈트 전신 운동 10분',
-  [TAB_STRETCH]: '전신 스트레칭 10분'
-}
-
-const GYM_OPTIONS = [
-  { key:'squat', label:'스쿼트', query:'스쿼트 올바른 자세 루틴' },
-  { key:'bench', label:'벤치프레스', query:'벤치프레스 폼 교정 초보 루틴' },
-  { key:'deadlift', label:'데드리프트', query:'데드리프트 자세 핵심 팁' },
-  { key:'lat', label:'랫풀다운', query:'랫풀다운 등운동 루틴' },
-  { key:'legpress', label:'레그프레스', query:'레그프레스 무릎 보호 루틴' },
-  { key:'shoulder', label:'숄더프레스', query:'숄더프레스 어깨운동 루틴' },
-  { key:'row', label:'시티드 로우', query:'시티드 로우 등운동 루틴' },
-  { key:'cable', label:'케이블 코어', query:'케이블 크런치 복근 운동' },
-]
-
 export default function QuestScreen(){
   const navigation = useNavigation()
   const insets = useSafeAreaInsets()
   const [fontsLoaded] = useFonts({ [FONT]: require('../../assets/fonts/DungGeunMo.otf') })
   const { t, lang } = useI18n()
+
+  const taunts = useMemo(()=>({
+    none: t("TAUNTS_MAP_NONE") || [],
+    done: t("TAUNTS_MAP_DONE") || [],
+    unavailable: t("TAUNTS_MAP_UNAVAILABLE") || [],
+  }), [lang, t])
+
+  const searchQueries = t("SEARCH_QUERIES") || {}
+  const gymOptions = t("GYM_OPTIONS") || []
+
   const [perm, setPerm] = useState('undetermined')
   const [meters, setMeters] = useState(0)
   const [quests, setQuests] = useState([])
@@ -76,7 +43,6 @@ export default function QuestScreen(){
   const lastRef = useRef(null)
   const appActiveRef = useRef(true)
   const today = dayKey()
-  const taunts = useMemo(()=>TAUNTS(lang), [lang])
 
   const [videos, setVideos] = useState([])
   const [loading, setLoading] = useState(false)
@@ -84,7 +50,7 @@ export default function QuestScreen(){
 
   const [tab, setTab] = useState(TAB_HOME)
   const [gymOpen, setGymOpen] = useState(false)
-  const [gymKey, setGymKey] = useState(GYM_OPTIONS[0].key)
+  const [gymKey, setGymKey] = useState("SQUAT")
 
   async function loadOrGenQuests(){
     const storedDate = await AsyncStorage.getItem('@quest/date')
@@ -182,7 +148,7 @@ export default function QuestScreen(){
   async function fetchVideosByQuery(q){
     setLoading(true); setError(''); setVideos([])
     try {
-      const raw = await apiGet(`/api/youtube/search?q=${encodeURIComponent(q)}&maxResults=12`)
+     const raw = await apiGet(`/api/youtube/search?q=${encodeURIComponent(q)}&maxResults=12&lang=${encodeURIComponent(lang)}`)
       const data = typeof raw === 'string' ? JSON.parse(raw) : raw
       const arr = Array.isArray(data) ? data : []
       const mapped = arr.map(it => ({
@@ -195,7 +161,7 @@ export default function QuestScreen(){
       })).filter(v => v.id)
       setVideos(mapped)
     } catch (e) {
-      setError('영상을 불러오지 못했어요')
+      setError(t('VIDEO_LOAD_FAILED'))
     } finally {
       setLoading(false)
     }
@@ -203,18 +169,20 @@ export default function QuestScreen(){
 
   function onTabChange(nextTab){
     setTab(nextTab)
-    if (nextTab===TAB_HOME) fetchVideosByQuery(PRESETS[TAB_HOME])
-    else if (nextTab===TAB_STRETCH) fetchVideosByQuery(PRESETS[TAB_STRETCH])
-    else if (nextTab===TAB_GYM){
-      const opt = GYM_OPTIONS.find(o=>o.key===gymKey) || GYM_OPTIONS[0]
-      fetchVideosByQuery(opt.query)
+    if (nextTab===TAB_HOME) {
+      fetchVideosByQuery(searchQueries.HOME)
+    } else if (nextTab===TAB_STRETCH) {
+      fetchVideosByQuery(searchQueries.STRETCH)
+    } else if (nextTab===TAB_GYM) {
+      const key = (gymKey || "SQUAT").toUpperCase()
+      fetchVideosByQuery(searchQueries.GYM[key])
     }
   }
 
   function onGymPick(k){
-    setGymKey(k)
-    const opt = GYM_OPTIONS.find(o=>o.key===k) || GYM_OPTIONS[0]
-    fetchVideosByQuery(opt.query)
+    const key = k.toUpperCase()
+    setGymKey(key)
+    fetchVideosByQuery(searchQueries.GYM[key])
     setGymOpen(false)
   }
 
@@ -233,7 +201,7 @@ export default function QuestScreen(){
     )
   }
 
-  const gymLabel = (GYM_OPTIONS.find(o=>o.key===gymKey)||GYM_OPTIONS[0]).label
+  const gymLabel = gymOptions[gymOptions.findIndex((_,i)=>Object.keys(searchQueries.GYM||{})[i]===gymKey)] || gymOptions[0]
 
   return(
     <ImageBackground source={require('../../assets/background/home.png')} style={{flex:1}} resizeMode="cover">
@@ -252,22 +220,22 @@ export default function QuestScreen(){
 
         <View style={styles.quickRow}>
           <TouchableOpacity onPress={startSquat} disabled={!squatQ} style={[styles.quickBtn, !squatQ && styles.disabled]}>
-            <Text style={styles.quickTxt}>스쿼트 시작</Text>
+            <Text style={styles.quickTxt}>{t('SQUAT')} {t('START')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={startPushup} disabled={!pushupQ} style={[styles.quickBtn, !pushupQ && styles.disabled]}>
-            <Text style={styles.quickTxt}>푸쉬업 시작</Text>
+            <Text style={styles.quickTxt}>{t('PUSHUP')} {t('START')}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.tabsRow}>
           <TouchableOpacity onPress={()=>onTabChange(TAB_HOME)} style={[styles.tabBtn, tab===TAB_HOME && styles.tabActive]}>
-            <Text style={[styles.tabTxt, tab===TAB_HOME && styles.tabTxtActive]}>홈트</Text>
+            <Text style={[styles.tabTxt, tab===TAB_HOME && styles.tabTxtActive]}>{t('HOME_TRAINING')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={()=>onTabChange(TAB_STRETCH)} style={[styles.tabBtn, tab===TAB_STRETCH && styles.tabActive]}>
-            <Text style={[styles.tabTxt, tab===TAB_STRETCH && styles.tabTxtActive]}>스트레칭</Text>
+            <Text style={[styles.tabTxt, tab===TAB_STRETCH && styles.tabTxtActive]}>{t('STRETCHING')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={()=>onTabChange(TAB_GYM)} style={[styles.tabBtn, tab===TAB_GYM && styles.tabActive]}>
-            <Text style={[styles.tabTxt, tab===TAB_GYM && styles.tabTxtActive]}>기구운동</Text>
+            <Text style={[styles.tabTxt, tab===TAB_GYM && styles.tabTxtActive]}>{t('MACHINE_WORKOUT')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -280,9 +248,9 @@ export default function QuestScreen(){
               </TouchableOpacity>
               {gymOpen && (
                 <View style={styles.ddMenu}>
-                  {GYM_OPTIONS.map(o=>(
-                    <TouchableOpacity key={o.key} onPress={()=>onGymPick(o.key)} style={styles.ddItem}>
-                      <Text style={[styles.ddItemTxt, o.key===gymKey && styles.ddItemActive]}>{o.label}</Text>
+                  {Object.keys(searchQueries.GYM||{}).map((k,i)=>(
+                    <TouchableOpacity key={k} onPress={()=>onGymPick(k)} style={styles.ddItem}>
+                      <Text style={[styles.ddItemTxt, k===gymKey && styles.ddItemActive]}>{gymOptions[i]}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -310,7 +278,7 @@ export default function QuestScreen(){
                 </TouchableOpacity>
               )}
               ItemSeparatorComponent={()=> <View style={{height:10}}/>}
-              ListEmptyComponent={<Text style={styles.empty}>추천 영상을 불러오지 못했어요</Text>}
+              ListEmptyComponent={<Text style={styles.empty}>{t('RECOMMAND_VIDEO_LOAD_FAILED')}</Text>}
               contentContainerStyle={{ paddingBottom: 24 }}
               keyboardShouldPersistTaps="handled"
             />
@@ -320,6 +288,7 @@ export default function QuestScreen(){
     </ImageBackground>
   )
 }
+
 
 const styles=StyleSheet.create({
   screenTitle:{position:'absolute',left:0,right:0,textAlign:'center',color:'#000',fontSize:26,lineHeight:32,textShadowColor:'rgba(255,255,255,0.28)',textShadowOffset:{width:0,height:1},textShadowRadius:2,zIndex:10,fontFamily:FONT,fontWeight:'normal',includeFontPadding:true},
