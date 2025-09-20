@@ -19,3 +19,4 @@ CREATE TABLE body (
 );
 
 SELECT * FROM body;
+DROP TABLE BODY;

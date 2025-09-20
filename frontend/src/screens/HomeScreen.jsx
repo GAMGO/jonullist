@@ -1,63 +1,83 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { View, ImageBackground, Text, Pressable, Image, StyleSheet, Animated, Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native'
+import { useNavigation, useFocusEffect } from '@react-navigation/native'
 import AvatarByBMI from '../components/AvatarByBMI'
 import { initCalorieData, setTargetCalories } from '../utils/calorieStorage'
 import { useFonts } from 'expo-font'
 import { useAuth } from '../context/AuthContext'
 import { apiGet } from '../config/api'
-import AsyncStorage from '@react-native-async-storage/async-storage'
 import { calcBMI, classifyBMI } from '../utils/bmi'
 import { useI18n } from '../i18n/I18nContext'
 
+/* ===== UI CONST ===== */
 const ICON_SIZE = 72
 const FONT = 'DungGeunMo'
 const BOX_HEIGHT = Platform.select({ ios: 220, android: 170 })
 const BOX_FONT = 18
 const BOX_PAD = Platform.select({ ios: 20, android: 14 })
 
-// 게이지바
+/* ===== Gauge (left green / right red) ===== */
 function CalorieGauge({ current, target }) {
-  const r = target > 0 ? current / target : 0
-  const greenTo = Math.min(Math.max(r, 0), 1)
-  const redTo = r > 1 ? Math.min(r - 1, 1) : 0
-  const animatedGreen = useRef(new Animated.Value(0)).current
-  const animatedRed = useRef(new Animated.Value(0)).current
+  const [width, setWidth] = useState(0)
+  const greenAnim = useRef(new Animated.Value(0)).current
+  const redAnim   = useRef(new Animated.Value(0)).current
+
+  const ratio = target > 0 ? current / target : 0
+
+  const nextGreen = Math.max(0, Math.min(ratio, 1)) * width
+  const nextRed   = ratio > 1 ? Math.min(ratio - 1, 1) * width : 0
 
   useEffect(() => {
-    if (redTo > 0) {
-    Animated.timing(animatedGreen, { toValue: 1, duration: 600, useNativeDriver: false }).start()
-    Animated.timing(animatedRed, { toValue: redTo, duration: 600, useNativeDriver: false }).start()
-  } else {
-    Animated.timing(animatedGreen, { toValue: greenTo, duration: 600, useNativeDriver: false }).start()
-    Animated.timing(animatedRed, { toValue: 0, duration: 600, useNativeDriver: false }).start()
-  }
-  }, [greenTo, redTo])
-
-  const widthGreen = animatedGreen.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] })
-  const widthRed = animatedRed.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] })
+    Animated.timing(greenAnim, { toValue: nextGreen, duration: 600, useNativeDriver: false }).start()
+    Animated.timing(redAnim,   { toValue: nextRed,   duration: 600, useNativeDriver: false }).start()
+  }, [nextGreen, nextRed])
 
   return (
     <View style={styles.gaugeWrapper}>
-      {/* EXP 텍스트 (게이지 왼쪽) */}
       <Text style={styles.goalText}>GOAL.</Text>
 
-      {/* 게이지바 */}
-      <View style={styles.gaugeContainer}>
-        <Animated.View style={[styles.gaugeFill, { width: widthGreen, backgroundColor: 'rgba(34,197,94,0.8)' }]} />
-        <Animated.View style={[styles.gaugeFill, { right: 0, width: widthRed, backgroundColor: 'rgba(239,68,68,0.8)' }]} />
+    <View style={styles.gaugeShadowWrapper}>
+      <View
+        style={styles.gaugeContainer}
+        onLayout={e => setWidth(e.nativeEvent.layout.width)}
+      >
+        {/* Green: left -> right */}
+        <Animated.View
+          style={[
+            styles.gaugeFillBase,
+            {
+              left: 0,
+              width: greenAnim,
+              backgroundColor: 'rgba(34,197,94,0.8)',
+            },
+          ]}
+        />
+
+        {/* Red: right -> left */}
+        <Animated.View
+          style={[
+            styles.gaugeFillBase,
+            {
+              right: 0,
+              width: redAnim,
+              backgroundColor: 'rgba(239,68,68,0.8)',
+            },
+          ]}
+        />
+
         <View style={styles.gaugeTextWrap}>
           <Text style={styles.gaugeText} allowFontScaling={false}>
             {current}/{target} kcal
           </Text>
         </View>
       </View>
+      </View>
     </View>
   )
 }
 
-// 캐릭터 아바타
+/* ===== Avatar ===== */
 function EvolvingAvatar({ category, size }) {
   const [displayCat, setDisplayCat] = useState(category)
   const [isEvolving, setIsEvolving] = useState(false)
@@ -94,7 +114,7 @@ function EvolvingAvatar({ category, size }) {
       pulse.setValue(0)
       setIsEvolving(false)
     })
-  }, [category])
+  }, [category, displayCat, fade, scale, pulse])
 
   const pulseScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1.6] })
   const pulseOpacity = pulse.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0, 0.3, 0] })
@@ -115,13 +135,22 @@ function EvolvingAvatar({ category, size }) {
           }}
         />
       )}
-      {isEvolving ? (
-        <Animated.View style={{ opacity: fade, transform: [{ scale }] }}>
+
+      <View style={{
+        shadowColor: '#000',
+        shadowOffset: { width: 7, height: 5 },
+        shadowOpacity: 0.4,
+        shadowRadius: 2,
+        elevation: 12,
+      }}>
+        {isEvolving ? (
+          <Animated.View style={{ opacity: fade, transform: [{ scale }] }}>
+            <AvatarByBMI category={displayCat} size={size} />
+          </Animated.View>
+        ) : (
           <AvatarByBMI category={displayCat} size={size} />
-        </Animated.View>
-      ) : (
-        <AvatarByBMI category={displayCat} size={size} />
-      )}
+        )}
+      </View>
     </View>
   )
 }
@@ -132,8 +161,8 @@ function dayKey(d = new Date()) {
   return t.toISOString().slice(0, 10)
 }
 
-// 홈 화면
-export default function HomeScreen({route}) {
+/* ===== Home ===== */
+export default function HomeScreen({ route }) {
   const insets = useSafeAreaInsets()
   const nav = useNavigation()
   const { user } = useAuth()
@@ -175,30 +204,40 @@ export default function HomeScreen({route}) {
 
   useEffect(() => { loadAll() }, [loadAll])
 
-  // 화면이 다시 포커스될 때 실행
   useFocusEffect(
-    useCallback(() => { 
-      loadAll();
-
-      if (route.parms?.addedCalories) {
-        setCurrent(prev => prev + route.parms.addedCalories)
+    useCallback(() => {
+      loadAll()
+      if (route?.params?.addedCalories) {
+        setCurrent(prev => prev + route.params.addedCalories)
       }
-    }, [loadAll, route.parms?.addedCalories])
+    }, [loadAll, route?.params?.addedCalories])
   )
 
-  // 폰트 로드 안되면 화면 렌더링 X
   if (!fontsLoaded) return null
 
   const IconLabeled = ({ iconSrc, label, to }) => (
-    <Pressable onPress={() => nav.navigate(to)} style={{ alignItems: 'center', width: ICON_SIZE + 8 }}>
-      <Image source={iconSrc} style={{ width: ICON_SIZE, height: ICON_SIZE, resizeMode: 'contain' }} />
+    <Pressable onPress={() => nav.navigate(to)}  style={styles.iconWrapper}>
+      <Image source={iconSrc} style={styles.iconImage} />
       <Text style={styles.labelText} numberOfLines={1} allowFontScaling={false}>{label}</Text>
     </Pressable>
   )
 
   return (
     <ImageBackground source={require('../../assets/background/home.png')} style={{ flex: 1 }} resizeMode="cover">
-      <View style={[styles.topContainer, { marginTop: insets.top + 20 }]}>
+      {/* 상단: 상점 배지 */}
+      <Pressable
+        onPress={() => nav.navigate('Store')}
+        style={[
+          styles.storeBadge,
+          { top: insets.top + 8 }
+        ]}
+        hitSlop={8}
+      >
+        <Text style={styles.storeBadgeEmoji}>💰</Text>
+        <Text style={styles.storeBadgeText}>상점</Text>
+      </Pressable>
+
+      <View style={[styles.topContainer, { marginTop: insets.top + 56 }]}>
         <Pressable style={styles.box} onPress={() => nav.navigate('DietLog')}>
           <Text style={styles.boxText} allowFontScaling={false}>{t('HOME_MEAL')}</Text>
         </Pressable>
@@ -208,7 +247,7 @@ export default function HomeScreen({route}) {
       </View>
 
       <View style={{ flex: 1 }}>
-        {/* 게이지바: 캐릭터 머리 위 중앙 배치 */}
+        {/* 게이지 */}
         <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 150 + 260, alignItems: 'center' }}>
           <CalorieGauge current={current} target={target} />
         </View>
@@ -218,7 +257,7 @@ export default function HomeScreen({route}) {
           <EvolvingAvatar category={category} size={260} />
         </View>
 
-        {/* 이스터에그 터치 */}
+        {/* 이스터에그 */}
         <Pressable
           onPress={() => {
             setEggCount(c => {
@@ -237,8 +276,8 @@ export default function HomeScreen({route}) {
         <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 24 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center' }}>
             <IconLabeled iconSrc={require('../../assets/icons/profile.png')} label={t('PROFILE')} to="Profile" />
-            <IconLabeled iconSrc={require('../../assets/icons/quest.png')} label={t('BURNING')} to="Burning" />
-            <IconLabeled iconSrc={require('../../assets/icons/quest.png')} label={t('RANKING')} to="Ranking" />
+            <IconLabeled iconSrc={require('../../assets/icons/quest.png')}   label={t('BURNING')} to="Burning" />
+            <IconLabeled iconSrc={require('../../assets/icons/quest.png')}   label={t('RANKING')} to="Ranking" />
             <IconLabeled iconSrc={require('../../assets/icons/setting.png')} label={t('SETTINGS')} to="Settings" />
           </View>
         </View>
@@ -258,15 +297,17 @@ const styles = StyleSheet.create({
     height: BOX_HEIGHT,
     backgroundColor: 'rgba(255,255,255,0.8)',
     borderRadius: 30,
-    borderWidth: 4,
+    borderWidth: 3,
     borderColor: '#333',
     padding: BOX_PAD,
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
+    // ios
     shadowColor: '#000',
-    shadowOffset: { width: 5, height: 10 },
+    shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
+    shadowRadius: 1,
+    // Android
     elevation: 10
   },
   boxText: {
@@ -276,27 +317,32 @@ const styles = StyleSheet.create({
     fontFamily: FONT,
     includeFontPadding: false
   },
+
+  /* Gauge */
   gaugeWrapper: {
-    flexDirection: 'row', // EXP 왼쪽 + 게이지 오른쪽
+    flexDirection: 'row',
     gap: 5
   },
   gaugeContainer: {
-    width: '52%',
     height: 20,
     borderWidth: 3,
     borderColor: '#111827',
     borderRadius: 8,
-    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.7)',
-    shadowColor: '#000',
-    shadowOffset: { width: 8, height: 7 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 8
+    overflow: 'hidden'
   },
-  gaugeFill: {
+  gaugeShadowWrapper: {
+    width: '50%',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 1,
+    elevation: 8,
+  },
+  gaugeFillBase: {
     position: 'absolute',
     top: 0,
     bottom: 0
@@ -316,10 +362,12 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontFamily: FONT,
     color: '#fff',
-    textShadowColor: 'rgba(0,0,0,0.7)',
-    textShadowOffset: { width: 2, height: 1 },
-    textShadowRadius: 2
+    textShadowColor: 'rgba(0,0,0,0.9)',
+    textShadowOffset: { width: 5, height: 5 },
+    textShadowRadius: 3
   },
+
+  /* Bottom labels */
   labelText: {
     fontSize: 18,
     marginTop: -8,
@@ -327,5 +375,55 @@ const styles = StyleSheet.create({
     color: 'tomato',
     includeFontPadding: false,
     textAlign: 'center'
+  },
+
+  iconWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: ICON_SIZE +4,
+    paddingVertical: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 1,
+    elevation: 6
+  },
+
+  iconImage: {
+    width: ICON_SIZE,
+    height: ICON_SIZE,
+    resizeMode: 'contain'
+  },
+
+  /* Store badge */
+  storeBadge: {
+    position: 'absolute',
+    left: -20, right: 0,
+    alignSelf: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    height: 36,
+    marginHorizontal: 'auto',
+    width: 110,
+    backgroundColor: 'rgba(17,24,39,0.8)',
+    borderRadius: 14,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 1,
+    elevation: 8,
+  },
+  storeBadgeEmoji: {
+    fontSize: 17
+  },
+  storeBadgeText: {
+    fontFamily: FONT,
+    fontSize: 18,
+    color: '#fff',
+    includeFontPadding: false
   }
 })

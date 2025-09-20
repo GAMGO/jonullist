@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import java.util.*;
 import java.util.stream.Collectors;
 
-
 /*
  * 비밀번호 복구 모듈 (모든 구성요소를 한 파일로 통합)
  *
@@ -35,15 +34,15 @@ public class RecoveryController {
 
     private final RecoveryService service;
 
-    // >>> [ADDED] 보안질문 등록/수정(3개) - 로그인 필요
+    // 보안질문 등록/수정(3개-->2개) - 로그인 필요
     @PutMapping("/profile/security-questions")
     public ResponseEntity<?> setQuestions(@AuthenticationPrincipal UserDetails user,
-                                          @Valid @RequestBody SetSecurityQuestionsRequest req) {
+            @Valid @RequestBody SetSecurityQuestionsRequest req) {
         service.setQuestions(user.getUsername(), req.getAnswers());
         return ResponseEntity.noContent().build();
     }
 
-    // >>> [ADDED] 복구 시작: 이메일(ID) → 랜덤 2개 코드
+    // 복구 시작: 이메일(ID) → 랜덤 2개 코드
     @PostMapping("/recover/start")
     public ResponseEntity<?> start(@Valid @RequestBody RecoverStartRequest req) {
         try {
@@ -54,22 +53,38 @@ public class RecoveryController {
         }
     }
 
-    // >>> [ADDED] 2개 답 검증 → 단기 토큰 발급
+    // 2개 답 검증 → 단기 토큰 발급
     @PostMapping("/recover/verify")
     public ResponseEntity<?> verify(@Valid @RequestBody RecoverVerifyRequest req) {
         Map<RecoveryQuestionCode, String> map = req.getAnswers().stream()
                 .collect(Collectors.toMap(RecoverVerifyRequest.Ans::getCode, RecoverVerifyRequest.Ans::getAnswer));
         boolean ok = service.verifyAnswers(req.getId(), map);
-        if (!ok) return ResponseEntity.badRequest().body(Map.of("message", "답이 올바르지 않습니다."));
+        if (!ok)
+            return ResponseEntity.badRequest().body(Map.of("message", "답이 올바르지 않습니다."));
         String token = service.createRecoveryToken(req.getId());
         return ResponseEntity.ok(RecoverVerifyResponse.builder().recoveryToken(token).build());
     }
 
-    // >>> [ADDED] 토큰으로 비번 재설정
+    // 토큰으로 비번 재설정
     @PostMapping("/recover/reset")
     public ResponseEntity<?> reset(@Valid @RequestBody ResetPasswordRequest req) {
         boolean changed = service.resetPasswordWithToken(req.getRecoveryToken(), req.getNewPassword());
-        if (!changed) return ResponseEntity.badRequest().body(Map.of("message", "토큰이 유효하지 않거나 만료되었습니다."));
+        if (!changed)
+            return ResponseEntity.badRequest().body(Map.of("message", "토큰이 유효하지 않거나 만료되었습니다."));
         return ResponseEntity.ok(Map.of("message", "비밀번호가 변경되었습니다."));
+    }
+
+    // 아이디 찾기 로직
+// >>> [ADDED] 이름, 생년월일, 성별로 ID 찾기 → 2개 질문 코드 반환
+    @PostMapping("/recover/find-id")
+    public ResponseEntity<?> findId(@Valid @RequestBody FindIdRequest req) {
+        try {
+            // FindIdRequest는 이름, 생년월일, 성별을 포함합니다.
+            List<RecoveryQuestionCode> questions = service.findId(req.getName(), req.getBirth(), req.getGender());
+            // FindIdResponse를 사용하여 응답을 생성합니다.
+            return ResponseEntity.ok(new FindIdResponse(questions));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "일치하는 사용자 정보가 없습니다."));
+        }
     }
 }

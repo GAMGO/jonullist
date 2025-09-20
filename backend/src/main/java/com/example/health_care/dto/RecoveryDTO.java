@@ -11,15 +11,18 @@ import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
 public class RecoveryDTO {
+
+    //보안질문 설정 DTO
     @Getter
     @Setter
     public static class SetSecurityQuestionsRequest {
-        @Size(min = 3, max = 3)
+        @Size(min = 2, max = 2)
         @Valid
         private List<Item> answers;
 
@@ -38,6 +41,7 @@ public class RecoveryDTO {
     @Getter
     @Setter
     @AllArgsConstructor
+    @NoArgsConstructor
     public static class RecoverStartRequest {
         @NotBlank
         private String id;
@@ -51,6 +55,7 @@ public class RecoveryDTO {
         private List<RecoveryQuestionCode> questions;
     }
 
+    //인증완료해서 토큰 발급 DTO    
     @Getter
     @Setter
     public static class RecoverVerifyRequest {
@@ -85,5 +90,24 @@ public class RecoveryDTO {
         @NotBlank
         @Size(min = 8, max = 64)
         private String newPassword;
+    }
+
+    //아이디 찾기 DTO
+    @Getter
+    @Setter
+    public static class FindIdRequest {
+        @NotBlank
+        private String name;
+        @NotBlank
+        private String birth;
+        @NotBlank
+        private String gender;
+    }
+
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    public static class FindIdResponse {
+        private List<RecoveryQuestionCode> questions;
     }
 }

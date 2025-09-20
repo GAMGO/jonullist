@@ -9,6 +9,7 @@ import { API_BASE_DEBUG } from "../config/api"
 import { addCalories } from "../utils/calorieStorage"
 import { useNavigation, useRoute } from "@react-navigation/native" // 🔥 useRoute 추가
 import { useAuth } from '../context/AuthContext' // 🔥 추가
+import { useI18n } from '../i18n/I18nContext'
 
 const BOX_RADIUS = 12      // 모서리 둥글기
 const SCAN_THICK = 90      // 스캔 라인 두께(px)
@@ -25,7 +26,7 @@ export default function CameraScreen() {
   const nav = useNavigation()
   const route = useRoute() // 🔥 추가
   const { token } = useAuth() // 🔥 추가
-  const mealType = route.params?.type || 'lunch' // 🔥 추가
+  const mealType = route.params?.type || t('LUNCH') // 🔥 추가
   
   const [zoom, setZoom] = useState(0)
   const [focusPt, setFocusPt] = useState(null)
@@ -37,6 +38,7 @@ export default function CameraScreen() {
   const borderGlow = useRef(new Animated.Value(0)).current
   const [thumbHeight, setThumbHeight] = useState(400)
 
+  const { t } = useI18n();
   useLayoutEffect(() => {
     nav.setOptions({
       headerShown: true,
@@ -63,8 +65,8 @@ export default function CameraScreen() {
     try {
       // 🔥 토큰 확인
       if (!token) {
-        console.error("❌ 토큰이 없습니다! 로그인이 필요합니다.")
-        alert("로그인이 필요합니다. 다시 로그인해주세요.")
+        console.error(`❌ ${t('NO_TOKEN')}`)
+        alert(t('NEED_LOGIN'))
         return
       }
       
@@ -92,8 +94,8 @@ export default function CameraScreen() {
       
       if (!response.ok) {
         const errorText = await response.text()
-        console.error("❌ API 오류:", errorText)
-        throw new Error(`API 오류: ${response.status}`)
+        console.error(`❌ API ${t('ERR')}:`, errorText)
+        throw new Error(`API ${t('ERR')}: ${response.status}`)
       }
       
       const result = await response.text()
@@ -102,7 +104,7 @@ export default function CameraScreen() {
       nav.goBack()
     } catch (e) {
       console.warn("saveFoodStat error:", e)
-      alert("식단 저장에 실패했습니다. 다시 시도해주세요.")
+      alert(`${t('SAVE_FOOD_FAILED')}`)
     }
   }
 
@@ -131,10 +133,10 @@ export default function CameraScreen() {
   if (!permission.granted) {
     return (
       <SafeAreaView style={styles.centerWrap} edges={["top", "bottom"]}>
-        <Text style={styles.permTitle}>카메라 권한이 필요합니다</Text>
-        <Text style={styles.permSub}>음식 사진을 찍어 칼로리를 추정하려면 카메라 접근을 허용해 주세요.</Text>
+        <Text style={styles.permTitle}>{t('PERMISSION_CAMERA_NEEDED')}</Text>
+        <Text style={styles.permSub}>{t('PERMISSION_CAMERA_DETAIL_LOG')}</Text>
         <TouchableOpacity onPress={requestPermission} style={styles.primaryBtn}>
-          <Text style={styles.primaryBtnText}>권한 허용</Text>
+          <Text style={styles.primaryBtnText}>{t('PERMISSION_ALLOW')}</Text>
         </TouchableOpacity>
       </SafeAreaView>
     )
@@ -153,14 +155,14 @@ export default function CameraScreen() {
       const foodObject = result || {}
       const finalCalories = foodObject?.output?.calories || 0
       foodObject.calories = finalCalories
-      if (!foodObject.dish) foodObject.dish = "알 수 없는 음식"
+      if (!foodObject.dish) foodObject.dish = t('UNIDENTIFY_FOOD')
       setFood(foodObject)
     } catch (e) {
       if (e?.message?.includes?.("429") || e?.message?.includes?.("quota")) {
-        setError("⚠️ 오늘 사용 가능한 분석 요청 횟수를 모두 소진했습니다.")
+        setError(`⚠️ ${t('RANOUT_COUNT_RESPONSE')}`)
       } else {
-        console.error("takeAndAnalyze 오류:", e)
-        setError("분석 중 문제가 발생했어요.")
+        console.error(`takeAndAnalyze ${t('ERR')}:`, e)
+        setError(t('ERR_ANALYZING'))
       }
     } finally {
       setBusy(false)
@@ -183,7 +185,7 @@ export default function CameraScreen() {
         <CameraView ref={cameraRef} style={{ flex: 1 }} facing="back" zoom={zoom}>
           <Pressable style={StyleSheet.absoluteFill} onPress={handleTapToFocus} />
           <SafeAreaView edges={["top"]} style={styles.topOverlay} pointerEvents="none">
-            <Text style={styles.topHint}>음식이 중앙에 오도록 맞춰주세요</Text>
+            <Text style={styles.topHint}>{t('CENTER_PLZ')}</Text>
           </SafeAreaView>
           <View style={styles.guideWrap} pointerEvents="none">
             <View style={styles.guideBox} />
@@ -247,7 +249,7 @@ export default function CameraScreen() {
                     </Animated.View>
                     <View style={styles.scanningBadge}>
                       <ActivityIndicator size="small" />
-                      <Text style={styles.scanningText}>분석 중…</Text>
+                      <Text style={styles.scanningText}>{t('ANALYZING')}…</Text>
                     </View>
                   </>
                 )}
@@ -256,21 +258,21 @@ export default function CameraScreen() {
 
             {!busy && food && (
               <View style={styles.card}>
-                <Text style={styles.cardTitle}>분석 결과</Text>
+                <Text style={styles.cardTitle}>{t('RESULT')}</Text>
                 <Text style={styles.foodRow}>
                   <Text style={styles.foodStrong}>{food.dish}</Text>
                 </Text>
                 <View style={styles.chipsRow}>
                   <View style={styles.chip}>
-                    <Text style={styles.chipText}>🔥 {food.calories} kcal</Text>
+                    <Text style={styles.chipText}>🔥 {food.calories} {t('CALORIES')}</Text>
                   </View>
                 </View>
                 <View style={styles.cardActions}>
                   <TouchableOpacity onPress={resetShot} style={styles.secondaryBtn}>
-                    <Text style={styles.secondaryBtnText}>다시 찍기</Text>
+                    <Text style={styles.secondaryBtnText}>{t('RETAKE')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => saveFoodStat({ dish: food.dish, calories: food.calories })} style={styles.primaryBtn}>
-                    <Text style={styles.primaryBtnText}>저장</Text>
+                    <Text style={styles.primaryBtnText}>{t('SAVE')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -281,7 +283,7 @@ export default function CameraScreen() {
                 <Text style={styles.errText}>{error}</Text>
                 <View style={{ height: 12 }} />
                 <TouchableOpacity onPress={resetShot} style={styles.secondaryBtn}>
-                  <Text style={styles.secondaryBtnText}>다시 찍기</Text>
+                  <Text style={styles.secondaryBtnText}>{t('RETAKE')}</Text>
                 </TouchableOpacity>
               </View>
             )}
