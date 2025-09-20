@@ -24,3 +24,4 @@ public interface MealAlarmTokenRepository extends JpaRepository<MealAlarmTokensE
     Optional<MealAlarmTokensEntity> findByToken(String token);
 }
 
+

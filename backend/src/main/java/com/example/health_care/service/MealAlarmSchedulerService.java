@@ -81,12 +81,36 @@ public class MealAlarmSchedulerService {
             
             log.debug("식사 알림 스케줄러 실행 - 타입: {}, 현재 시간: {}", mealType, currentTimeStr);
 
-            // TODO: 모든 사용자의 알림 설정 조회
-            // 현재는 개별 사용자 조회만 가능하므로, 전체 사용자 조회 메서드가 필요
-            // 실제 구현 시에는 settingsService에 전체 설정 조회 메서드 추가 필요
+            // 알림 활성화된 모든 사용자의 설정 조회
+            List<MealAlarmSettingsEntity> activeSettings = settingsService.getActiveSettings();
             
-            // 임시로 알림 발송 로그만 남김
-            log.info("식사 알림 스케줄러 - {} 시간 알림 발송 예정 (현재 시간: {})", mealType, currentTimeStr);
+            if (activeSettings.isEmpty()) {
+                log.debug("알림 활성화된 사용자가 없습니다.");
+                return;
+            }
+
+            log.info("식사 알림 스케줄러 - {} 시간 알림 발송 시작 (현재 시간: {}, 대상 사용자: {}명)", 
+                    mealType, currentTimeStr, activeSettings.size());
+
+            // 각 사용자별로 알림 발송 여부 확인 및 발송
+            int sentCount = 0;
+            for (MealAlarmSettingsEntity setting : activeSettings) {
+                try {
+                    // 알림 발송 조건 확인
+                    if (shouldSendAlarm(setting, mealType, currentTime)) {
+                        // 알림 발송
+                        sendAlarmToUser(setting, mealType, title, body);
+                        sentCount++;
+                        log.debug("식사 알림 발송 완료 - 사용자: {}, 타입: {}", 
+                                setting.getCustomer().getId(), mealType);
+                    }
+                } catch (Exception e) {
+                    log.error("사용자별 알림 발송 실패 - 사용자: {}, 타입: {}, 에러: {}", 
+                             setting.getCustomer().getId(), mealType, e.getMessage());
+                }
+            }
+
+            log.info("식사 알림 스케줄러 완료 - 타입: {}, 발송된 알림: {}개", mealType, sentCount);
             
         } catch (Exception e) {
             log.error("식사 알림 스케줄러 실행 중 오류 발생 - 타입: {}, 에러: {}", mealType, e.getMessage(), e);
