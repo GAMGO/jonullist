@@ -23,3 +23,4 @@ public interface MealAlarmTokenRepository extends JpaRepository<MealAlarmTokensE
     // 토큰으로 사용자 찾기 : 푸시 발송 실패 시 사용자 식별
     Optional<MealAlarmTokensEntity> findByToken(String token);
 }
+

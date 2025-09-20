@@ -37,12 +37,32 @@ const ENV_PORT = Number(process.env.EXPO_PUBLIC_API_PORT ?? EXTRA.apiPort ?? 300
 function pickFirst(...vals) { return vals.find(v => v != null && v !== '') }
 
 function getDevOrigin() {
-  if (ENV_ORIGIN) return ENV_ORIGIN;
 
-  if (Platform.OS === 'android') {
-    const host = pickFirst(getHostFromExpo(), getHostFromScriptURL());
-    if (!host || !isPrivateIp(host)) {
-      return `http://10.0.2.2:${ENV_PORT}`; // 혹시라도 안 되면 이걸 의심하시길
+  if (ENV_ORIGIN) return ENV_ORIGIN
+  const expoHost = getHostFromExpo()
+  const metroHost = getHostFromScriptURL()
+  let host
+  if (isPrivateIp(expoHost)) {
+    host = expoHost
+  } else if (isPrivateIp(metroHost)) {
+    host = metroHost
+  } else {
+    // ip 1개 지정 후 주석 풀고 사용
+    if (Platform.OS === 'android') {
+      // host = '192.168.240.43' // << 준우님 핫스팟 ip
+      host = '192.168.0.5' // << 준우님 집 ip 
+      // host = '172.30.1.64' // << 메가커피 ip 192.168.0.13
+      // host = '192.168.0.13' // << 학원 ip 
+      // host = '172.20.10.3' // << 홍 ip 
+    } else if (Platform.OS === 'ios') {
+      // host = '192.168.156.43'
+      // host = '192.168.0.5'
+      // host = '172.30.1.64'
+      // host = '192.168.0.13'
+      host = '172.20.10.3'
+    } else {
+      host = 'localhost'
+
     }
   }
   if (Platform.OS === 'ios') {
