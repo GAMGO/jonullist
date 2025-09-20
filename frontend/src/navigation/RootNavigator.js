@@ -23,6 +23,7 @@ import RecoveryScreens from '../screens/RecoveryScreens';
 import { useI18n } from '../i18n/I18nContext';
 import FindIdScreen from '../screens/FindIdScreen';
 import CoinStoreScreen from '../screens/CoinStoreScreen'; // ✅ 상점 추가
+import AlarmSettingsScreen from '../screens/AlarmSettingsScreen'; // ✅ 알림 설정 추가
 
 const Stack = createNativeStackNavigator();
 
@@ -70,6 +71,8 @@ function AppStack({ initialRouteName = 'Home' }) {
       <Stack.Screen name="VoicePicker" component={VoicePickerScreen} options={{ title: t('VOICE_PICKER_SCREEN') }} />
       {/* ✅ 상점 스크린 */}
       <Stack.Screen name="Store" component={CoinStoreScreen} options={{ headerShown: true, title: '' }} />
+      {/* ✅ 알림 설정 스크린 */}
+      <Stack.Screen name="AlarmSettings" component={AlarmSettingsScreen} options={{ headerShown: true, title: '' }} />
     </Stack.Navigator>
   );
 }
@@ -84,7 +87,7 @@ export default function RootNavigator() {
         <ActivityIndicator />
       </View>
     );
-  }
+    }
 
   if (!isAuthenticated) return <AuthStack />;
 

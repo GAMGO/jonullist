@@ -227,4 +227,3 @@ export async function apiPut(path, body, init) {
 }
 export async function apiPatch(path, body, init) {
   return request('PATCH', path, { body, headers: init?.headers, timeoutMs: init?.timeoutMs });
-}
