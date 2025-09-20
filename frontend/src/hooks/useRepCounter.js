@@ -1,4 +1,4 @@
-// src/hooks/useRepCounter.js
+
 import { useEffect, useRef, useState } from "react"
 import { Accelerometer } from "expo-sensors"
 
