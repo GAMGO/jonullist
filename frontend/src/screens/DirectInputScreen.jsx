@@ -28,7 +28,7 @@ export default function DirectInputScreen() {
 
       try {
         const remote= await apiGet('/api/favorite');
-        console.log('서버에서 받은 데이터:', remote);
+        console.log(t('SERVER_DATA'), remote);
         if (Array.isArray(remote)) {
           setFavs(remote);
           await AsyncStorage.setItem(FAV_KEY, JSON.stringify(remote)); // 로컬 캐싱
@@ -52,12 +52,12 @@ export default function DirectInputScreen() {
   const addToFavs = async () => {
     const kcal = Number(calories);
     if (!food.trim() || !Number.isFinite(kcal) || kcal <= 0) {
-      Alert.alert('입력 확인', '음식명과 유효한 칼로리를 입력해주세요.');
+      Alert.alert(t('CHECK_INSERT'),t('PLZ_INSERT_CALORIES_AND_FOOD'));
       return;
     }
     const exists = favs.some(f => f.food === food.trim() && Number(f.calories) === kcal);
     if (exists) {
-      Alert.alert('이미 있음', '이미 즐겨찾기에 있어요.');
+      Alert.alert(t('ALREADY_IN'), t('ALREADY_IN_FAVORITES'));
       return;
     }
 
@@ -69,13 +69,13 @@ export default function DirectInputScreen() {
 
       // 서버 저장은 따로 실행 (UI 반영에 영향 안 주게)
       apiPost('/api/favorite', newFav).catch(e => {
-         console.error('서버 즐겨찾기 저장 실패', e?.message || e);
+         console.error(t('FAILED_SAVE_FAVORITES'), e?.message || e);
       });
 
-      Alert.alert('즐겨찾기', '즐겨찾기에 저장했어요.');
+      Alert.alert(t('FAVORITES'), t('SAVE_FAVORITES'));
     } catch (e) {
-      console.error('서버 즐겨찾기 저장 실패', e?.message || e);
-      Alert.alert('오류', '서버에 저장하지 못했습니다.');
+      console.error(t('FAILED_SAVE_FAVORITES'), e?.message || e);
+      Alert.alert(t('ERR'), t('FAILED_SAVE_IN_SERVER'));
     }
   };
 
@@ -87,7 +87,7 @@ export default function DirectInputScreen() {
       await apiDelete(`/api/favorite/${id}`); // 서버에서도 삭제
       }
     } catch (e) {
-      console.error('서버 즐겨찾기 삭제 실패', e?.message || e);
+      console.error(t('FAILED_DELETE_FAVORITES'), e?.message || e);
     }
   };
 
@@ -101,7 +101,7 @@ export default function DirectInputScreen() {
   const saveEntry = () => {
     const kcal = Number(calories);
     if (!food.trim() || !Number.isFinite(kcal) || kcal <= 0) {
-      Alert.alert('입력 확인', '음식명과 유효한 칼로리를 입력해주세요.');
+      Alert.alert(t('CHECK_INSERT'), t('PLZ_INSERT_CALORIES_AND_FOOD'));
       return;
     }
     const entry = { food: food.trim(), calories: kcal };
@@ -112,12 +112,12 @@ export default function DirectInputScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#111827', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight:0 }}>
       <View style={styles.container}>
-        <Text style={styles.meta}>{dateKey} • 🍽 {mealType === 'morning' ? '아침' : mealType === 'lunch' ? '점심' : '저녁'}</Text>
+        <Text style={styles.meta}>{dateKey} • 🍽 {mealType === 'morning' ? t('MORNING') : mealType === 'lunch' ? t('LUNCH') :t('DINNER')}</Text>
 
         {/* 입력 */}
         <View style={styles.inputRow}>
           <TextInput
-            placeholder="음식명"
+            placeholder={t('FOOD_NAME')}
             value={food}
             onChangeText={setFood}
             style={[styles.input, { flex: 1 }]}
@@ -125,7 +125,7 @@ export default function DirectInputScreen() {
             placeholderTextColor="#999"
           />
           <TextInput
-            placeholder="kcal"
+            placeholder={t('CALORIES')}
             value={calories}
             onChangeText={setCalories}
             keyboardType="numeric"
@@ -137,15 +137,15 @@ export default function DirectInputScreen() {
         {/* 액션 */}
         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
           <Pressable style={styles.primaryBtn} onPress={saveEntry}>
-            <Text style={styles.primaryBtnText}>저장</Text>
+            <Text style={styles.primaryBtnText}>{t('SAVE')}</Text>
           </Pressable>
           <Pressable style={styles.secondaryBtn} onPress={addToFavs}>
-            <Text style={styles.secondaryBtnText}>⭐ 즐겨찾기</Text>
+            <Text style={styles.secondaryBtnText}>⭐{t('FAVORITES')}</Text>
           </Pressable>
         </View>
 
         {/* 즐겨찾기 */}
-        <Text style={styles.sectionTitle}>📌 자주 먹는 식단</Text>
+        <Text style={styles.sectionTitle}>📌 {t('FREQ_DIET')}</Text>
         <FlatList
           data={favs}
           keyExtractor={(item, i) => item.idx ? String(item.idx):String(i)}
@@ -154,17 +154,17 @@ export default function DirectInputScreen() {
               style={styles.favItem}
               onPress={() => pickFav(item)}
               onLongPress={() => {
-                Alert.alert('삭제', `"${item.food} (${item.calories}kcal)" 즐겨찾기를 삭제할까요?`, [
-                  { text: '취소' },
-                  { text: '삭제', style: 'destructive', onPress: () => removeFav(index, item.idx || item.id || null) },
+                Alert.alert(t('DELETE'), `"${item.food} (${item.calories}kcal)" ${t('IS_DELETE_FAVORITES')}?`, [
+                  { text: t('CANCEL') },
+                  { text: t('DELETE'), style: 'destructive', onPress: () => removeFav(index, item.idx || item.id || null) },
                 ]);
               }}
             >
               <Text style={styles.favText}>{item.food} · {item.calories} kcal</Text>
-              <Text style={styles.favDelHint}>길게 눌러 삭제</Text>
+              <Text style={styles.favDelHint}>{t('DELETE_LONG')}</Text>
             </Pressable>
           )}
-          ListEmptyComponent={<Text style={styles.empty}>즐겨찾기가 비어 있어요. 위에서 ⭐ 버튼으로 추가하세요.</Text>}
+          ListEmptyComponent={<Text style={styles.empty}>{t('ADD_MEAL_HINT')}</Text>}
           contentContainerStyle={{ paddingVertical: 8 }}
         />
       </View>
