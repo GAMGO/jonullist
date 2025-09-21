@@ -82,22 +82,7 @@ export default function DietLogScreen() {
     }
   }, []);
 
-  // 아래 코드 기능 구현에 문제 없어서 주석처리. 수정중에 필요시 재사용 가능성 있으므로 살려둠
-  // // 날짜 바뀔 때마다 데이터 로드 + 칼로리 로컬 스토리지 반영
-  // useEffect(() => {
-  //   const syncDayAndCalories = async () => {
-  //     await fetchDay(dateKey);
-
-  //     const total = [...dayMeals.morning, ...dayMeals.lunch, ...dayMeals.dinner]
-  //       .reduce((sum, m) => sum + (m.calories || 0), 0);
-
-  //     await addCalories(total, true); // 덮어쓰기 모드
-  //   };
-
-  //   syncDayAndCalories();
-  // }, [dateKey, fetchDay]);
-
-
+  
   // 화면 다시 열릴 때 새로고침
   useFocusEffect(
     useCallback(() => {
@@ -251,8 +236,15 @@ export default function DietLogScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: 'transparent' },
-  container: { flex: 1, padding: 20, backgroundColor: 'transparent' },
+  safeArea: { 
+    flex: 1, 
+    backgroundColor: 'transparent' 
+  },
+  container: { 
+    flex: 1, 
+    padding: 20, 
+    backgroundColor: 'transparent' 
+  },
 
   // 날짜 버튼
   dateButton: {
@@ -271,9 +263,25 @@ const styles = StyleSheet.create({
   },
 
   // 피커
-  pickerOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end', zIndex: 999 },
-  pickerBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' },
-  pickerSheet: { backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingBottom: 12 },
+  pickerOverlay: { 
+    position: 'absolute', 
+    left: 0, 
+    right: 0, 
+    top: 0, 
+    bottom: 0, 
+    justifyContent: 'flex-end', 
+    zIndex: 999 
+  },
+  pickerBackdrop: { 
+    ...StyleSheet.absoluteFillObject, 
+    backgroundColor: 'rgba(0,0,0,0.35)' 
+  },
+  pickerSheet: { 
+    backgroundColor: '#fff',  
+    borderTopLeftRadius: 16, 
+    borderTopRightRadius: 16, 
+    paddingBottom: 12 
+  },
   pickerToolbar: {
     height: 48,
     flexDirection: 'row',
@@ -283,24 +291,50 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
-  pickerBody: { height: 360 },
-  toolbarBtn: { fontSize: 16, color: 'tomato', fontFamily: 'DungGeunMo' },
-  toolbarTitle: { fontSize: 16, color: '#333', fontFamily: 'DungGeunMo' },
+  pickerBody: { 
+    height: 360 
+  },
+
+  toolbarBtn: { 
+    fontSize: 16, 
+    color: 'tomato', 
+    fontFamily: 'DungGeunMo' 
+  },
+  toolbarTitle: { 
+    fontSize: 16, 
+    color: '#333', 
+    fontFamily: 'DungGeunMo' 
+  },
 
   // 식단
-  mealBlock: { padding: 6, alignItems: 'flex-start' },
+  mealBlock: { 
+    padding: 6, 
+    alignItems: 'flex-start' 
+  },
   section: {
     borderWidth: 4,
-    borderColor: '#fff',
+    borderColor: '#eee',
     borderRadius: 12,
     padding: 22,
     height: 130,
     marginBottom: 15,
     backgroundColor: 'rgba(255,255,255,0.8)',
   },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  sectionTitle: { fontSize: 22, color: '#333', fontFamily: 'DungGeunMo' },
-  headerActions: { flexDirection: 'row', gap: 8 },
+  sectionHeader: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    gap: 8 
+  },
+  sectionTitle: { 
+    fontSize: 22, 
+    color: '#333', 
+    fontFamily: 'DungGeunMo' 
+  },
+  headerActions: { 
+    flexDirection: 'row', 
+    gap: 8 
+  },
 
   // 버튼
   primaryBtn: {
@@ -313,7 +347,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
   },
-  primaryBtnText: { color: '#000', fontSize: 14, fontFamily: 'DungGeunMo' },
+  primaryBtnText: { 
+    color: '#000', 
+    fontSize: 14, 
+    fontFamily: 'DungGeunMo' 
+  },
   secondaryBtn: {
     backgroundColor: '#fff',
     paddingHorizontal: 12,
@@ -322,11 +360,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
   },
-  secondaryBtnText: { color: '#333', fontSize: 12, fontFamily: 'DungGeunMo' },
+  secondaryBtnText: { 
+    color: '#333', 
+    fontSize: 12, 
+    fontFamily: 'DungGeunMo' 
+  },
 
   // 리스트/텍스트
-  item: { fontSize: 16, marginVertical: 6, color: '#333', fontFamily: 'DungGeunMo' },
-  empty: { fontSize: 14, color: '#999', paddingTop: 4, fontFamily: 'DungGeunMo' },
+  item: { 
+    fontSize: 16, 
+    marginVertical: 6, 
+    color: '#333', 
+    fontFamily: 'DungGeunMo' 
+  },
+  empty: { 
+    fontSize: 14, 
+    color: '#999', 
+    paddingTop: 4, 
+    fontFamily: 'DungGeunMo' 
+  },
   total: {
     fontSize: 30,
     marginTop: 30,
@@ -335,6 +387,6 @@ const styles = StyleSheet.create({
     fontFamily: 'DungGeunMo',
     textShadowColor: 'rgba(0,0,0,0.9)',
     textShadowOffset: { width: 3, height: 3 },
-    textShadowRadius: 2,
+    textShadowRadius: 2
   },
 });
