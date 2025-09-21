@@ -13,12 +13,6 @@
         "CAMERA",
         "RECORD_AUDIO",
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "CAMERA",
-        "RECORD_AUDIO",
-        "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
       ],
       "package": "com.yunokio.frontend"
@@ -29,6 +23,12 @@
         "NSCameraUsageDescription": "스쿼트 카운트 및 음식 사진 촬영을 위해 카메라를 사용합니다.",
         "NSMicrophoneUsageDescription": "일부 기기에서 카메라 사용 시 마이크 권한이 함께 요구될 수 있습니다."
       }
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "3d1862d0-f69a-4e24-b644-e7ad42177d07"
+      }
+    },
+    "owner": "yunokio"
   }
 }
