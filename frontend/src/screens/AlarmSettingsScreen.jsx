@@ -1,14 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, Switch, Pressable, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, Switch, Pressable, StyleSheet, Alert, ActivityIndicator, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { getAlarmSettings, saveAlarmSettings, updateAlarmSettings } from '../api/alarm';
 import { useFonts } from 'expo-font';
 import { useAuth } from '../context/AuthContext';
-import { autoRefreshToken } from '../config/api'; // 세션 재발급
+import { autoRefreshToken } from '../config/api';
+import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const FONT = 'DungGeunMo';
+const STORAGE_KEY = 'barbelmon.mealAlarm.schedules';
+const DAYS_AHEAD = 7;
 
-// ✅ 타임존/일자 영향 제거: 고정 기준일(2000-01-01)로 시간만 보존
 function normalizeTime(d) {
   if (!(d instanceof Date)) d = new Date(d);
   return new Date(2000, 0, 1, d.getHours(), d.getMinutes(), 0, 0);
@@ -16,13 +19,117 @@ function normalizeTime(d) {
 function makeTime(h, m) {
   return new Date(2000, 0, 1, Number(h ?? 0), Number(m ?? 0), 0, 0);
 }
+const pad2 = (n) => String(n).padStart(2, '0');
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
+async function ensureAndroidChannel() {
+  if (Platform.OS !== 'android') return;
+  await Notifications.setNotificationChannelAsync('default', {
+    name: '바벨몬 알림',
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: '#22c55e',
+    sound: 'default',
+    bypassDnd: false,
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+  });
+}
+async function ensurePermissions() {
+  const { status: existing } = await Notifications.getPermissionsAsync();
+  if (existing === 'granted') return true;
+  const { status } = await Notifications.requestPermissionsAsync();
+  return status === 'granted';
+}
+
+async function readScheduleIds() {
+  try {
+    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+async function writeScheduleIds(obj) {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(obj || {}));
+  } catch {}
+}
+async function cancelAllScheduled(idsObj) {
+  const values = Object.values(idsObj || {});
+  const flat = values.flat ? values.flat() : values.reduce((a, v) => a.concat(v), []);
+  await Promise.all(flat.map((id) => Notifications.cancelScheduledNotificationAsync(id).catch(() => null)));
+  await writeScheduleIds({});
+}
+
+function buildMessage(slot, hour, minute) {
+  const titleMap = { morning: '🍳 아침 알림', lunch: '🍱 점심 알림', dinner: '🍽️ 저녁 알림' };
+  const bodyMap = {
+    morning: `지금은 ${pad2(hour)}:${pad2(minute)}. 가벼운 아침으로 스타트!`,
+    lunch:   `지금은 ${pad2(hour)}:${pad2(minute)}. 점심으로 에너지 채우자!`,
+    dinner:  `지금은 ${pad2(hour)}:${pad2(minute)}. 오늘도 수고했어, 저녁 맛있게!`,
+  };
+  return {
+    title: titleMap[slot] || '바벨몬 알림',
+    body: bodyMap[slot] || '바벨몬에서 알림이 도착했어요.',
+  };
+}
+
+function nextDates(hour, minute, count) {
+  const dates = [];
+  const now = new Date();
+  for (let i = 0; i < count; i++) {
+    const d = new Date();
+    d.setHours(hour, minute, 0, 0);
+    d.setDate(d.getDate() + i);
+    if (d.getTime() <= now.getTime() + 30 * 1000) d.setDate(d.getDate() + 1);
+    dates.push(d);
+  }
+  return dates;
+}
+
+async function scheduleOneShotSeries(slot, hour, minute) {
+  const ids = [];
+  const msg = buildMessage(slot, hour, minute);
+  const dates = nextDates(hour, minute, DAYS_AHEAD);
+  for (const date of dates) {
+    const id = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: msg.title,
+        body: msg.body,
+        sound: 'default',
+        data: { type: 'meal', slot, scheduled: `${pad2(hour)}:${pad2(minute)}`, iso: date.toISOString() },
+      },
+      trigger: date,
+    });
+    ids.push(id);
+  }
+  return ids;
+}
+
+async function rescheduleAll({ morningHour, morningMinute, lunchHour, lunchMinute, dinnerHour, dinnerMinute }) {
+  await ensureAndroidChannel();
+  const granted = await ensurePermissions();
+  if (!granted) throw new Error('알림 권한이 거부되어 예약할 수 없습니다.');
+  const prev = await readScheduleIds();
+  await cancelAllScheduled(prev);
+  const ids = {};
+  ids.morning = await scheduleOneShotSeries('morning', morningHour, morningMinute);
+  ids.lunch   = await scheduleOneShotSeries('lunch',   lunchHour,   lunchMinute);
+  ids.dinner  = await scheduleOneShotSeries('dinner',  dinnerHour,  dinnerMinute);
+  await writeScheduleIds(ids);
+  return ids;
+}
 
 function TimeButton({ label, time, onPress, disabled }) {
-  const pad = (n) => String(n).padStart(2, '0');
   return (
     <Pressable style={[styles.timeBtn, disabled && { opacity: 0.6 }]} onPress={onPress} disabled={disabled}>
       <Text style={styles.timeLabel}>{label}</Text>
-      <Text style={styles.timeValue}>{pad(time.getHours())}:{pad(time.getMinutes())}</Text>
+      <Text style={styles.timeValue}>{pad2(time.getHours())}:{pad2(time.getMinutes())}</Text>
     </Pressable>
   );
 }
@@ -36,46 +143,33 @@ export default function AlarmSettingsScreen() {
   const [lunch,   setLunch]   = useState(() => makeTime(12, 30));
   const [dinner,  setDinner]  = useState(() => makeTime(19, 0));
 
-  const [pickerKey, setPickerKey] = useState(null); // 'morning' | 'lunch' | 'dinner'
+  const [pickerKey, setPickerKey] = useState(null);
   const [isNew, setIsNew] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // 공통: 서버에서 설정 로드(+배열 대응)
-  const loadSettings = async () => {
-    const data = await getAlarmSettings();
-    const settings = Array.isArray(data) ? data[0] : data; // ✅ 리스트면 0번만 사용
-    if (!settings || Object.keys(settings).length === 0) {
-      setIsNew(true);
-      return null;
-    }
-    setIsNew(false);
-    setEnabled(!!settings.alarmEnabled);
-    setMorning(makeTime(settings.morningHour, settings.morningMinute));
-    setLunch(makeTime(settings.lunchHour, settings.lunchMinute));
-    setDinner(makeTime(settings.dinnerHour, settings.dinnerMinute));
-    return settings;
-  };
-
-  // 화면 진입 시 세션 미리 갱신 + 현재 설정 로드
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        await autoRefreshToken().catch(() => null); // 선제 갱신(조용히 실패 무시)
-        setLoading(true);
+        await ensureAndroidChannel();
+        await ensurePermissions().catch(() => null);
+        await autoRefreshToken().catch(() => null);
         if (!mounted) return;
-        await loadSettings();
-      } catch (e) {
-        const msg = String(e?.message || '');
-        if (msg.includes('404') || /Not\s*Found/i.test(msg)) {
+        setLoading(true);
+        const data = await getAlarmSettings();
+        const settings = Array.isArray(data) ? data[0] : data;
+        if (!settings || Object.keys(settings).length === 0) {
           setIsNew(true);
         } else {
-          Alert.alert('오류', '알림 설정 조회에 실패했습니다.\n다시 시도해주세요.');
+          setIsNew(false);
+          setEnabled(!!settings.alarmEnabled);
+          setMorning(makeTime(settings.morningHour, settings.morningMinute));
+          setLunch(makeTime(settings.lunchHour, settings.lunchMinute));
+          setDinner(makeTime(settings.dinnerHour, settings.dinnerMinute));
         }
-      } finally {
-        if (mounted) setLoading(false);
-      }
+      } catch { setIsNew(true); }
+      finally { if (mounted) setLoading(false); }
     })();
     return () => { mounted = false; };
   }, []);
@@ -86,123 +180,39 @@ export default function AlarmSettingsScreen() {
     lunchHour:   lunch.getHours(),
     lunchMinute: lunch.getMinutes(),
     dinnerHour:  dinner.getHours(),
-    dinnerMinute:dinner.getMinutes(),
+    dinnerMinute: dinner.getMinutes(),
     alarmEnabled: enabled,
   }), [morning, lunch, dinner, enabled]);
 
-  // 텍스트로 온 에러에서 HTTP 코드 뽑기
-  const extractCode = (raw) => {
-    try {
-      if (typeof raw !== 'string') raw = String(raw ?? '');
-      const m = raw.match(/HTTP\s+(\d{3})/i);
-      if (m?.[1]) return Number(m[1]);
-      if (/403/.test(raw)) return 403;
-      if (/401/.test(raw)) return 401;
-      if (/404/.test(raw)) return 404;
-      if (/409/.test(raw)) return 409;
-    } catch {}
-    return null;
-  };
-
-  // 저장(탄탄한 재시도 전략)
-  const saveRobust = async () => {
-    const callCreate = () => saveAlarmSettings(payload);
-    const callUpdate = () => updateAlarmSettings(payload);
-
-    // 1차 시도: 현재 플래그대로
-    try {
-      console.log('[Alarm] save start', { isNew, payload });
-      await (isNew ? callCreate() : callUpdate());
-      return true;
-    } catch (e1) {
-      const r1 = String(e1?.message || '');
-      const c1 = extractCode(r1);
-      console.warn('[Alarm] first attempt failed:', c1, r1);
-
-      // 세션 문제면 한 번 갱신 후 동일 방식 재시도
-      if (c1 === 401 || c1 === 403) {
-        const refreshed = await autoRefreshToken();
-        if (refreshed) {
-          try {
-            await (isNew ? callCreate() : callUpdate());
-            return true;
-          } catch (e2) {
-            const r2 = String(e2?.message || '');
-            const c2 = extractCode(r2);
-            console.warn('[Alarm] retry after refresh failed:', c2, r2);
-            // 아래 fallback 로직으로 이어감
-          }
-        }
-      }
-
-      // 자주 나오는 상태 뒤집기 처리:
-      // - PUT인데 서버엔 없음(404) → POST로 재시도
-      // - POST인데 이미 있음(409, 혹은 400 특정 메시지) → PUT으로 재시도
-      if (!isNew && (c1 === 404)) {
-        console.log('[Alarm] fallback: PUT→POST');
-        await callCreate();
-        setIsNew(false);
-        return true;
-      }
-      if (isNew && (c1 === 409 || /already|exists/i.test(r1))) {
-        console.log('[Alarm] fallback: POST→PUT');
-        await callUpdate();
-        setIsNew(false);
-        return true;
-      }
-
-      throw e1; // 그래도 실패면 밖에서 처리
-    }
-  };
-
   async function onSave() {
-    // 피커 열려 있으면 닫고 저장
     if (pickerKey) {
       setPickerKey(null);
       setTimeout(onSave, 50);
       return;
     }
     if (saving) return;
-
     setSaving(true);
     try {
-      if (!isAuthenticated) {
-        // 세션 재발급 한 번 시도 (소셜/서버 세션이 살아있는 케이스 커버)
-        await autoRefreshToken().catch(() => null);
-      }
-
-      await saveRobust();
-      setIsNew(false);
-
-      // ✅ 저장 직후 재조회해서 로컬 상태를 서버와 강제 싱크
+      if (!isAuthenticated) await autoRefreshToken().catch(() => null);
       try {
-        const fresh = await loadSettings();
-        if (!fresh) console.log('[Alarm] saved but no settings from server');
+        if (isNew) { await saveAlarmSettings(payload); }
+        else { await updateAlarmSettings(payload); }
       } catch (e) {
-        console.warn('[Alarm] refetch after save failed:', e?.message || e);
+        const msg = String(e?.message || '');
+        if (!isNew && /404/.test(msg)) { await saveAlarmSettings(payload); setIsNew(false); }
+        else throw e;
       }
-
-      Alert.alert('바벨몬', '알림 설정이 저장되었습니다.');
+      if (enabled) {
+        await rescheduleAll(payload);
+      } else {
+        const prev = await readScheduleIds();
+        await cancelAllScheduled(prev);
+      }
+      Alert.alert('바벨몬', enabled ? '알림이 예약되었습니다.' : '알림이 해제되었습니다.');
     } catch (e) {
-      const raw = String(e?.message || '');
-      let detail = '알림 설정 저장에 실패했습니다.';
-      try {
-        if (raw.trim().startsWith('{')) {
-          const obj = JSON.parse(raw);
-          if (obj?.message) detail += `\n(${obj.message})`;
-        } else {
-          const code = extractCode(raw);
-          if (code) detail += `\n(HTTP ${code})`;
-          if (code === 401 || code === 403) {
-            detail += '\n세션이 만료되었을 수 있어요. 다시 로그인 후 시도해주세요.';
-          }
-        }
-      } catch {}
-      console.warn('[Alarm] save failed:', raw);
-      Alert.alert('오류', detail);
-    } finally {
-      setSaving(false);
-    }
+      console.warn('[Alarm] save/schedule failed:', e?.message || e);
+      Alert.alert('오류', '알림 설정 저장 또는 예약에 실패했습니다.\n권한/시간 설정을 확인해주세요.');
+    } finally { setSaving(false); }
   }
 
   function onChangeTime(_, selectedDate) {
@@ -230,28 +240,24 @@ export default function AlarmSettingsScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>식사 알림 설정</Text>
-
       <View style={styles.row}>
         <Text style={styles.label}>알림 사용</Text>
         <Switch value={enabled} onValueChange={setEnabled} />
       </View>
-
       <View style={styles.grid}>
         <TimeButton label="아침" time={morning} onPress={() => setPickerKey('morning')} />
         <TimeButton label="점심" time={lunch}   onPress={() => setPickerKey('lunch')} />
         <TimeButton label="저녁" time={dinner}  onPress={() => setPickerKey('dinner')} />
       </View>
-
       <Pressable style={[styles.saveBtn, !canSave && { opacity: 0.6 }]} onPress={onSave} disabled={!canSave}>
         <Text style={styles.saveText}>{saving ? '저장 중…' : '저장'}</Text>
       </Pressable>
-
       {pickerKey && (
         <DateTimePicker
           mode="time"
           value={pickerKey === 'morning' ? morning : pickerKey === 'lunch' ? lunch : dinner}
           onChange={onChangeTime}
-          display="spinner" // 숫자 스피너
+          display="spinner"
           is24Hour={true}
         />
       )}
