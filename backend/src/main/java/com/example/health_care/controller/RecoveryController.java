@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
-@Slf4j // 🚨이모지로 표시: 로깅 기능을 사용하기 위해 추가
+@Slf4j
 public class RecoveryController {
 
   private final RecoveryService service;
