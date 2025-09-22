@@ -1,5 +1,16 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, View, Text, TextInput, Pressable, StyleSheet, ImageBackground } from 'react-native'
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  ImageBackground,
+} from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as SecureStore from 'expo-secure-store'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -48,11 +59,6 @@ export default function ProfileScreen() {
     newId: '',
     newPassword: '',
     confirmPassword: '',
-
-    // 비밀번호 변경 카드용(분리)
-    pwCurrent: '',
-    pwNew: '',
-    pwConfirm: '',
   })
 
   const [loading, setLoading] = useState(true)
@@ -70,13 +76,6 @@ export default function ProfileScreen() {
 
   // 보안 질문 설정 여부
   const [hasSecurityQuestions, setHasSecurityQuestions] = useState(false)
-
-  // ▼▼ 새로 추가: 프로필 내 비밀번호 변경 카드 상태 ▼▼
-  const [editingPassword, setEditingPassword] = useState(false)
-  const [changingPassword, setChangingPassword] = useState(false)
-  const [errPassword, setErrPassword] = useState('')
-  const [okPassword, setOkPassword] = useState('')
-  // ▲▲ 새로 추가 ▲▲
 
   const getAuth = useCallback(async () => {
     const ctxType = auth?.tokenType || auth?.token_type || 'Bearer'
@@ -114,7 +113,7 @@ export default function ProfileScreen() {
             headers: {
               Accept: 'application/json',
               ...(body ? { 'Content-Type': 'application/json' } : {}),
-              ...(token ? { Authorization: `${type} ${token}` } : {} ),
+              ...(token ? { Authorization: `${type} ${token}` } : {}),
             },
             credentials: 'include',
             ...(body ? { body: JSON.stringify(body) } : {}),
@@ -134,7 +133,7 @@ export default function ProfileScreen() {
       }
       throw lastErr || new Error(t('REQUEST_FAILED'))
     },
-    [getAuth]
+    [getAuth, t]
   )
 
   const applyToState = useCallback((obj) => {
@@ -146,8 +145,7 @@ export default function ProfileScreen() {
     const targetWeight = obj?.targetWeight ?? ''
     const targetCalories = obj?.targetCalories ?? ''
     setCurrent({ id: email, weight, height, age, gender })
-    setForm((prev) => ({
-      ...prev,
+    setForm({
       weight: weight === '' ? '' : String(weight),
       height: height === '' ? '' : String(height),
       age: age === '' ? '' : String(age),
@@ -157,10 +155,7 @@ export default function ProfileScreen() {
       newId: email ?? '',
       newPassword: '',
       confirmPassword: '',
-      pwCurrent: '',
-      pwNew: '',
-      pwConfirm: '',
-    }))
+    })
   }, [])
 
   const load = useCallback(async () => {
@@ -179,9 +174,11 @@ export default function ProfileScreen() {
         }
       }
     } catch {}
+
     try {
       const { data, used } = await fetchFirstOK('GET', ['/api/profile', '/api/profile/'])
       setGetEndpoint(used || '/api/profile')
+
       if (data) {
         applyToState(data)
 
@@ -208,6 +205,7 @@ export default function ProfileScreen() {
           setHasSecurityQuestions(false)
         }
       }
+
       setLoading(false)
       try { await AsyncStorage.removeItem('@profile/prefill') } catch {}
     } catch (e) {
@@ -225,13 +223,18 @@ export default function ProfileScreen() {
 
   useEffect(() => { load() }, [load])
 
+  // 돌아왔을 때 상태 갱신(복구 설정 후)
+  useEffect(() => {
+    const unsub = nav.addListener?.('focus', () => load())
+    return unsub
+  }, [nav, load])
+
   const update = (k, v) => setForm(prev => ({ ...prev, [k]: v }))
 
-  // 비밀번호 확인 후 액션 진행 (계정 수정/복구세팅 버튼에서 사용)
+  // 비밀번호 확인 후 액션 진행
   const verifyPasswordAndProceed = async () => {
     setPasswordModalError('')
-    const pwd = passwordForVerification // 스냅샷
-
+    const pwd = passwordForVerification
     try {
       const res = await fetch(`${ORIGIN}/api/auth/login`, {
         method: 'POST',
@@ -267,14 +270,17 @@ export default function ProfileScreen() {
     try {
       const nextId = (form.newId || current.id || '').trim()
       if (!nextId || !/^\S+@\S+\.\S+$/.test(nextId)) throw new Error(t('EMAIL_INVALID'))
+
       const changingPw = !!form.newPassword || !!form.confirmPassword
       if (changingPw) {
         if ((form.newPassword || '').length < 8) throw new Error(t('PW_TOO_SHORT'))
         if (form.newPassword !== form.confirmPassword) throw new Error(t('PW_MISMATCH'))
       }
+
       const payload = { id: nextId, ...(changingPw ? { newPassword: form.newPassword } : {}) }
       const candidates = [getEndpoint, '/api/profile', '/api/profile/'].filter(Boolean)
       await fetchFirstOK('PUT', candidates, payload)
+
       setOkAccount(t('UPDATE_OK'))
       setEditingAccount(false)
       setCurrent(c => ({ ...c, id: nextId }))
@@ -329,51 +335,6 @@ export default function ProfileScreen() {
     }
   }
 
-  // ▼▼ 새로 추가: 비밀번호 변경 저장 ▼▼
-  const savePasswordOnly = async () => {
-    setChangingPassword(true)
-    setErrPassword('')
-    setOkPassword('')
-    try {
-      const cur = (form.pwCurrent || '').trim()
-      const npw = (form.pwNew || '').trim()
-      const cpw = (form.pwConfirm || '').trim()
-
-      if (!cur) throw new Error(t('ENTER_PW') || '현재 비밀번호를 입력하세요.')
-      if (npw.length < 8) throw new Error(t('PW_TOO_SHORT') || '비밀번호는 8자 이상이어야 합니다.')
-      if (npw !== cpw) throw new Error(t('PW_MISMATCH') || '비밀번호가 일치하지 않습니다.')
-      if (cur === npw) throw new Error(t('PW_SAME_AS_OLD') || '현재 비밀번호와 새 비밀번호가 같습니다.')
-
-      // 1) 현재 비밀번호 검증
-      const verifyRes = await fetch(`${ORIGIN}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: current.id, password: cur }),
-      })
-      const verifyData = await verifyRes.json().catch(() => ({}))
-      if (!verifyRes.ok) throw new Error(verifyData?.message || t('VERIFY_FAIL') || '비밀번호 확인 실패')
-
-      // 2) 새 비밀번호 저장
-      const candidates = [getEndpoint, '/api/profile', '/api/profile/'].filter(Boolean)
-      await fetchFirstOK('PUT', candidates, { id: current.id, newPassword: npw })
-
-      setOkPassword(t('PW_UPDATE_OK') || '비밀번호가 변경되었습니다.')
-      setEditingPassword(false)
-      setForm(f => ({ ...f, pwCurrent: '', pwNew: '', pwConfirm: '' }))
-
-    } catch (e) {
-      const msg = (e?.message || '').toLowerCase()
-      if (msg.includes('forbidden') || msg.includes('401') || msg.includes('403')) {
-        await logoutToWelcome()
-        return
-      }
-      setErrPassword(e?.message || t('UPDATE_FAIL'))
-    } finally {
-      setChangingPassword(false)
-    }
-  }
-  // ▲▲ 새로 추가 ▲▲
-
   if (!fontsLoaded) {
     return (
       <View style={[styles.center, { backgroundColor: '#000' }]}>
@@ -394,7 +355,7 @@ export default function ProfileScreen() {
     )
   }
 
-  // 모달
+  // 비밀번호 확인 모달
   if (showPasswordModal) {
     return (
       <View style={[styles.center, styles.modalOverlay]}>
@@ -440,15 +401,14 @@ export default function ProfileScreen() {
                 </View>
                 {!!errAccount && <Text style={styles.error}>{errAccount}</Text>}
                 {!!okAccount && <Text style={styles.ok}>{okAccount}</Text>}
-                {hasSecurityQuestions ? (
-                  <Pressable onPress={() => { setModalAction('editAccount'); setShowPasswordModal(true); }} style={styles.primaryBtn}>
-                    <Text style={styles.primaryBtnText}>{t('EDIT')}</Text>
-                  </Pressable>
-                ) : (
-                  <Pressable onPress={() => { setModalAction('recoverySetup'); setShowPasswordModal(true); }} style={styles.ghostBtn}>
-                    <Text style={styles.ghostBtnText}>{t('RECOVERY_SETUP')}</Text>
-                  </Pressable>
-                )}
+
+                {/* ← 보안질문 버튼은 별도 카드로 분리. 여기선 항상 "수정"만 */}
+                <Pressable
+                  onPress={() => { setModalAction('editAccount'); setShowPasswordModal(true) }}
+                  style={styles.primaryBtn}
+                >
+                  <Text style={styles.primaryBtnText}>{t('EDIT')}</Text>
+                </Pressable>
               </>
             ) : (
               <>
@@ -464,9 +424,12 @@ export default function ProfileScreen() {
                   <Pressable onPress={saveAccount} disabled={savingAccount} style={[styles.primaryBtn, savingAccount && { opacity: 0.6 }]}>
                     {savingAccount ? <ActivityIndicator /> : <Text style={styles.primaryBtnText}>{t('CONFIRM')}</Text>}
                   </Pressable>
-                  <Pressable onPress={() => { setEditingAccount(false)
-                    setForm(f => ({ ...f, newId: current.id || '', newPassword: '', confirmPassword: '' }))
-                  }} style={styles.ghostBtn}
+                  <Pressable
+                    onPress={() => {
+                      setEditingAccount(false)
+                      setForm(f => ({ ...f, newId: current.id || '', newPassword: '', confirmPassword: '' }))
+                    }}
+                    style={styles.ghostBtn}
                   >
                     <Text style={styles.ghostBtnText}>{t('CANCEL')}</Text>
                   </Pressable>
@@ -475,69 +438,38 @@ export default function ProfileScreen() {
             )}
           </View>
 
-          {/* ✅ 새로 추가: 비밀번호 변경 카드 */}
-          <View className="password-card" style={styles.card}>
-            <Text style={styles.cardTitle}>{t('비밀번호 변경') || '비밀번호 변경'}</Text>
-            {!editingPassword ? (
-              <>
-                <View style={styles.rowBetween}>
-                  <Text style={styles.label}>{t('PASSWORD')}</Text>
-                  <Text style={styles.value}>••••••••</Text>
-                </View>
-                {!!errPassword && <Text style={styles.error}>{errPassword}</Text>}
-                {!!okPassword && <Text style={styles.ok}>{okPassword}</Text>}
-                <Pressable onPress={() => setEditingPassword(true)} style={styles.primaryBtn}>
-                  <Text style={styles.primaryBtnText}>{t('EDIT') || '수정'}</Text>
-                </Pressable>
-              </>
-            ) : (
-              <>
-                <Text style={styles.label}>{t('CURRENT_PASSWORD') || '현재 비밀번호'}</Text>
-                <TextInput
-                  value={form.pwCurrent}
-                  onChangeText={v => update('pwCurrent', v)}
-                  secureTextEntry
-                  style={styles.input}
-                  placeholder={t('ENTER_PW') || '현재 비밀번호'}
-                />
-                <Text style={styles.label}>{t('NEW_PASSWORD') || '새 비밀번호'}</Text>
-                <TextInput
-                  value={form.pwNew}
-                  onChangeText={v => update('pwNew', v)}
-                  secureTextEntry
-                  style={styles.input}
-                  placeholder={t('PLACEHOLDER_NEW_PW') || '8자리 이상'}
-                />
-                <Text style={styles.label}>{t('PASSWORD_CONFIRM') || '비밀번호 확인'}</Text>
-                <TextInput
-                  value={form.pwConfirm}
-                  onChangeText={v => update('pwConfirm', v)}
-                  secureTextEntry
-                  style={styles.input}
-                  placeholder={t('PLACEHOLDER_CONFIRM_PW') || '다시 입력'}
-                />
+          {/* ✅ 보안 질문(계정 복구) 전용 카드 */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>{t('RECOVERY_QUESTIONS') || '보안 질문(계정 복구)'}</Text>
 
-                {!!errPassword && <Text style={styles.error}>{errPassword}</Text>}
-                {!!okPassword && <Text style={styles.ok}>{okPassword}</Text>}
+            <View style={styles.rowBetween}>
+              <Text style={styles.label}>{t('STATUS') || '상태'}</Text>
+              <View style={[styles.badge, hasSecurityQuestions ? styles.badgeOk : styles.badgeWarn]}>
+                <Text style={[styles.badgeText, hasSecurityQuestions ? styles.badgeTextOk : styles.badgeTextWarn]}>
+                  {hasSecurityQuestions ? (t('SET') || '설정됨') : (t('NOT_SET') || '미설정')}
+                </Text>
+              </View>
+            </View>
 
-                <View style={styles.row}>
-                  <Pressable onPress={savePasswordOnly} disabled={changingPassword} style={[styles.primaryBtn, changingPassword && { opacity: 0.6 }]}>
-                    {changingPassword ? <ActivityIndicator /> : <Text style={styles.primaryBtnText}>{t('CONFIRM') || '확인'}</Text>}
-                  </Pressable>
-                  <Pressable
-                    onPress={() => {
-                      setEditingPassword(false)
-                      setErrPassword('')
-                      setOkPassword('')
-                      setForm(f => ({ ...f, pwCurrent: '', pwNew: '', pwConfirm: '' }))
-                    }}
-                    style={styles.ghostBtn}
-                  >
-                    <Text style={styles.ghostBtnText}>{t('CANCEL') || '취소'}</Text>
-                  </Pressable>
-                </View>
-              </>
-            )}
+            <Text style={[styles.text, { marginBottom: 12, opacity: 0.8 }]}>
+              {hasSecurityQuestions
+                ? (t('RECOVERY_HINT_SET') || '분실 시 이메일 없이도 본인 확인이 가능합니다.')
+                : (t('RECOVERY_HINT_NOT_SET') || '분실 대비를 위해 지금 설정해 두세요.')}
+            </Text>
+
+            <View style={styles.row}>
+              <Pressable
+                onPress={() => { setModalAction('recoverySetup'); setShowPasswordModal(true) }}
+                style={styles.primaryBtn}
+              >
+                <Text style={styles.primaryBtnText}>
+                  {hasSecurityQuestions ? (t('CHANGE') || '변경/재설정') : (t('RECOVERY_SETUP') || '설정하기')}
+                </Text>
+              </Pressable>
+              <Pressable onPress={load} style={styles.ghostBtn}>
+                <Text style={styles.ghostBtnText}>{t('REFRESH') || '새로고침'}</Text>
+              </Pressable>
+            </View>
           </View>
 
           {/* 프로필 정보 카드 */}
@@ -718,7 +650,15 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 10, marginTop: 6 },
   row2: { flexDirection: 'row', gap: 12 },
   segmentWrap: { flexDirection: 'row', gap: 8 },
-  segmentBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(0,0,0,0.15)', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.9)' },
+  segmentBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.15)',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.9)',
+  },
   segmentBtnActive: { backgroundColor: '#111827', borderColor: '#111827' },
   segmentText: { color: '#111827', fontFamily: FONT, fontWeight: 'normal', fontSize: 16, lineHeight: 20, includeFontPadding: true },
   segmentTextActive: { color: '#fff', fontFamily: FONT, fontWeight: 'normal', fontSize: 16, lineHeight: 20, includeFontPadding: true },
@@ -736,4 +676,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     zIndex: 999,
   },
+
+  // badges for recovery status
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  badgeOk: { backgroundColor: 'rgba(16,185,129,0.1)', borderColor: 'rgba(16,185,129,0.4)' },     // green
+  badgeWarn: { backgroundColor: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.35)' },   // red
+  badgeText: { fontFamily: FONT, fontSize: 13, includeFontPadding: true },
+  badgeTextOk: { color: '#10B981' },
+  badgeTextWarn: { color: '#EF4444' },
 })

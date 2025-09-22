@@ -43,6 +43,15 @@ const maskEmail = (s = '') => {
   return `${maskedUser}@${[maskedHost, ...rest].join('.')}`;
 };
 
+/** ✅ axios응답/직접payload/문자열JSON 전부 안전하게 처리 */
+const asData = (res) => {
+  const payload = res && typeof res === 'object' && 'data' in res ? res.data : res;
+  if (typeof payload === 'string') {
+    try { return JSON.parse(payload); } catch { return {}; }
+  }
+  return payload ?? {};
+};
+
 export default function FindIdScreen() {
   const { t } = useI18n();
 
@@ -84,19 +93,23 @@ export default function FindIdScreen() {
 
     try {
       const res = await apiPost('/api/recover/find-id', payload);
-      // 백엔드: id가 곧 이메일
-      const email = res?.data?.id;
-      const qs = res?.data?.questions || [];
+      const data = asData(res); // ✅ 핵심
+      console.log('[FindIdScreen] payload:', data);
+
+      // 백엔드: { id: "이메일", questions: [...] }
+      const email = data?.id;
+      const qs = Array.isArray(data?.questions) ? data.questions : [];
 
       if (email) {
         const showFull = true; // 전체 노출 원치 않으면 false로 변경
         const display = showFull ? email : maskEmail(email);
         Alert.alert(t('FIND_ID_RESULT') || '아이디(이메일) 찾기 결과', display);
+        // 필요 시 여기서 상태/네비 전환 추가 가능:
+        // setLoginId?.(email); setQuestionsToAnswer?.(qs); setCurrentScreen?.('verify');
         return;
       }
 
       if (qs.length) {
-        // 백엔드가 아직 이메일을 안 실어 보낼 때 대비(폴백)
         Alert.alert(
           t('FIND_ID_RESULT') || '아이디(이메일) 찾기 결과',
           t('FIND_ID_QUESTIONS_READY') || '본인확인 질문 2개가 준비되었습니다.'
@@ -104,9 +117,15 @@ export default function FindIdScreen() {
         return;
       }
 
-      Alert.alert(t('ALERT_ERROR') || '오류', t('ALERT_INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
+      Alert.alert(t('ERR') || '오류', t('INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
     } catch (e) {
-      Alert.alert(t('ALERT_ERROR') || '오류', t('ALERT_INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
+      Alert.alert(t('ERR')  || '오류', t('INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
+      // 에러 메시지 최대한 보여주기
+      const status = e?.response?.status;
+      const body = e?.response?.data;
+      const msg = (body && (body.message || body.error)) || e?.message || '요청 실패';
+      console.log('[FindIdScreen ERROR]', status, body);
+      Alert.alert(t('ALERT_ERROR') || '오류', String(msg));
     }
   };
 
@@ -182,7 +201,7 @@ export default function FindIdScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* (선택) 복구 질문 UI 유지 시 */}
+        {/* (선택) 복구 질문 UI */}
         <Text style={styles.sectionTitle}>{t('RECOVERY_QUESTIONS_TITLE') || '복구 질문 (선택)'}</Text>
 
         <Text style={styles.label}>{t('SELECT_QUESTION') || '질문 선택 1'}</Text>

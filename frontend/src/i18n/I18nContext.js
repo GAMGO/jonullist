@@ -30,7 +30,8 @@ const DICT = {
     // Auth & Common
     AUTH_DENIED: "접근 권한이 없습니다.",
     LOGIN: "로그인",
-    NEED_LOGIN: "로그인이 필요합니다. 다시 로그인해주세요.",
+    NEED_LOGIN: "로그인이 필요합니다.",
+    RE_LOGIN: "다시 로그인해주세요.",
     SIGN_UP: "회원가입",
     EMAIL: "이메일",
     EMAIL_PH: "이메일",
@@ -52,6 +53,8 @@ const DICT = {
     LOGOUT: "로그아웃",
     GO_SIGNUP: "회원가입",
     FIND_ID: "아이디 찾기",
+    FIND_ID_RESULT: "아이디(이메일) 찾기 결과",
+    FIND_ID_QUESTIONS_READY:"본인확인 질문 2개가 준비되었습니다.",
     PW_RECOVERY: "비밀번호 찾기",
     REQUEST: "요청",
     REQUEST_FAILED: "요청 실패",
@@ -73,6 +76,7 @@ const DICT = {
     FAILED: "실패",
     SERVER_DATA: "서버에서 받은 데이터",
     CHECK_INSERT: "입력 확인",
+    INVALID_ID: "일치하는 사용자 정보가 없습니다.",
 
     // Signup
     EMAIL_ID: "이메일 입력",
@@ -83,6 +87,7 @@ const DICT = {
     RESEND_HINT: "스팸메일함 확인 후 필요하면 코드 재발송이 가능합니다.",
     VERIFICATION_CODE: "인증코드 6자리",
     CONFIRMING: "확인 중…",
+    VERIFICATION_NEED: "인증이 필요합니다",
     VERIFICATION_DONE: "인증 완료",
     VERIFICATION_DONE_ALERT: "이메일 인증이 완료되었습니다! 로그인해주세요.",
     VERIFICATION_FAIL: "인증 실패",
@@ -121,6 +126,7 @@ const DICT = {
       "오늘 사용 가능한 분석 요청 횟수를 모두 소진했습니다.",
     DIET: "식단",
     UNIDENTIFY_FOOD: "알 수 없는 음식",
+    FAIL_DIET_LOG_LOADING: "식단 로드 실패",
 
     // Profile
     PROFILE_TITLE: "PROFILE",
@@ -141,7 +147,10 @@ const DICT = {
     PW_TOO_SHORT: "새 비밀번호는 8자 이상이어야 합니다.",
     PW_MISMATCH: "새 비밀번호 확인이 일치하지 않습니다.",
     NUMERIC_ONLY: "숫자 항목은 숫자로 입력하세요.",
-
+    INPUT_REQUIRED_NAME:"이름을 입력하세요.",
+    INPUT_REQUIRED_BIRTH:"생월/생일을 선택하세요.",
+    INPUT_REQUIRED_GENDER:"성별을 선택하세요.",
+    
     // Quest/Ranking
     WALK: "걷기",
     PUSHUP: "푸시업",
