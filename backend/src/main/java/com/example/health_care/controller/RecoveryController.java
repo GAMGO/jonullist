@@ -101,11 +101,13 @@ public class RecoveryController {
   }
 
   // 📧이모지로 표시: 이메일 인증 코드 검증 및 복구 토큰 발급 엔드포인트 추가
-  @PostMapping("/email/verify")
+  // ✅ 수정: 엔드포인트 경로를 변경하여 EmailController와 충돌을 해결했습니다.
+  @PostMapping("/recover/verify-email") 
   public ResponseEntity<?> verifyEmailCode(@RequestBody Map<String, String> req) {
+    final String id = String.valueOf(req.get("id")).trim();
     final String token = String.valueOf(req.get("token")).trim();
     final String purpose = String.valueOf(req.getOrDefault("purpose", "RECOVERY"));
-    var result = service.verifyEmailCodeAndIssueRecoveryToken(token, purpose); // 성공 시 (id, recoveryToken)
+    var result = service.verifyEmailCodeAndIssueRecoveryToken(id, token, purpose); 
     if (result == null) return ResponseEntity.badRequest().body(Map.of("success", false));
     return ResponseEntity.ok(Map.of("success", true, "recoveryToken", result.recoveryToken()));
   }
