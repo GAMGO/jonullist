@@ -80,7 +80,7 @@ public class RecoveryController {
   }
 
     // ✅ 수정: 아이디 찾기 로직 - 이메일과 질문을 함께 반환
-    @PostMapping("/recover/find-id")
+   @PostMapping("/recover/find-id")
     public ResponseEntity<?> findId(@Valid @RequestBody FindIdRequest req) {
         try {
             // findIdWithEmail 메서드로 이메일과 질문을 함께 조회
