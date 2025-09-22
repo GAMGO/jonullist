@@ -13,7 +13,7 @@ import {
 import { useFonts } from 'expo-font';
 import { useI18n } from '../i18n/I18nContext';
 import { Picker } from '@react-native-picker/picker';
-import { apiPost } from '../config/api'; // ✅ 호출 추가
+import { apiPost } from '../config/api';
 
 const FONT = 'DungGeunMo';
 
@@ -31,15 +31,27 @@ const QUESTIONS = [
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 
+/** 이메일 마스킹 유틸(옵션) */
+const maskEmail = (s = '') => {
+  const [user, domain] = String(s).split('@');
+  if (!user || !domain) return s;
+  const maskedUser =
+    user.length <= 2 ? user[0] + '*' : user[0] + '*'.repeat(Math.max(1, user.length - 2)) + user.slice(-1);
+  const [host, ...rest] = domain.split('.');
+  const maskedHost =
+    host.length <= 2 ? host[0] + '*' : host[0] + '*'.repeat(Math.max(1, host.length - 2)) + host.slice(-1);
+  return `${maskedUser}@${[maskedHost, ...rest].join('.')}`;
+};
+
 export default function FindIdScreen() {
   const { t } = useI18n();
 
   const [name, setName] = useState('');
-  const [birthMonth, setBirthMonth] = useState(1); // ✅ 드롭다운 기본값
-  const [birthDay, setBirthDay] = useState(1);     // ✅ 드롭다운 기본값
-  const [gender, setGender] = useState('F');       // ✅ 백엔드 enum과 맞춤: 'M'|'F'
+  const [birthMonth, setBirthMonth] = useState(1); // 드롭다운 기본값
+  const [birthDay, setBirthDay] = useState(1);     // 드롭다운 기본값
+  const [gender, setGender] = useState('F');       // 백엔드 enum과 맞춤: 'M'|'F'
 
-  // (아래 질문/답 입력은 "아이디 찾기"엔 필요 없지만, UI 유지 원하면 남겨둠)
+  // 아래는 선택 UI(유지 요청 시 사용)
   const [q1, setQ1] = useState(QUESTIONS[0].code);
   const [a1, setA1] = useState('');
   const [q2, setQ2] = useState(QUESTIONS[1].code);
@@ -66,26 +78,33 @@ export default function FindIdScreen() {
     const dd = String(birthDay).padStart(2, '0');
     const payload = {
       name: name.trim(),
-      birth: `${mm}-${dd}`, // 백엔드가 MM-DD 문자열로 받음
-      gender,               // 'M' or 'F'
+      birth: `${mm}-${dd}`, // 백엔드: "MM-DD"
+      gender,               // 'M' | 'F'
     };
 
     try {
       const res = await apiPost('/api/recover/find-id', payload);
-      const foundId = res?.data?.id;              // ✅ 백엔드 수정 후 제공
+      // 백엔드: id가 곧 이메일
+      const email = res?.data?.id;
       const qs = res?.data?.questions || [];
 
-      if (foundId) {
-        Alert.alert(t('FIND_ID_RESULT') || '아이디 찾기 결과', `${foundId}`);
-      } else if (qs.length) {
-        // 백엔드가 아직 id를 안 주는 경우 폴백
+      if (email) {
+        const showFull = true; // 전체 노출 원치 않으면 false로 변경
+        const display = showFull ? email : maskEmail(email);
+        Alert.alert(t('FIND_ID_RESULT') || '아이디(이메일) 찾기 결과', display);
+        return;
+      }
+
+      if (qs.length) {
+        // 백엔드가 아직 이메일을 안 실어 보낼 때 대비(폴백)
         Alert.alert(
-          t('FIND_ID_RESULT') || '아이디 찾기 결과',
+          t('FIND_ID_RESULT') || '아이디(이메일) 찾기 결과',
           t('FIND_ID_QUESTIONS_READY') || '본인확인 질문 2개가 준비되었습니다.'
         );
-      } else {
-        Alert.alert(t('ALERT_ERROR') || '오류', t('ALERT_INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
+        return;
       }
+
+      Alert.alert(t('ALERT_ERROR') || '오류', t('ALERT_INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
     } catch (e) {
       Alert.alert(t('ALERT_ERROR') || '오류', t('ALERT_INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
     }
