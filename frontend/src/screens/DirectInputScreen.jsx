@@ -105,7 +105,7 @@ export default function DirectInputScreen() {
       return;
     }
     const entry = { food: food.trim(), calories: kcal };
-    if (typeof onAdd === 'function') onAdd(entry, mealType); // DietLog로 반영
+    if (typeof onAdd === 'function') onAdd(entry); // DietLog로 반영
     navigation.goBack();
   };
 
