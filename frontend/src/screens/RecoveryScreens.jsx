@@ -137,7 +137,7 @@ function StartScreen({ t, loginId, setLoginId, setQuestionsToAnswer, setCurrentS
 /* ======================
  * 2) 아이디 찾기 (이름/월/일/성별)
  * ====================== */
-function FindIdScreen({ t, setQuestionsToAnswer, setCurrentScreen }) {
+function FindIdScreen({ t, setQuestionsToAnswer, setCurrentScreen, setLoginId }) {
   const [name, setName] = useState('');
   const [birthMonth, setBirthMonth] = useState(1);
   const [birthDay, setBirthDay] = useState(1);
@@ -156,17 +156,19 @@ function FindIdScreen({ t, setQuestionsToAnswer, setCurrentScreen }) {
       const mm = String(birthMonth).padStart(2, '0');
       const dd = String(birthDay).padStart(2, '0');
 
-      // 백엔드: { name, birth:"MM-DD", gender } -> { questions: RecoveryQuestionCode[] }
+      // 서버: { name, birth:"MM-DD", gender } → { id, questions }
       const res = await apiPost(API.findId, { name: name.trim(), birth: `${mm}-${dd}`, gender });
+
+      const foundId = res?.data?.id;
       const qs = res?.data?.questions || [];
-      if (!qs.length) {
+      if (!foundId || !qs.length) {
         Alert.alert(t('ALERT_ERROR'), t('ALERT_INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
         return;
       }
 
-      setQuestionsToAnswer(qs);   // 질문 코드만 세팅
-      // 이메일(id)은 응답에 없으므로, 다음 화면에서 직접 입력받아 verify 때 사용
-      setCurrentScreen('verify');
+      setLoginId(foundId);          // verify에서 필요
+      setQuestionsToAnswer(qs);     // 2개 코드
+      setCurrentScreen('verify');   // 바로 검증으로
     } catch {
       Alert.alert(t('ALERT_ERROR'), t('ALERT_INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
     }
@@ -222,21 +224,16 @@ function FindIdScreen({ t, setQuestionsToAnswer, setCurrentScreen }) {
 
 /* ======================
  * 3) 질문 검증 → 토큰 발급
- *    (find-id 경로로 온 경우 이메일을 여기서 입력받음)
  * ====================== */
-function VerifyScreen({ t, loginId, setLoginId, questionsToAnswer, answers, setAnswers, setCurrentScreen, setRecoveryToken }) {
+function VerifyScreen({ t, loginId, questionsToAnswer, answers, setAnswers, setCurrentScreen, setRecoveryToken }) {
   const handleVerify = async () => {
-    if (!loginId?.trim()) {
-      Alert.alert(t('ALERT_WARNING'), t('ENTER_EMAIL') || '이메일을 입력하세요.');
-      return;
-    }
     if (Object.keys(answers).length !== questionsToAnswer.length) {
       Alert.alert(t('ALERT_WARNING'), t('ALERT_ANSWER_ALL_QUESTIONS'));
       return;
     }
     try {
       const answersArray = questionsToAnswer.map((code) => ({ code, answer: answers[code] }));
-      const res = await apiPost(API.verify, { id: loginId.trim(), answers: answersArray });
+      const res = await apiPost(API.verify, { id: loginId, answers: answersArray });
       const token = res?.data?.recoveryToken;
       if (!token) {
         Alert.alert(t('ALERT_ERROR'), t('ALERT_INVALID_ANSWER'));
@@ -251,19 +248,6 @@ function VerifyScreen({ t, loginId, setLoginId, questionsToAnswer, answers, setA
   return (
     <View style={styles.screenContainer}>
       <Text style={styles.title}>{t('TITLE_VERIFY_ANSWERS') || '질문 답변'}</Text>
-
-      {/* 이메일 입력(FindId 경로 고려) */}
-      <Text style={styles.label}>{t('ENTER_EMAIL') || '이메일'}</Text>
-      <TextInput
-        style={styles.input}
-        value={loginId}
-        onChangeText={setLoginId}
-        placeholder={t('PLACEHOLDER_EMAIL') || 'you@example.com'}
-        placeholderTextColor="rgba(0,0,0,0.35)"
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-
       {questionsToAnswer.map((code) => (
         <View key={code} style={styles.questionBlock}>
           <Text style={styles.label}>{t(QUESTIONS.find((q) => q.code === code)?.labelKey || 'TEXT_QUESTION_NOT_FOUND')}</Text>
@@ -335,7 +319,7 @@ function ResetScreen({ t, recoveryToken, setCurrentScreen }) {
 }
 
 /* ======================
- * 5) 보안질문 설정 + 이름/월/일 저장 (confirm 포함)
+ * 5) 보안질문 설정 + 이름/월/일 저장
  * ====================== */
 function SetQuestionsScreen({ t }) {
   // 이름/월/일
@@ -394,8 +378,7 @@ function SetQuestionsScreen({ t }) {
       .map(({ code, answer }) => {
         const a = (answer || '').trim();
         if (!a) return null;
-        // ✅ confirm 필드 포함
-        return { code, answer: a, confirm: a };
+        return { code, answer: a };
       })
       .filter(Boolean);
 
@@ -410,7 +393,7 @@ function SetQuestionsScreen({ t }) {
     try {
       await apiPut(API.set, {
         name: name.trim(),
-        birth: `${mm}-${dd}`, // 서버가 YYYY-MM-DD면 여기만 바꾸면 됨
+        birth: `${mm}-${dd}`, // 서버가 YYYY-MM-DD를 기대하면 여기만 바꿔줘
         answers,
       });
       Alert.alert(t('ALERT_SUCCESS'), t('ALERT_QUESTIONS_SAVE_SUCCESS') || '저장되었습니다.');
@@ -492,7 +475,7 @@ export default function RecoveryScreens({ route }) {
   const [currentScreen, setCurrentScreen] = useState(initial);
   const [loginId, setLoginId] = useState(prefillEmail);
   const [recoveryToken, setRecoveryToken] = useState('');
-  const [questionsToAnswer, setQuestionsToAnswer] = useState([]);
+const [questionsToAnswer, setQuestionsToAnswer] = useState([]);
   const [answers, setAnswers] = useState({});
 
   if (!fontsLoaded) return <ActivityIndicator size="large" color="#0000ff" />;
@@ -513,6 +496,7 @@ export default function RecoveryScreens({ route }) {
         return (
           <FindIdScreen
             t={t}
+            setLoginId={setLoginId}
             setQuestionsToAnswer={setQuestionsToAnswer}
             setCurrentScreen={setCurrentScreen}
           />
@@ -522,7 +506,6 @@ export default function RecoveryScreens({ route }) {
           <VerifyScreen
             t={t}
             loginId={loginId}
-            setLoginId={setLoginId}
             questionsToAnswer={questionsToAnswer}
             answers={answers}
             setAnswers={setAnswers}
