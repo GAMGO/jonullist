@@ -1,5 +1,4 @@
-// screens/RecoveryScreens.jsx
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -25,10 +24,10 @@ const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 const onlyDigits = (s = '') => s.replace(/\D+/g, '').slice(0, 6);
 
 const API = {
-  sendCode: '/api/recover/send-code', // ✅ 이메일로 복구코드 발송
-  verifyEmail: '/api/email/verify',   // ✅ 6자리 코드 검증 → recoveryToken 리턴(백엔드에서 purpose=RECOVERY 처리)
-  reset: '/api/recover/reset',        // ✅ recoveryToken + 새 비번으로 재설정
-  findId: '/api/recover/find-id',     // (이름/월/일/성별) → { id, questions? } 하지만 지금은 메일 인증으로 진행
+  sendCode: '/api/recover/send-code',        // 이메일로 복구코드 발송
+  verifyEmail: '/api/recover/verify-code',   // 6자리 코드 검증 → recoveryToken 리턴
+  reset: '/api/recover/reset',               // recoveryToken + 새 비번으로 재설정
+  findId: '/api/recover/find-id',            // (이름/월/일/성별) → { id }
 };
 
 /* ---------- 공용 드롭다운 ---------- */
