@@ -1,6 +1,6 @@
 import React, { useState, useLayoutEffect, useMemo, useCallback, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, Pressable, SafeAreaView, Platform, ImageBackground } from 'react-native';
-import { apiPost, apiGet } from '../config/api';
+import { View, Text, FlatList, StyleSheet, Pressable, SafeAreaView, Platform, ImageBackground, Modal, ScrollView } from 'react-native';
+import { apiPost, apiGet, apiDelete } from '../config/api';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Constants from 'expo-constants';
 import { Calendar } from 'react-native-calendars';
@@ -12,6 +12,8 @@ const EMPTY_DAY = { morning: [], lunch: [], dinner: [] };
 export default function DietLogScreen() {
   const navigation = useNavigation();
   const { t } = useI18n();
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedType, setSelectedType] = useState(null);
 
   // 헤더 설정
   useLayoutEffect(() => {
@@ -49,7 +51,6 @@ export default function DietLogScreen() {
     try {
       const rec = await apiGet(`/api/diet/get?date=${dk}`);
 
-      // 배열 응답일 경우
       if (Array.isArray(rec)) {
         const grouped = { morning: [], lunch: [], dinner: [] };
         rec.forEach(r => {
@@ -65,7 +66,6 @@ export default function DietLogScreen() {
         return;
       }
 
-      // 객체 응답일 경우
       const details = typeof rec?.mealDetails === 'string'
         ? JSON.parse(rec.mealDetails || '{}')
         : rec?.mealDetails || {};
@@ -131,9 +131,31 @@ export default function DietLogScreen() {
     }
   };
 
+  // 삭제 핸들러
+  const handleDelete = async (type, index, item) => {
+      // UI 먼저 반영
+      setDayMeals(prev => {
+        const next = { ...prev };
+        next[type] = prev[type].filter((_, i) => i !== index);
+        return next;
+      });
+  
+      // 서버 삭제 요청
+      try {
+        const ts = Number(item.timestamp); // Long으로 변환
+        await apiDelete(`/api/diet/delete?date=${dateKey}&type=${type}&timestamp=${ts}`);
+        console.log('✅ 서버 삭제 성공');
+      } catch (err) {
+        console.error('❌ 서버 삭제 실패:', err?.message || err);
+      }
+    };
+
   // 섹션 컴포넌트
   const MealSection = ({ label, type, calories }) => (
-    <View style={styles.section}>
+    <Pressable style={styles.section} onPress={() => {
+      setSelectedType(type);
+      setModalVisible(true);
+    }}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>
           {label}<Text style={{ fontSize: 18, color: '#333' }}>[{calories} {t('CALORIES')}]</Text>
@@ -176,15 +198,14 @@ export default function DietLogScreen() {
         showsHorizontalScrollIndicator={false}
         ItemSeparatorComponent={() => <View style={{ width: 1 }} />}
       />
-    </View>
+    </Pressable>
   );
 
   return (
-
     <ImageBackground
-            source={require('../../assets/background/dietLog.png')} 
-            style={{flex:1}}
-            resizeMode="cover">
+      source={require('../../assets/background/dietLog.png')} 
+      style={{flex:1}}
+      resizeMode="cover">
     
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -246,6 +267,45 @@ export default function DietLogScreen() {
         <Text style={styles.total}>Total : {totalCalories} {t('CALORIES')}</Text>
       </View>
     </SafeAreaView>
+
+      {/* 중앙 식단 상세 모달 */}
+            <Modal
+              transparent
+              visible={modalVisible}
+              animationType="fade"
+              onRequestClose={() => setModalVisible(false)}
+            >
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalContent}>
+                  
+                  <Text style={styles.modalTitle}>
+                    {selectedType === 'morning' ? t('MORNING') 
+                      : selectedType === 'lunch' ? t('LUNCH') 
+                      : t('DINNER')}
+                  </Text>
+                  <ScrollView style={{width: '100%'}}>
+                  {(dayMeals[selectedType] || []).length > 0 ? (
+                    dayMeals[selectedType].map((m, i) => (
+                      <View key={i} style={styles.modalItemRow}>
+                        <Text style={styles.modalItem}>
+                          [ {m.food} ] · {m.calories} kcal
+                        </Text>
+                        <Pressable onPress={() => handleDelete(selectedType, i, m)}>
+                          <Text style={styles.deleteBtn}>삭제</Text>
+                        </Pressable>
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={styles.modalItem}>{t('NO_REC')}</Text>
+                  )}
+      
+                  </ScrollView>
+                  <Pressable style={styles.closeBtn} onPress={() => setModalVisible(false)}>
+                    <Text style={styles.closeBtnText}>{t('CLOSE')}</Text>
+                  </Pressable>
+                </View>
+              </View>
+            </Modal>
     </ImageBackground>
   );
 }
@@ -319,6 +379,60 @@ const styles = StyleSheet.create({
     fontSize: 16, 
     fontFamily: 'DungGeunMo', 
     color: '#333' 
+  },
+
+  // 모달 스타일
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  modalContent: {
+    backgroundColor: '#eee',
+    padding: 40,
+    borderRadius: 17,
+    width: '85%',
+    height: 470,
+    alignItems: 'center'
+  },
+  modalTitle: {
+    fontSize: 25,
+    fontFamily: 'DungGeunMo',
+    marginBottom: 20
+  },
+  modalItem:{
+    fontSize: 18,
+    fontFamily: 'DungGeunMo' ,
+    color: '#333',
+    textAlign: 'left',
+    flexShrink: 1
+  },
+  modalItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    marginVertical: 3,   
+  },
+  deleteBtn: {
+    color: 'red',
+    fontSize: 16,
+    fontFamily: 'DungGeunMo',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  closeBtn: {
+    marginTop: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: 'tomato',
+    borderRadius: 8
+  },
+  closeBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontFamily: 'DungGeunMo'
   },
   // 식단
   mealBlock: {
