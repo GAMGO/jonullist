@@ -11,6 +11,7 @@ import {
   TextInput,
   View,
   Pressable,
+  ActionSheetIOS,
 } from 'react-native';
 import { useI18n } from '../i18n/I18nContext';
 import { useFonts } from 'expo-font';
@@ -40,14 +41,37 @@ const API = {
   findId: '/api/recover/find-id',
 };
 
-/* ---------- UI: Simple Dropdown ---------- */
+/* ---------- UI: Simple Dropdown (iOS=ActionSheet, Android=Modal) ---------- */
 function Dropdown({ value, onChange, options, labelRenderer }) {
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.value === value);
+
+  const openIOSSheet = () => {
+    const labels = options.map((opt) => labelRenderer(opt));
+    const cancelIndex = labels.length;
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: [...labels, '취소'],
+        cancelButtonIndex: cancelIndex,
+        userInterfaceStyle: 'light',
+      },
+      (idx) => {
+        if (idx === cancelIndex) return;
+        const picked = options[idx];
+        if (picked) onChange(picked.value);
+      }
+    );
+  };
+
+  const onPressTrigger = () => {
+    if (Platform.OS === 'ios') openIOSSheet();
+    else setOpen(true);
+  };
+
   return (
     <>
       <Pressable
-        onPress={() => setOpen(true)}
+        onPress={onPressTrigger}
         style={({ pressed }) => [styles.selectBox, pressed && { opacity: 0.85 }]}
       >
         <Text numberOfLines={1} ellipsizeMode="tail" style={styles.selectText}>
@@ -56,30 +80,42 @@ function Dropdown({ value, onChange, options, labelRenderer }) {
         <Text style={styles.selectArrow}>▾</Text>
       </Pressable>
 
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)} />
-        <View style={styles.modalCard}>
-          <ScrollView bounces={false} style={{ maxHeight: 320 }}>
-            {options.map((opt) => {
-              const active = opt.value === value;
-              return (
-                <Pressable
-                  key={String(opt.value)}
-                  onPress={() => {
-                    onChange(opt.value);
-                    setOpen(false);
-                  }}
-                  style={({ pressed }) => [styles.optionRow, active && styles.optionRowActive, pressed && { opacity: 0.9 }]}
-                >
-                  <Text style={[styles.optionText, active && styles.optionTextActive]}>
-                    {labelRenderer(opt)}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
-      </Modal>
+      {Platform.OS !== 'ios' && (
+        <Modal
+          visible={open}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setOpen(false)}
+          presentationStyle="overFullScreen"
+        >
+          <Pressable style={styles.backdrop} onPress={() => setOpen(false)} />
+          <View style={styles.modalCard}>
+            <ScrollView bounces={false} style={{ maxHeight: 320 }}>
+              {options.map((opt) => {
+                const active = opt.value === value;
+                return (
+                  <Pressable
+                    key={String(opt.value)}
+                    onPress={() => {
+                      onChange(opt.value);
+                      setOpen(false);
+                    }}
+                    style={({ pressed }) => [
+                      styles.optionRow,
+                      active && styles.optionRowActive,
+                      pressed && { opacity: 0.9 },
+                    ]}
+                  >
+                    <Text style={[styles.optionText, active && styles.optionTextActive]}>
+                      {labelRenderer(opt)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </Modal>
+      )}
     </>
   );
 }
@@ -475,7 +511,7 @@ export default function RecoveryScreens({ route }) {
   const [currentScreen, setCurrentScreen] = useState(initial);
   const [loginId, setLoginId] = useState(prefillEmail);
   const [recoveryToken, setRecoveryToken] = useState('');
-const [questionsToAnswer, setQuestionsToAnswer] = useState([]);
+  const [questionsToAnswer, setQuestionsToAnswer] = useState([]);
   const [answers, setAnswers] = useState({});
 
   if (!fontsLoaded) return <ActivityIndicator size="large" color="#0000ff" />;
