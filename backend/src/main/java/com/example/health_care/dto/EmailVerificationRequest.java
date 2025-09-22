@@ -14,4 +14,6 @@ public class EmailVerificationRequest {
     
     @NotBlank(message = "토큰은 필수입니다")
     private String token;
+
+    private String purpose; // ✅ 추가
 }
