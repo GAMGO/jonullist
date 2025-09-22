@@ -2,6 +2,8 @@ package com.example.health_care.service;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -24,6 +26,29 @@ public class EmailService {
     @Value("${GMAIL_API_EMAIL}")
     private String fromEmail;
     
+    // 📧이모지로 표시: 이메일 인증 코드를 임시 저장할 맵 추가
+    private final Map<String, String> emailVerificationCodeCache = new ConcurrentHashMap<>();
+    
+    // 📧이모지로 표시: 이메일 인증 코드 발송 및 저장 메서드
+    public void sendCodeToEmail(String email, String purpose) {
+      String verificationCode = generateVerificationCode();
+      emailVerificationCodeCache.put(email + "_" + purpose, verificationCode);
+      boolean success = sendVerificationEmail(email, verificationCode);
+      if (!success) {
+          throw new IllegalStateException("이메일 발송에 실패했습니다.");
+      }
+    }
+    
+    // 📧이모지로 표시: 이메일 인증 코드 검증 메서드
+    public boolean verifyEmailCode(String email, String code, String purpose) {
+      String cachedCode = emailVerificationCodeCache.get(email + "_" + purpose);
+      if (cachedCode == null || !cachedCode.equals(code)) {
+          return false;
+      }
+      emailVerificationCodeCache.remove(email + "_" + purpose);
+      return true;
+    }
+
     /**
      * 이메일 인증 토큰 생성
      * @return 생성된 토큰

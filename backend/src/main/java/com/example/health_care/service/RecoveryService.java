@@ -19,6 +19,7 @@ import com.example.health_care.entity.RecoveryQuestionCode;
 import com.example.health_care.repository.CustomersRepository;
 import com.example.health_care.repository.RecoveryRepository;
 import com.example.health_care.security.JwtTokenProvider;
+import com.example.health_care.service.EmailService; // 📧이모지로 표시: EmailService import 추가
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +35,9 @@ public class RecoveryService {
   private final PasswordEncoder encoder;
   private final CustomersService customersService;
   private final TokenTool tokenTool;
-
+  // 📧이모지로 표시: EmailService 의존성 주입
+  private final EmailService emailService;
+  
   private String norm(String s) {
     return s == null ? "" : s.trim().toLowerCase();
   }
@@ -110,6 +113,8 @@ public class RecoveryService {
     }
      // ✅ 수정: 아이디 찾기 - 이메일과 질문을 함께 반환하는 Record 클래스 추가
     public record FindIdResult(String id, List<RecoveryQuestionCode> questions) {}
+    // ✅ 추가: 이메일 인증 코드를 검증하고 복구 토큰을 발급하는 Record 클래스 추가
+    public record VerifyResult(String id, String recoveryToken) {}
 
     // 해당 계정이 보안설정이 되어있다면 조회 및 해당 질문 반환.
     @Transactional(readOnly = true)
@@ -189,8 +194,26 @@ public class RecoveryService {
     customersService.updatePassword(uid, newPassword);
     return true;
   }
+    
+    // 📧이모지로 표시: 이메일 인증 코드를 발송하는 메서드 구현
+    public void sendRecoveryCode(String id, String purpose) {
+      CustomersEntity customer = customersRepo.findById(id)
+          .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+      String email = customer.getId();
+      emailService.sendCodeToEmail(email, purpose);
+    }
+    
+    // 📧이모지로 표시: 이메일 인증 코드를 검증하고 복구 토큰을 발급하는 메서드 구현
+    public VerifyResult verifyEmailCodeAndIssueRecoveryToken(String token, String purpose) {
+      String email = "이메일 주소"; // TODO: 토큰에서 이메일 주소를 추출하는 로직 구현
+      boolean verified = emailService.verifyEmailCode(email, token, purpose);
+      if (!verified) {
+          return null;
+      }
+      String recoveryToken = createRecoveryToken(email);
+      return new VerifyResult(email, recoveryToken);
+    }
 }
-
 // ======================= TokenTool (JWT Provider 분리 래퍼)
 // =======================
 @Component

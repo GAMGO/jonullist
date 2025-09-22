@@ -133,19 +133,19 @@ function StartScreen({ t, loginId, setLoginId, setQuestionsToAnswer, setCurrentS
       const res = await apiPost(API.start, { id: loginId.trim() });
       const picked = res?.data?.questions || [];
       if (!picked.length) {
-        Alert.alert(t('ALERT_ERROR'), t('ALERT_INVALID_ID'));
+        Alert.alert(t('ERR'), t('INVALID_ID'));
         return;
       }
       setQuestionsToAnswer(picked);
       setCurrentScreen('verify');
     } catch {
-      Alert.alert(t('ALERT_ERROR'), t('ALERT_INVALID_ID'));
+      Alert.alert(t('ERR'), t('INVALID_ID'));
     }
   };
   return (
     <View style={styles.screenContainer}>
       <Text style={styles.title}>{t('TITLE_RECOVERY') || '비밀번호 복구'}</Text>
-      <Text style={styles.label}>{t('ENTER_EMAIL') || '이메일 입력'}</Text>
+      <Text style={styles.label}>{t('EMAIL_ID') || '이메일 입력'}</Text>
       <TextInput
         style={styles.input}
         value={loginId}
@@ -156,15 +156,15 @@ function StartScreen({ t, loginId, setLoginId, setQuestionsToAnswer, setCurrentS
         keyboardType="email-address"
       />
       <Pressable onPress={handleStart} style={styles.primaryBtn}>
-        <Text style={styles.primaryBtnText}>{t('BTN_RECOVER_START') || '질문 받기'}</Text>
+        <Text style={styles.primaryBtnText}>{t('RECOVERY_START') || '질문 받기'}</Text>
       </Pressable>
 
       <Pressable onPress={() => setCurrentScreen('findId')} style={[styles.primaryBtn, { backgroundColor: '#10B981' }]}>
-        <Text style={styles.primaryBtnText}>{t('BTN_FIND_ID') || '아이디 찾기'}</Text>
+        <Text style={styles.primaryBtnText}>{t('FIND_ID') || '아이디 찾기'}</Text>
       </Pressable>
 
       <Pressable onPress={() => setCurrentScreen('setQuestions')} style={[styles.primaryBtn, { backgroundColor: '#6B7280' }]}>
-        <Text style={styles.primaryBtnText}>{t('BTN_SET_QUESTIONS') || '보안질문 설정'}</Text>
+        <Text style={styles.primaryBtnText}>{t('RECOVERY_SETUP') || '보안질문 설정'}</Text>
       </Pressable>
     </View>
   );
@@ -198,7 +198,7 @@ function FindIdScreen({ t, setQuestionsToAnswer, setCurrentScreen, setLoginId })
       const foundId = res?.data?.id;
       const qs = res?.data?.questions || [];
       if (!foundId || !qs.length) {
-        Alert.alert(t('ALERT_ERROR'), t('ALERT_INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
+        Alert.alert(t('ERR'), t('INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
         return;
       }
 
@@ -206,24 +206,24 @@ function FindIdScreen({ t, setQuestionsToAnswer, setCurrentScreen, setLoginId })
       setQuestionsToAnswer(qs);     // 2개 코드
       setCurrentScreen('verify');   // 바로 검증으로
     } catch {
-      Alert.alert(t('ALERT_ERROR'), t('ALERT_INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
+      Alert.alert(t('ERR'), t('INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
     }
   };
 
   return (
     <View style={styles.screenContainer}>
-      <Text style={styles.title}>{t('TITLE_FIND_ID') || '아이디 찾기'}</Text>
+      <Text style={styles.title}>{t('FIND_ID') || '아이디 찾기'}</Text>
 
-      <Text style={styles.label}>{t('LABEL_NAME') || '이름'}</Text>
+      <Text style={styles.label}>{t('NAME') || '이름'}</Text>
       <TextInput
         style={styles.input}
         value={name}
         onChangeText={setName}
-        placeholder={t('PLACEHOLDER_NAME') || '이름'}
+        placeholder={t('NAME') || '이름'}
         placeholderTextColor="rgba(0,0,0,0.35)"
       />
 
-      <Text style={[styles.label, { marginTop: 8 }]}>{t('LABEL_BIRTH_MONTH') || '월'}</Text>
+      <Text style={[styles.label, { marginTop: 8 }]}>{t('LABEL_MONTH') || '월'}</Text>
       <Dropdown
         value={birthMonth}
         onChange={setBirthMonth}
@@ -231,7 +231,7 @@ function FindIdScreen({ t, setQuestionsToAnswer, setCurrentScreen, setLoginId })
         labelRenderer={(opt) => String(opt.value)}
       />
 
-      <Text style={[styles.label, { marginTop: 8 }]}>{t('LABEL_BIRTH_DAY') || '일'}</Text>
+      <Text style={[styles.label, { marginTop: 8 }]}>{t('LABEL_DAY') || '일'}</Text>
       <Dropdown
         value={birthDay}
         onChange={setBirthDay}
@@ -239,12 +239,12 @@ function FindIdScreen({ t, setQuestionsToAnswer, setCurrentScreen, setLoginId })
         labelRenderer={(opt) => String(opt.value)}
       />
 
-      <Text style={[styles.label, { marginTop: 8 }]}>{t('LABEL_GENDER') || '성별'}</Text>
+      <Text style={[styles.label, { marginTop: 8 }]}>{t('GENDER') || '성별'}</Text>
       <Dropdown
         value={gender}
         onChange={setGender}
         options={[{ value: 'F' }, { value: 'M' }]}
-        labelRenderer={(opt) => (opt.value === 'F' ? (t('GENDER_FEMALE') || '여') : (t('GENDER_MALE') || '남'))}
+        labelRenderer={(opt) => (opt.value === 'F' ? (t('FEMALE') || '여') : (t('MALE') || '남'))}
       />
 
       <Pressable onPress={submit} style={[styles.primaryBtn, { marginTop: 10 }]}>
@@ -272,18 +272,18 @@ function VerifyScreen({ t, loginId, questionsToAnswer, answers, setAnswers, setC
       const res = await apiPost(API.verify, { id: loginId, answers: answersArray });
       const token = res?.data?.recoveryToken;
       if (!token) {
-        Alert.alert(t('ALERT_ERROR'), t('ALERT_INVALID_ANSWER'));
+        Alert.alert(t('ERR'), t('INCORRECT_ANSWER'));
         return;
       }
       setRecoveryToken(token);
       setCurrentScreen('reset');
     } catch {
-      Alert.alert(t('ALERT_ERROR'), t('ALERT_INVALID_ANSWER'));
+      Alert.alert(t('ERR'), t('INCORRECT_ANSWER'));
     }
   };
   return (
     <View style={styles.screenContainer}>
-      <Text style={styles.title}>{t('TITLE_VERIFY_ANSWERS') || '질문 답변'}</Text>
+      <Text style={styles.title}>{t('VERIFY_ANSWERS') || '질문 답변'}</Text>
       {questionsToAnswer.map((code) => (
         <View key={code} style={styles.questionBlock}>
           <Text style={styles.label}>{t(QUESTIONS.find((q) => q.code === code)?.labelKey || 'TEXT_QUESTION_NOT_FOUND')}</Text>
@@ -291,13 +291,13 @@ function VerifyScreen({ t, loginId, questionsToAnswer, answers, setAnswers, setC
             style={styles.input}
             onChangeText={(text) => setAnswers({ ...answers, [code]: text })}
             value={answers[code] || ''}
-            placeholder={t('PLACEHOLDER_ANSWER') || '정답 입력'}
+            placeholder={t('RECOVERY_ANSWER') || '정답 입력'}
             placeholderTextColor="rgba(0,0,0,0.35)"
           />
         </View>
       ))}
       <Pressable onPress={handleVerify} style={styles.primaryBtn}>
-        <Text style={styles.primaryBtnText}>{t('BTN_VERIFY_ANSWERS') || '확인'}</Text>
+        <Text style={styles.primaryBtnText}>{t('CONFIRM') || '확인'}</Text>
       </Pressable>
     </View>
   );
@@ -311,24 +311,24 @@ function ResetScreen({ t, recoveryToken, setCurrentScreen }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const handleReset = async () => {
     if (newPassword !== confirmPassword) {
-      Alert.alert(t('ALERT_ERROR'), t('ALERT_PW_MISMATCH') || '비밀번호가 일치하지 않습니다.');
+      Alert.alert(t('ERR'), t('ERR_WRONG_PW') || '비밀번호가 일치하지 않습니다.');
       return;
     }
     if (newPassword.length < 8) {
-      Alert.alert(t('ALERT_ERROR'), t('ALERT_PW_MIN_LENGTH') || '8자리 이상 입력하세요.');
+      Alert.alert(t('ERR'), t('PW_MIN_8') || '8자리 이상 입력하세요.');
       return;
     }
     try {
       await apiPost(API.reset, { recoveryToken, newPassword });
-      Alert.alert(t('ALERT_SUCCESS'), t('ALERT_PW_RESET_SUCCESS') || '비밀번호가 변경되었습니다.');
+      Alert.alert(t('SUCCESS'), t('PW_RESET_SUCCESS') || '비밀번호가 변경되었습니다.');
       setCurrentScreen('start');
     } catch {
-      Alert.alert(t('ALERT_ERROR'), t('ALERT_PW_RESET_FAIL') || '변경 실패');
+      Alert.alert(t('ERR'), t('PW_RESET_FAIL') || '변경 실패');
     }
   };
   return (
     <View style={styles.screenContainer}>
-      <Text style={styles.title}>{t('TITLE_RESET_PW') || '비밀번호 재설정'}</Text>
+      <Text style={styles.title}>{t('RECOVERY_RESET') || '비밀번호 재설정'}</Text>
       <Text style={styles.label}>{t('LABEL_NEW_PW') || '새 비밀번호'}</Text>
       <TextInput
         style={styles.input}
@@ -406,7 +406,7 @@ function SetQuestionsScreen({ t }) {
     const codes = qna.map((x) => x.code);
     const unique = new Set(codes);
     if (unique.size !== qna.length) {
-      Alert.alert(t('ALERT_ERROR'), t('ALERT_DUPLICATE_QUESTIONS') || '같은 질문은 선택할 수 없습니다.');
+      Alert.alert(t('ERR'), t('ALERT_DUPLICATE_QUESTIONS') || '같은 질문은 선택할 수 없습니다.');
       return;
     }
 
@@ -419,7 +419,7 @@ function SetQuestionsScreen({ t }) {
       .filter(Boolean);
 
     if (answers.length !== qna.length) {
-      Alert.alert(t('ALERT_ERROR'), t('ALERT_ANSWER_ALL_QUESTIONS') || '모든 답을 입력하세요.');
+      Alert.alert(t('ERR'), t('ALERT_ANSWER_ALL_QUESTIONS') || '모든 답을 입력하세요.');
       return;
     }
 
@@ -432,18 +432,18 @@ function SetQuestionsScreen({ t }) {
         birth: `${mm}-${dd}`, // 서버가 YYYY-MM-DD를 기대하면 여기만 바꿔줘
         answers,
       });
-      Alert.alert(t('ALERT_SUCCESS'), t('ALERT_QUESTIONS_SAVE_SUCCESS') || '저장되었습니다.');
+      Alert.alert(t('SUCCESS'), t('ALERT_QUESTIONS_SAVE_SUCCESS') || '저장되었습니다.');
     } catch {
-      Alert.alert(t('ALERT_ERROR'), t('ALERT_SAVE_QUESTIONS_FAIL') || '저장 실패');
+      Alert.alert(t('ERR'), t('ALERT_SAVE_QUESTIONS_FAIL') || '저장 실패');
     }
   };
 
   return (
     <View style={styles.screenContainer}>
-      <Text style={styles.title}>{t('TITLE_SET_QUESTIONS') || '보안질문 설정'}</Text>
+      <Text style={styles.title}>{t('RECOVERY_SETUP') || '보안질문 설정'}</Text>
 
       {/* 이름 */}
-      <Text style={styles.label}>{t('LABEL_NAME') || '이름'}</Text>
+      <Text style={styles.label}>{t('NAME') || '이름'}</Text>
       <TextInput
         style={styles.input}
         value={name}
@@ -474,19 +474,19 @@ function SetQuestionsScreen({ t }) {
         const options = getAvailable(idx);
         return (
           <View key={`slot-${idx}`} style={styles.questionBlock}>
-            <Text style={styles.label}>{t('LABEL_SELECT_QUESTION') || '질문 선택'}</Text>
+            <Text style={styles.label}>{t('SELECT_QUESTION') || '질문 선택'}</Text>
             <Dropdown
               value={row.code}
               onChange={(val) => setCodeAt(idx, val)}
               options={options}
               labelRenderer={(opt) => t(opt.labelKey)}
             />
-            <Text style={[styles.label, { marginTop: 10 }]}>{t('PLACEHOLDER_ANSWER') || '답 입력'}</Text>
+            <Text style={[styles.label, { marginTop: 10 }]}>{t('RECOVERY_ANSWER') || '답 입력'}</Text>
             <TextInput
               style={styles.input}
               value={row.answer}
               onChangeText={(text) => setAnswerAt(idx, text)}
-              placeholder={t('PLACEHOLDER_ANSWER') || '답 입력'}
+              placeholder={t('RECOVERY_ANSWER') || '답 입력'}
               placeholderTextColor="rgba(0,0,0,0.35)"
             />
           </View>
@@ -494,7 +494,7 @@ function SetQuestionsScreen({ t }) {
       })}
 
       <Pressable onPress={handleSave} style={[styles.primaryBtn, { marginTop: 6 }]}>
-        <Text style={styles.primaryBtnText}>{t('BTN_SAVE_QUESTIONS') || '저장'}</Text>
+        <Text style={styles.primaryBtnText}>{t('SAVE') || '저장'}</Text>
       </Pressable>
     </View>
   );
