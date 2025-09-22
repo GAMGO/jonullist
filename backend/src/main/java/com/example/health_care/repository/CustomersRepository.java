@@ -1,6 +1,7 @@
 package com.example.health_care.repository;
 
 import com.example.health_care.entity.CustomersEntity;
+import com.example.health_care.entity.Gender;
 
 import java.util.Optional;
 
@@ -15,5 +16,6 @@ public interface CustomersRepository extends JpaRepository<CustomersEntity, Long
      // 이메일 인증 토큰으로 사용자 조회
      Optional<CustomersEntity> findByEmailVerificationToken(String token);
 
-    Optional<CustomersEntity> findByIdxAndGender(Long idx, String gender);
+    Optional<CustomersEntity> findByIdxAndGender(Long idx, Gender gender);
+    Optional<CustomersEntity> findByIdx(Long idx);
 }

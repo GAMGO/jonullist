@@ -38,7 +38,7 @@ public class RecoveryController {
     @PutMapping("/profile/security-questions")
     public ResponseEntity<?> setQuestions(@AuthenticationPrincipal UserDetails user,
             @Valid @RequestBody SetSecurityQuestionsRequest req) {
-        service.setQuestions(user.getUsername(), req.getAnswers());
+        service.setQuestions(user.getUsername(), req.getName(), req.getBirth(), req.getAnswers());
         return ResponseEntity.noContent().build();
     }
 

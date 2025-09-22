@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.health_care.dto.RecoveryDTO.*;
 import com.example.health_care.entity.CustomersEntity;
+import com.example.health_care.entity.Gender;
 import com.example.health_care.entity.RecoveryEntity;
 import com.example.health_care.entity.RecoveryQuestionCode;
 import com.example.health_care.repository.CustomersRepository;
@@ -42,10 +43,10 @@ public class RecoveryService {
                 .map(CustomersEntity::getIdx)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
     }
-
+    
     @Transactional
-    public void setQuestions(String customerId, List<SetSecurityQuestionsRequest.Item> items) {
-        if (items == null || items.size() < 3)
+   public void setQuestions(String customerId, String name, String birth, List<SetSecurityQuestionsRequest.Item> items) {
+        if (items == null || items.size() < 2)
             throw new IllegalArgumentException("2개의 질문/답이 필요합니다.");
 
         Set<RecoveryQuestionCode> codes = new HashSet<>();
@@ -59,18 +60,23 @@ public class RecoveryService {
         // String 이메일(id)을 Long idx로 변환
         Long customerIdx = getCustomerIdx(customerId);
 
-        // 저장(3개)
-        for (var it : items) {
-            var opt = repo.findByCustomerIdAndCode(customerIdx, it.getCode());
-            RecoveryEntity e = opt.orElseGet(() -> RecoveryEntity.builder()
-                    .customerId(customerIdx)
-                    .code(it.getCode())
-                    .build());
-            e.setAnswerHash(encoder.encode(norm(it.getAnswer())));
-            e.setUpdatedAt(LocalDateTime.now());
-            repo.save(e);
-        }
+       // 🚨이모지로 표시: 기존 보안 질문들을 모두 삭제합니다.
+    repo.deleteAllByCustomerId(customerIdx);
+
+    // 저장(2개)
+    for (var it : items) {
+        RecoveryEntity e = RecoveryEntity.builder()
+                .customerId(customerIdx)
+                .code(it.getCode())
+                // 🚨이모지로 표시: 인자로 받은 name과 birth를 바로 할당합니다.
+                .name(name)
+                .birth(birth)
+                .build();
+        e.setAnswerHash(encoder.encode(norm(it.getAnswer())));
+        e.setUpdatedAt(LocalDateTime.now());
+        repo.save(e);
     }
+}
 
     @Transactional(readOnly = true)
     public List<RecoveryQuestionCode> pickTwo(String customerId) {
@@ -111,11 +117,16 @@ public class RecoveryService {
         if (recoveries.isEmpty()) {
             throw new IllegalArgumentException("사용자를 찾을 수 없습니다.");
         }
-
+        Gender genderEnum;
+        try {
+            genderEnum = Gender.valueOf(gender.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("유효하지 않은 성별 정보입니다.");
+        }
         // 2. 찾은 RecoveryEntity에서 customerId를 가져와 CustomersEntity를 조회하여 성별을 확인합니다.
         // 이 로직을 통해 CustomersEntity의 idx와 gender를 연결합니다.
         Long customerId = recoveries.get(0).getCustomerId();
-        CustomersEntity customer = customersRepo.findByIdxAndGender(customerId, gender)
+        CustomersEntity customer = customersRepo.findByIdxAndGender(customerId, genderEnum)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
         // 3. 찾은 customer의 idx로 보안 질문을 가져옵니다.
