@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,13 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-} from 'react-native'
-import { useFonts } from 'expo-font'
-import { useI18n } from '../i18n/I18nContext'
-import { Picker } from '@react-native-picker/picker'
+} from 'react-native';
+import { useFonts } from 'expo-font';
+import { useI18n } from '../i18n/I18nContext';
+import { Picker } from '@react-native-picker/picker';
+import { apiPost } from '../config/api'; // ✅ 호출 추가
 
-const FONT = 'DungGeunMo'
+const FONT = 'DungGeunMo';
 
 const QUESTIONS = [
   { code: 'PET_NAME', labelKey: 'QUESTION_PET_NAME' },
@@ -25,42 +26,70 @@ const QUESTIONS = [
   { code: 'FIRST_SCHOOL', labelKey: 'QUESTION_FIRST_SCHOOL' },
   { code: 'FAVORITE_COLOR', labelKey: 'QUESTION_FAVORITE_COLOR' },
   { code: 'BEST_FRIEND', labelKey: 'QUESTION_BEST_FRIEND' },
-]
+];
+
+const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
+const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 
 export default function FindIdScreen() {
-  const { t } = useI18n()
+  const { t } = useI18n();
 
-  const [name, setName] = useState('')
-  const [birthMonth, setBirthMonth] = useState('')
-  const [birthDay, setBirthDay] = useState('')
-  const [gender, setGender] = useState('')
+  const [name, setName] = useState('');
+  const [birthMonth, setBirthMonth] = useState(1); // ✅ 드롭다운 기본값
+  const [birthDay, setBirthDay] = useState(1);     // ✅ 드롭다운 기본값
+  const [gender, setGender] = useState('F');       // ✅ 백엔드 enum과 맞춤: 'M'|'F'
 
-  const [q1, setQ1] = useState(QUESTIONS[0].code)
-  const [a1, setA1] = useState('')
-  const [q2, setQ2] = useState(QUESTIONS[1].code)
-  const [a2, setA2] = useState('')
+  // (아래 질문/답 입력은 "아이디 찾기"엔 필요 없지만, UI 유지 원하면 남겨둠)
+  const [q1, setQ1] = useState(QUESTIONS[0].code);
+  const [a1, setA1] = useState('');
+  const [q2, setQ2] = useState(QUESTIONS[1].code);
+  const [a2, setA2] = useState('');
 
-  const [fontsLoaded] = useFonts({ [FONT]: require('../../assets/fonts/DungGeunMo.otf') })
-  if (!fontsLoaded) return null
+  const [fontsLoaded] = useFonts({ [FONT]: require('../../assets/fonts/DungGeunMo.otf') });
+  if (!fontsLoaded) return null;
 
-  const onSubmit = () => {
-    if (!name || !birthMonth || !birthDay || !gender || !a1 || !a2) {
-      Alert.alert(t('INPUT_REQUIRED'), t('ANSWER_FILL'))
-      return
+  const onSubmit = async () => {
+    if (!name?.trim()) {
+      Alert.alert(t('INPUT_REQUIRED') || '입력 필요', t('INPUT_REQUIRED_NAME') || '이름을 입력하세요.');
+      return;
     }
+    if (!birthMonth || !birthDay) {
+      Alert.alert(t('INPUT_REQUIRED') || '입력 필요', t('INPUT_REQUIRED_BIRTH') || '생월/생일을 선택하세요.');
+      return;
+    }
+    if (!['M', 'F'].includes(gender)) {
+      Alert.alert(t('INPUT_REQUIRED') || '입력 필요', t('INPUT_REQUIRED_GENDER') || '성별을 선택하세요.');
+      return;
+    }
+
+    const mm = String(birthMonth).padStart(2, '0');
+    const dd = String(birthDay).padStart(2, '0');
     const payload = {
-      name,
-      birthMonth,
-      birthDay,
-      gender,
-      answers: [
-        { code: q1, answer: a1 },
-        { code: q2, answer: a2 },
-      ],
+      name: name.trim(),
+      birth: `${mm}-${dd}`, // 백엔드가 MM-DD 문자열로 받음
+      gender,               // 'M' or 'F'
+    };
+
+    try {
+      const res = await apiPost('/api/recover/find-id', payload);
+      const foundId = res?.data?.id;              // ✅ 백엔드 수정 후 제공
+      const qs = res?.data?.questions || [];
+
+      if (foundId) {
+        Alert.alert(t('FIND_ID_RESULT') || '아이디 찾기 결과', `${foundId}`);
+      } else if (qs.length) {
+        // 백엔드가 아직 id를 안 주는 경우 폴백
+        Alert.alert(
+          t('FIND_ID_RESULT') || '아이디 찾기 결과',
+          t('FIND_ID_QUESTIONS_READY') || '본인확인 질문 2개가 준비되었습니다.'
+        );
+      } else {
+        Alert.alert(t('ALERT_ERROR') || '오류', t('ALERT_INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
+      }
+    } catch (e) {
+      Alert.alert(t('ALERT_ERROR') || '오류', t('ALERT_INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
     }
-    Alert.alert('제출 데이터', JSON.stringify(payload, null, 2))
-    // 예: fetch('/api/recover/find-id', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
-  }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -71,6 +100,7 @@ export default function FindIdScreen() {
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>{t('FIND_ID') || '아이디 찾기'}</Text>
 
+        {/* 이름 */}
         <Text style={styles.label}>{t('LABEL_NAME') || '이름'}</Text>
         <TextInput
           style={styles.input}
@@ -80,47 +110,61 @@ export default function FindIdScreen() {
           placeholderTextColor="rgba(0,0,0,0.35)"
         />
 
+        {/* 생월 드롭다운 */}
         <Text style={styles.label}>{t('LABEL_BIRTH_MONTH') || '생월(1-12)'}</Text>
-        <TextInput
-          style={styles.input}
-          value={birthMonth}
-          onChangeText={setBirthMonth}
-          placeholder="MM"
-          keyboardType="number-pad"
-          placeholderTextColor="rgba(0,0,0,0.35)"
-        />
+        <View style={styles.pickerWrap}>
+          <Picker
+            selectedValue={birthMonth}
+            onValueChange={setBirthMonth}
+            style={styles.picker}
+            dropdownIconColor="#111827"
+            mode="dropdown"
+          >
+            {MONTHS.map((m) => (
+              <Picker.Item key={m} label={`${m}`} value={m} style={styles.pickerItem} />
+            ))}
+          </Picker>
+        </View>
 
+        {/* 생일 드롭다운 */}
         <Text style={styles.label}>{t('LABEL_BIRTH_DAY') || '생일(1-31)'}</Text>
-        <TextInput
-          style={styles.input}
-          value={birthDay}
-          onChangeText={setBirthDay}
-          placeholder="DD"
-          keyboardType="number-pad"
-          placeholderTextColor="rgba(0,0,0,0.35)"
-        />
+        <View style={styles.pickerWrap}>
+          <Picker
+            selectedValue={birthDay}
+            onValueChange={setBirthDay}
+            style={styles.picker}
+            dropdownIconColor="#111827"
+            mode="dropdown"
+          >
+            {DAYS.map((d) => (
+              <Picker.Item key={d} label={`${d}`} value={d} style={styles.pickerItem} />
+            ))}
+          </Picker>
+        </View>
 
+        {/* 성별 (M/F) */}
         <Text style={styles.label}>{t('GENDER') || '성별'}</Text>
         <View style={styles.genderRow}>
           <TouchableOpacity
-            onPress={() => setGender('male')}
-            style={[styles.segmentBtn, gender === 'male' && styles.segmentBtnActive]}
+            onPress={() => setGender('M')}
+            style={[styles.segmentBtn, gender === 'M' && styles.segmentBtnActive]}
           >
-            <Text style={[styles.segmentText, gender === 'male' && styles.segmentTextActive]}>
-              {t('MALE') || '남성'}
+            <Text style={[styles.segmentText, gender === 'M' && styles.segmentTextActive]}>
+              {t('GENDER_MALE') || '남성'}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => setGender('female')}
-            style={[styles.segmentBtn, gender === 'female' && styles.segmentBtnActive]}
+            onPress={() => setGender('F')}
+            style={[styles.segmentBtn, gender === 'F' && styles.segmentBtnActive]}
           >
-            <Text style={[styles.segmentText, gender === 'female' && styles.segmentTextActive]}>
-              {t('FEMALE') || '여성'}
+            <Text style={[styles.segmentText, gender === 'F' && styles.segmentTextActive]}>
+              {t('GENDER_FEMALE') || '여성'}
             </Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>{t('RECOVERY_QUESTIONS_TITLE') || '복구 질문'}</Text>
+        {/* (선택) 복구 질문 UI 유지 시 */}
+        <Text style={styles.sectionTitle}>{t('RECOVERY_QUESTIONS_TITLE') || '복구 질문 (선택)'}</Text>
 
         <Text style={styles.label}>{t('SELECT_QUESTION') || '질문 선택 1'}</Text>
         <View style={styles.pickerWrap}>
@@ -132,12 +176,7 @@ export default function FindIdScreen() {
             mode="dropdown"
           >
             {QUESTIONS.map((q) => (
-              <Picker.Item
-                key={q.code}
-                label={t(q.labelKey)}
-                value={q.code}
-                style={styles.pickerItem}
-              />
+              <Picker.Item key={q.code} label={t(q.labelKey)} value={q.code} style={styles.pickerItem} />
             ))}
           </Picker>
         </View>
@@ -149,7 +188,7 @@ export default function FindIdScreen() {
           placeholderTextColor="rgba(0,0,0,0.35)"
         />
 
-        <Text style={styles.label}>{t('ANSWER') || '질문 선택 2'}</Text>
+        <Text style={styles.label}>{t('SELECT_QUESTION') || '질문 선택 2'}</Text>
         <View style={styles.pickerWrap}>
           <Picker
             selectedValue={q2}
@@ -159,12 +198,7 @@ export default function FindIdScreen() {
             mode="dropdown"
           >
             {QUESTIONS.map((q) => (
-              <Picker.Item
-                key={q.code}
-                label={t(q.labelKey)}
-                value={q.code}
-                style={styles.pickerItem}
-              />
+              <Picker.Item key={q.code} label={t(q.labelKey)} value={q.code} style={styles.pickerItem} />
             ))}
           </Picker>
         </View>
@@ -181,7 +215,7 @@ export default function FindIdScreen() {
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -261,4 +295,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primaryBtnText: { color: '#fff', textAlign: 'center', fontFamily: FONT, fontSize: 16, lineHeight: 22, includeFontPadding: true },
-})
+});
