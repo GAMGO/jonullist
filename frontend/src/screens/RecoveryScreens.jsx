@@ -1,5 +1,4 @@
-// screens/RecoveryScreens.jsx
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -25,10 +24,10 @@ const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 const onlyDigits = (s = '') => s.replace(/\D+/g, '').slice(0, 6);
 
 const API = {
-  sendCode: '/api/recover/send-code', // ✅ 이메일로 복구코드 발송
-  verifyEmail: '/api/email/verify',   // ✅ 6자리 코드 검증 → recoveryToken 리턴(백엔드에서 purpose=RECOVERY 처리)
-  reset: '/api/recover/reset',        // ✅ recoveryToken + 새 비번으로 재설정
-  findId: '/api/recover/find-id',     // (이름/월/일/성별) → { id, questions? } 하지만 지금은 메일 인증으로 진행
+  sendCode: '/api/recover/send-code',        // 이메일로 복구코드 발송
+  verifyEmail: '/api/recover/verify-code',   // 6자리 코드 검증 → recoveryToken 리턴
+  reset: '/api/recover/reset',               // recoveryToken + 새 비번으로 재설정
+  findId: '/api/recover/find-id',            // (이름/월/일/성별) → { id }
 };
 
 /* ---------- 공용 드롭다운 ---------- */
@@ -232,17 +231,22 @@ function VerifyCodeScreen({ t, leftSec, startTimer, setRecoveryToken, goReset, l
     }
     try {
       setVerifying(true);
-      // 서버: { token } → { success, recoveryToken? }
+      // 서버: { token, purpose? } → { success, recoveryToken? }
       const res = await apiPost(API.verifyEmail, { token: code, purpose: 'RECOVERY' });
-      if (res?.data?.recoveryToken) {
-        setRecoveryToken(res.data.recoveryToken);
+      const ok = res?.data?.success ?? false;
+      const rtk = res?.data?.recoveryToken;
+
+      if (rtk) {
+        setRecoveryToken(rtk);
         goReset();
-      } else if (res?.success) {
-        // 일부 서버는 success만 주는 경우 → 별도 교환 엔드포인트 필요시 여기에 추가
+      } else if (ok) {
         Alert.alert(t('VERIFICATION_DONE') || '인증 완료', t('VERIFICATION_DONE_ALERT') || '다음 단계로 진행합니다.');
         goReset();
       } else {
-        Alert.alert(t('VERIFICATION_FAIL') || '인증 실패', res?.message ?? (t('VERIFICATION_FAIL_MSG') || '인증코드를 확인해 주세요.'));
+        Alert.alert(
+          t('VERIFICATION_FAIL') || '인증 실패',
+          res?.data?.message ?? (t('VERIFICATION_FAIL_MSG') || '인증코드를 확인해 주세요.')
+        );
       }
     } catch (e) {
       Alert.alert(t('SERVER_ERROR') || '서버 오류', e?.message ?? (t('TRY_AGAIN') || '다시 시도해 주세요.'));
