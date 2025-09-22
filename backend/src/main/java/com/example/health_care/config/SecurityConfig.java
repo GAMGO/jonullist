@@ -58,7 +58,7 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/email/**").permitAll() // 이메일 인증 명시적 허용
                                                 .requestMatchers(HttpMethod.GET, "/ranking").permitAll()
                                                 .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/signup").permitAll()
-                                                .requestMatchers("/api/auth/logout", "/body", "/api/profile", "/api/diet/**", "/api/meal-alarm/**").authenticated() // 로그아웃, 바디프로필, 프로필, 식단 기록, 식단 알림 기능
+                                                .requestMatchers("/api/auth/logout", "/body", "/api/profile/**", "/api/diet/**", "/api/meal-alarm/**").authenticated() // 로그아웃, 바디프로필, 프로필, 식단 기록, 식단 알림 기능
                                                 .requestMatchers("/api/food/public/**").permitAll()
                                                 .requestMatchers("/api/youtube/**").permitAll()
                                                 .anyRequest().authenticated())

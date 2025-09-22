@@ -22,6 +22,10 @@ public class RecoveryDTO {
     @Getter
     @Setter
     public static class SetSecurityQuestionsRequest {
+        @NotBlank
+        private String name;
+        @NotBlank
+        private String birth;
         @Size(min = 2, max = 2)
         @Valid
         private List<Item> answers;
@@ -29,6 +33,7 @@ public class RecoveryDTO {
         @Getter
         @Setter
         public static class Item {
+            
             @NotNull
             private RecoveryQuestionCode code;
             @NotBlank
