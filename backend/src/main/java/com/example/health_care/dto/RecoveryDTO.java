@@ -18,7 +18,7 @@ import lombok.Setter;
 @Setter
 public class RecoveryDTO {
 
-    //보안질문 설정 DTO
+    // 보안질문 설정 DTO
     @Getter
     @Setter
     public static class SetSecurityQuestionsRequest {
@@ -33,7 +33,7 @@ public class RecoveryDTO {
         @Getter
         @Setter
         public static class Item {
-            
+
             @NotNull
             private RecoveryQuestionCode code;
             @NotBlank
@@ -60,7 +60,7 @@ public class RecoveryDTO {
         private List<RecoveryQuestionCode> questions;
     }
 
-    //인증완료해서 토큰 발급 DTO    
+    // 인증완료해서 토큰 발급 DTO
     @Getter
     @Setter
     public static class RecoverVerifyRequest {
@@ -97,7 +97,7 @@ public class RecoveryDTO {
         private String newPassword;
     }
 
-    //아이디 찾기 DTO
+    // 아이디 찾기 DTO
     @Getter
     @Setter
     public static class FindIdRequest {
