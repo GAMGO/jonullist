@@ -113,7 +113,7 @@ public class RecoveryDTO {
     @Setter
     @AllArgsConstructor
     public static class FindIdResponse {
-        private String id;
+        private String id; // ✅ 추가: 사용자 이메일(ID) 필드
         private List<RecoveryQuestionCode> questions;
     }
 }
