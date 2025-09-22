@@ -460,16 +460,16 @@ export default function ProfileScreen() {
                 <View style={styles.rowBetween}>
                   <View style={styles.segmentWrap}>
                     <Pressable
-                      onPress={() => update('gender', 'male')}
-                      style={[styles.segmentBtn, form.gender === 'male' && styles.segmentBtnActive]}
+                      onPress={() => update('gender', 'M')}
+                      style={[styles.segmentBtn, form.gender === 'M' && styles.segmentBtnActive]}
                     >
-                      <Text style={[styles.segmentText, form.gender === 'male' && styles.segmentTextActive]}>{t('MALE')}</Text>
+                      <Text style={[styles.segmentText, form.gender === 'M' && styles.segmentTextActive]}>{t('MALE')}</Text>
                     </Pressable>
                     <Pressable
-                      onPress={() => update('gender', 'female')}
-                      style={[styles.segmentBtn, form.gender === 'female' && styles.segmentBtnActive]}
+                      onPress={() => update('gender', 'F')}
+                      style={[styles.segmentBtn, form.gender === 'F' && styles.segmentBtnActive]}
                     >
-                      <Text style={[styles.segmentText, form.gender === 'female' && styles.segmentTextActive]}>{t('FEMALE')}</Text>
+                      <Text style={[styles.segmentText, form.gender === 'F' && styles.segmentTextActive]}>{t('FEMALE')}</Text>
                     </Pressable>
                   </View>
                 </View>
