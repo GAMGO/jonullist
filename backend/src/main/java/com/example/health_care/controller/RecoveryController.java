@@ -103,7 +103,7 @@ public class RecoveryController {
   }
 
   // 2. 이메일 인증 코드 검증
-  @PostMapping("/email/verify")
+  @PostMapping("/recover/verify-code")
   public ResponseEntity<?> verifyEmailCode(@RequestBody Map<String, String> req) {
     final String token = String.valueOf(req.get("token")).trim();
     final String purpose = String.valueOf(req.getOrDefault("purpose", "RECOVERY"));
