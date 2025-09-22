@@ -104,9 +104,9 @@ export default function FindIdScreen() {
         return;
       }
 
-      Alert.alert(t('ALERT_ERROR') || '오류', t('ALERT_INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
+      Alert.alert(t('ERR') || '오류', t('INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
     } catch (e) {
-      Alert.alert(t('ALERT_ERROR') || '오류', t('ALERT_INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
+      Alert.alert(t('ERR')  || '오류', t('INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
     }
   };
 
