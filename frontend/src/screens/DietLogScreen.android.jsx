@@ -77,11 +77,24 @@ export default function DietLogScreen() {
       };
 
       setDayMeals(normalized);
-    } catch (err) {
-      console.error("❌ 식단 로드 실패", err);
-      setDayMeals(EMPTY_DAY);
+  } catch (err) {
+    const msg = err?.message || '';
+
+    if (msg.includes('403')) {
+      // 권한 문제 (토큰 만료 등)
+      showToast('로그인이 필요합니다');
+      navigate('/login');
+    } else if (msg.includes('401')) {
+      // 인증 실패
+      showToast('인증이 필요합니다');
+      navigate('/login');
+    } else {
+      // 일반 네트워크/서버 에러
+      console.warn('❌ 식단 로드 실패:', msg);
+      showToast('식단 로드 실패');
     }
-  }, []);
+  }
+}, []);
 
   // 화면 다시 열릴 때 새로고침
   useFocusEffect(
