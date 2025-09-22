@@ -50,7 +50,7 @@ function getDevOrigin() {
 
   if (!chosenHost) {
     if (Platform.OS === 'android') {
-      chosenHost = '192.168.0.5';
+      chosenHost = '192.168.240.43';
     } else if (Platform.OS === 'ios') {
       chosenHost = '192.168.0.28';
     } else {

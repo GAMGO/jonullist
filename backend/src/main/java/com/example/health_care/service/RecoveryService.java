@@ -4,6 +4,7 @@ package com.example.health_care.service;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -48,9 +49,9 @@ public class RecoveryService {
         .map(CustomersEntity::getIdx)
         .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
   }
-  
+
   @Transactional
- public void setQuestions(String customerId, String name, String birth, List<SetSecurityQuestionsRequest.Item> items) {
+  public void setQuestions(String customerId, String name, String birth, List<SetSecurityQuestionsRequest.Item> items) {
     if (items == null || items.size() < 2)
       throw new IllegalArgumentException("2개의 질문/답이 필요합니다.");
 
@@ -65,23 +66,23 @@ public class RecoveryService {
     // String 이메일(id)을 Long idx로 변환
     Long customerIdx = getCustomerIdx(customerId);
 
-   // 🚨이모지로 표시: 기존 보안 질문들을 모두 삭제합니다.
-  repo.deleteAllByCustomerId(customerIdx);
+    // 🚨이모지로 표시: 기존 보안 질문들을 모두 삭제합니다.
+    repo.deleteAllByCustomerId(customerIdx);
 
-  // 저장(2개)
-  for (var it : items) {
-    RecoveryEntity e = RecoveryEntity.builder()
-        .customerId(customerIdx)
-        .code(it.getCode())
-        // 🚨이모지로 표시: 인자로 받은 name과 birth를 바로 할당합니다.
-        .name(name)
-        .birth(birth)
-        .build();
-    e.setAnswerHash(encoder.encode(norm(it.getAnswer())));
-    e.setUpdatedAt(LocalDateTime.now());
-    repo.save(e);
+    // 저장(2개)
+    for (var it : items) {
+      RecoveryEntity e = RecoveryEntity.builder()
+          .customerId(customerIdx)
+          .code(it.getCode())
+          // 🚨이모지로 표시: 인자로 받은 name과 birth를 바로 할당합니다.
+          .name(name)
+          .birth(birth)
+          .build();
+      e.setAnswerHash(encoder.encode(norm(it.getAnswer())));
+      e.setUpdatedAt(LocalDateTime.now());
+      repo.save(e);
+    }
   }
-}
 
   @Transactional(readOnly = true)
   public List<RecoveryQuestionCode> pickTwo(String customerId) {
@@ -116,71 +117,72 @@ public class RecoveryService {
     // ✅ 추가: 이메일 인증 코드를 검증하고 복구 토큰을 발급하는 Record 클래스 추가
     public record VerifyResult(String id, String recoveryToken) {}
 
-    // 해당 계정이 보안설정이 되어있다면 조회 및 해당 질문 반환.
-    @Transactional(readOnly = true)
-    public List<RecoveryQuestionCode> findId(String name, String birth, String gender) {
+  // 해당 계정이 보안설정이 되어있다면 조회 및 해당 질문 반환.
+  @Transactional(readOnly = true)
+  public List<RecoveryQuestionCode> findId(String name, String birth, String gender) {
 
-        // 1. RecoveryRepository를 사용하여 이름과 생년월일로 사용자를 찾습니다.
-        // RecoveryEntity에는 name과 birth 필드가 있으므로 이 리포지토리를 사용해야 합니다.
-        List<RecoveryEntity> recoveries = repo.findByNameAndBirth(name, birth);
-        
-        if (recoveries.isEmpty()) {
-            throw new IllegalArgumentException("사용자를 찾을 수 없습니다.");
-        }
-        Gender genderEnum;
-        try {
-            genderEnum = Gender.valueOf(gender.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("유효하지 않은 성별 정보입니다.");
-        }
-        // 2. 찾은 RecoveryEntity에서 customerId를 가져와 CustomersEntity를 조회하여 성별을 확인합니다.
-        // 이 로직을 통해 CustomersEntity의 idx와 gender를 연결합니다.
-        Long customerId = recoveries.get(0).getCustomerId();
-        CustomersEntity customer = customersRepo.findByIdxAndGender(customerId, genderEnum)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+    // 1. RecoveryRepository를 사용하여 이름과 생년월일로 사용자를 찾습니다.
+    // RecoveryEntity에는 name과 birth 필드가 있으므로 이 리포지토리를 사용해야 합니다.
+    List<RecoveryEntity> recoveries = repo.findByNameAndBirth(name, birth);
 
-        // 3. 찾은 customer의 idx로 보안 질문을 가져옵니다.
-        List<RecoveryEntity> all = repo.findByCustomerId(customer.getIdx());
-        if (all.size() < 2) {
-            throw new IllegalArgumentException("보안 질문이 설정되지 않았습니다.");
-        }
-        
-        // 4. 사용자가 설정한 질문 2개를 반환합니다.
-        return all.stream().map(RecoveryEntity::getCode).collect(Collectors.toList());
+    if (recoveries.isEmpty()) {
+      throw new IllegalArgumentException("사용자를 찾을 수 없습니다.");
+    }
+    Gender genderEnum;
+    try {
+      genderEnum = Gender.valueOf(gender.toUpperCase());
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("유효하지 않은 성별 정보입니다.");
+    }
+    // 2. 찾은 RecoveryEntity에서 customerId를 가져와 CustomersEntity를 조회하여 성별을 확인합니다.
+    // 이 로직을 통해 CustomersEntity의 idx와 gender를 연결합니다.
+    Long customerId = recoveries.get(0).getCustomerId();
+    CustomersEntity customer = customersRepo.findByIdxAndGender(customerId, genderEnum)
+        .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+    // 3. 찾은 customer의 idx로 보안 질문을 가져옵니다.
+    List<RecoveryEntity> all = repo.findByCustomerId(customer.getIdx());
+    if (all.size() < 2) {
+      throw new IllegalArgumentException("보안 질문이 설정되지 않았습니다.");
     }
 
-    // ✅ 추가: 아이디 찾기 - 이메일과 질문을 함께 반환하는 메서드
-    @Transactional(readOnly = true)
-    public FindIdResult findIdWithEmail(String name, String birth, String gender) {
-        // 1. 이름과 생년월일로 사용자 찾기
-        List<RecoveryEntity> recoveries = repo.findByNameAndBirth(name, birth);
-        if (recoveries.isEmpty()) {
-            throw new IllegalArgumentException("사용자를 찾을 수 없습니다.");
-        }
+    // 4. 사용자가 설정한 질문 2개를 반환합니다.
+    return all.stream().map(RecoveryEntity::getCode).collect(Collectors.toList());
+  }
 
-        // 2. 성별 검증 및 고객 정보 조회
-        Gender genderEnum = Gender.valueOf(gender.toUpperCase());
-        Long customerIdx = recoveries.get(0).getCustomerId();
-        CustomersEntity customer = customersRepo.findByIdxAndGender(customerIdx, genderEnum)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
-        // 3. 고객 이메일(ID) 추출
-        String email = customer.getId();
-
-        // 4. 보안 질문 조회
-        List<RecoveryEntity> all = repo.findByCustomerId(customer.getIdx());
-        if (all.size() < 2) {
-            throw new IllegalArgumentException("보안 질문이 설정되지 않았습니다.");
-        }
-        List<RecoveryQuestionCode> questions = all.stream().map(RecoveryEntity::getCode).collect(Collectors.toList());
-
-        // 5. 이메일과 질문을 함께 반환
-        return new FindIdResult(email, questions);
+  // ✅ 추가: 아이디 찾기 - 이메일과 질문을 함께 반환하는 메서드
+  @Transactional(readOnly = true)
+  public FindIdResult findIdWithEmail(String name, String birth, String gender) {
+    // 1. 이름과 생년월일로 사용자 찾기
+    List<RecoveryEntity> recoveries = repo.findByNameAndBirth(name, birth);
+    if (recoveries.isEmpty()) {
+      throw new IllegalArgumentException("사용자를 찾을 수 없습니다.");
     }
-    // 단기 토큰 발급/검증은 TokenTool 위임
-    public String createRecoveryToken(String userId) {
-        return tokenTool.create(userId);
+
+    // 2. 성별 검증 및 고객 정보 조회
+    Gender genderEnum = Gender.valueOf(gender.toUpperCase());
+    Long customerIdx = recoveries.get(0).getCustomerId();
+    CustomersEntity customer = customersRepo.findByIdxAndGender(customerIdx, genderEnum)
+        .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+    // 3. 고객 이메일(ID) 추출
+    String email = customer.getId();
+
+    // 4. 보안 질문 조회
+    List<RecoveryEntity> all = repo.findByCustomerId(customer.getIdx());
+    if (all.size() < 2) {
+      throw new IllegalArgumentException("보안 질문이 설정되지 않았습니다.");
     }
+    List<RecoveryQuestionCode> questions = all.stream().map(RecoveryEntity::getCode).collect(Collectors.toList());
+
+    // 5. 이메일과 질문을 함께 반환
+    return new FindIdResult(email, questions);
+  }
+
+  // 단기 토큰 발급/검증은 TokenTool 위임
+  public String createRecoveryToken(String userId) {
+    return tokenTool.create(userId);
+  }
 
   public String parseRecoveryToken(String token) {
     return tokenTool.parse(token);
