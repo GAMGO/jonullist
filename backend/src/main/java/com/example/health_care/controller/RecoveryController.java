@@ -74,15 +74,14 @@ public class RecoveryController {
         return ResponseEntity.ok(Map.of("message", "비밀번호가 변경되었습니다."));
     }
 
-    // 아이디 찾기 로직
-// >>> [ADDED] 이름, 생년월일, 성별로 ID 찾기 → 2개 질문 코드 반환
+    // ✅ 수정: 아이디 찾기 로직 - 이메일과 질문을 함께 반환
     @PostMapping("/recover/find-id")
     public ResponseEntity<?> findId(@Valid @RequestBody FindIdRequest req) {
         try {
-            // FindIdRequest는 이름, 생년월일, 성별을 포함합니다.
-            List<RecoveryQuestionCode> questions = service.findId(req.getName(), req.getBirth(), req.getGender());
-            // FindIdResponse를 사용하여 응답을 생성합니다.
-            return ResponseEntity.ok(new FindIdResponse(questions));
+            // findIdWithEmail 메서드로 이메일과 질문을 함께 조회
+            var result = service.findIdWithEmail(req.getName(), req.getBirth(), req.getGender());
+            // FindIdResponse에 이메일과 질문을 모두 포함하여 반환
+            return ResponseEntity.ok(new FindIdResponse(result.id(), result.questions()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("message", "일치하는 사용자 정보가 없습니다."));
         }

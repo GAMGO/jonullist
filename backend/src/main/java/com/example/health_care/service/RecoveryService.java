@@ -106,7 +106,10 @@ public class RecoveryService {
         }
         return true;
     }
-     // 해당 계정이 보안설정이 되어있다면 조회 및 해당 질문 반환.
+     // ✅ 수정: 아이디 찾기 - 이메일과 질문을 함께 반환하는 Record 클래스 추가
+    public record FindIdResult(String id, List<RecoveryQuestionCode> questions) {}
+
+    // 해당 계정이 보안설정이 되어있다면 조회 및 해당 질문 반환.
     @Transactional(readOnly = true)
     public List<RecoveryQuestionCode> findId(String name, String birth, String gender) {
 
@@ -137,6 +140,35 @@ public class RecoveryService {
         
         // 4. 사용자가 설정한 질문 2개를 반환합니다.
         return all.stream().map(RecoveryEntity::getCode).collect(Collectors.toList());
+    }
+
+    // ✅ 추가: 아이디 찾기 - 이메일과 질문을 함께 반환하는 메서드
+    @Transactional(readOnly = true)
+    public FindIdResult findIdWithEmail(String name, String birth, String gender) {
+        // 1. 이름과 생년월일로 사용자 찾기
+        List<RecoveryEntity> recoveries = repo.findByNameAndBirth(name, birth);
+        if (recoveries.isEmpty()) {
+            throw new IllegalArgumentException("사용자를 찾을 수 없습니다.");
+        }
+
+        // 2. 성별 검증 및 고객 정보 조회
+        Gender genderEnum = Gender.valueOf(gender.toUpperCase());
+        Long customerIdx = recoveries.get(0).getCustomerId();
+        CustomersEntity customer = customersRepo.findByIdxAndGender(customerIdx, genderEnum)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 3. 고객 이메일(ID) 추출
+        String email = customer.getId();
+
+        // 4. 보안 질문 조회
+        List<RecoveryEntity> all = repo.findByCustomerId(customer.getIdx());
+        if (all.size() < 2) {
+            throw new IllegalArgumentException("보안 질문이 설정되지 않았습니다.");
+        }
+        List<RecoveryQuestionCode> questions = all.stream().map(RecoveryEntity::getCode).collect(Collectors.toList());
+
+        // 5. 이메일과 질문을 함께 반환
+        return new FindIdResult(email, questions);
     }
     // 단기 토큰 발급/검증은 TokenTool 위임
     public String createRecoveryToken(String userId) {
