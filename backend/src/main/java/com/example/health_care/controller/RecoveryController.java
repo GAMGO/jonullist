@@ -20,16 +20,16 @@ import java.util.stream.Collectors;
 * 비밀번호 복구 모듈 (모든 구성요소를 한 파일로 통합)
 *
 * - [로그인 필요] PUT /api/profile/security-questions
-*   본인 계정에 질문 3개/답(확인 포함) 등록 또는 수정
+* 본인 계정에 질문 3개/답(확인 포함) 등록 또는 수정
 *
 * - [공개]    POST /api/recover/start
-*   { id } → 등록된 4개 중 임의의 2개 질문 code 반환
+* { id } → 등록된 4개 중 임의의 2개 질문 code 반환
 *
 * - [공개]    POST /api/recover/verify
-*   { id, answers:[{code, answer}, ...](2개) } → 정답이면 recoveryToken 발급
+* { id, answers:[{code, answer}, ...](2개) } → 정답이면 recoveryToken 발급
 *
 * - [공개]    POST /api/recover/reset
-*   { recoveryToken, newPassword } → 비밀번호 재설정
+* { recoveryToken, newPassword } → 비밀번호 재설정
 */
 @RestController
 @RequestMapping("/api")
@@ -91,4 +91,22 @@ public class RecoveryController {
             return ResponseEntity.badRequest().body(Map.of("message", "일치하는 사용자 정보가 없습니다."));
         }
     }
+  // 📧이모지로 표시: 이메일로 인증 코드 발송 엔드포인트 추가
+  @PostMapping("/recover/send-code")
+  public ResponseEntity<?> sendRecoveryCode(@RequestBody Map<String, String> req) {
+    final String id = String.valueOf(req.get("id")).trim();
+    final String purpose = String.valueOf(req.getOrDefault("purpose", "RECOVERY"));
+    service.sendRecoveryCode(id, purpose); // 6자리 코드 생성+저장+이메일 발송
+    return ResponseEntity.ok(Map.of("message", "코드를 전송했습니다."));
+  }
+
+  // 📧이모지로 표시: 이메일 인증 코드 검증 및 복구 토큰 발급 엔드포인트 추가
+  @PostMapping("/email/verify")
+  public ResponseEntity<?> verifyEmailCode(@RequestBody Map<String, String> req) {
+    final String token = String.valueOf(req.get("token")).trim();
+    final String purpose = String.valueOf(req.getOrDefault("purpose", "RECOVERY"));
+    var result = service.verifyEmailCodeAndIssueRecoveryToken(token, purpose); // 성공 시 (id, recoveryToken)
+    if (result == null) return ResponseEntity.badRequest().body(Map.of("success", false));
+    return ResponseEntity.ok(Map.of("success", true, "recoveryToken", result.recoveryToken()));
+  }
 }
