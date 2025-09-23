@@ -88,7 +88,7 @@ function StartScreen({ t, loginId, setLoginId, onCodeSent, goFind }) {
       if (!res) throw new Error();
       onCodeSent(); // 상위에서 타이머 시작 및 화면 전환
     } catch (e) {
-      Alert.alert(t('ALERT_ERROR'), t('ALERT_INVALID_ID') || '해당 이메일을 찾을 수 없습니다.');
+      Alert.alert(t('ALERT_ERROR'), t('INVALID_ID') || '해당 이메일을 찾을 수 없습니다.');
     } finally {
       setLoading(false);
     }
