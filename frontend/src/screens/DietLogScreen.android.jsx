@@ -82,16 +82,16 @@ export default function DietLogScreen() {
 
     if (msg.includes('403')) {
       // 권한 문제 (토큰 만료 등)
-      showToast('로그인이 필요합니다');
+      showToast(t('NEED_LOGIN'));
       navigate('/login');
     } else if (msg.includes('401')) {
       // 인증 실패
-      showToast('인증이 필요합니다');
+      showToast(t('VERIFICATION_NEED'));
       navigate('/login');
     } else {
       // 일반 네트워크/서버 에러
-      console.warn('❌ 식단 로드 실패:', msg);
-      showToast('식단 로드 실패');
+      console.warn(`❌ ${t('FAIL_DIET_LOG_LOADING')}:`, msg);
+      showToast(t('FAIL_DIET_LOG_LOADING'));
     }
   }
 }, []);

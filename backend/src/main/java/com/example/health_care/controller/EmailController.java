@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -169,4 +170,5 @@ public class EmailController {
                     .body(EmailVerificationResponse.failure("서버 오류가 발생했습니다"));
         }
     }
+
 }

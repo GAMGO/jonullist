@@ -117,14 +117,15 @@ export default function FindIdScreen() {
         return;
       }
 
-      Alert.alert(t('ALERT_ERROR') || '오류', t('ALERT_INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
+      Alert.alert(t('ERR') || '오류', t('INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
     } catch (e) {
+      Alert.alert(t('ERR')  || '오류', t('INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
       // 에러 메시지 최대한 보여주기
       const status = e?.response?.status;
       const body = e?.response?.data;
       const msg = (body && (body.message || body.error)) || e?.message || '요청 실패';
       console.log('[FindIdScreen ERROR]', status, body);
-      Alert.alert(t('ALERT_ERROR') || '오류', String(msg));
+      Alert.alert(t('ERR') || '오류', String(msg));
     }
   };
 
@@ -187,7 +188,7 @@ export default function FindIdScreen() {
             style={[styles.segmentBtn, gender === 'M' && styles.segmentBtnActive]}
           >
             <Text style={[styles.segmentText, gender === 'M' && styles.segmentTextActive]}>
-              {t('GENDER_MALE') || '남성'}
+              {t('MALE') || '남성'}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -195,7 +196,7 @@ export default function FindIdScreen() {
             style={[styles.segmentBtn, gender === 'F' && styles.segmentBtnActive]}
           >
             <Text style={[styles.segmentText, gender === 'F' && styles.segmentTextActive]}>
-              {t('GENDER_FEMALE') || '여성'}
+              {t('FEMALE') || '여성'}
             </Text>
           </TouchableOpacity>
         </View>
