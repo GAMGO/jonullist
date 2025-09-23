@@ -98,7 +98,7 @@ export default function DietLogScreen() {
       // 일반 네트워크/서버 에러
       console.warn(`❌ ${t('FAIL_DIET_LOG_LOADING')}`, msg);
       showToast(t('FAIL_DIET_LOG_LOADING'));
-
+    }
     }
   }, []);
 
