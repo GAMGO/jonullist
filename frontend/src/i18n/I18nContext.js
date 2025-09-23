@@ -241,7 +241,7 @@ const DICT = {
     VOICE_DEFAULT: "기본 보이스",
 
     // Password Recovery
-    TITLE_RECOVERY: "비빌번호 초기화",
+    TITLE_RECOVERY: "비밀번호 초기화",
     PLACEHOLDER_EMAIL: "you@example.com",
     RECOVERY_SETUP: "보안질문 설정",
     VERIFY_ANSWERS: "질문 답변",
