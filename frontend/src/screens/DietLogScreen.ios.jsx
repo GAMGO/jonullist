@@ -54,11 +54,12 @@ export default function DietLogScreen() {
       if (Array.isArray(rec)) {
         const grouped = { morning: [], lunch: [], dinner: [] };
         rec.forEach(r => {
-          if (r.mealType && grouped[r.mealType]) {
-            grouped[r.mealType].push({
-              food: r.food,
-              calories: r.calories,
-              timestamp: r.timestamp,
+          const key = r.mealType || r.type;
+            if (key && grouped[key]) {
+              grouped[key].push({
+                food: r.food,
+                calories: r.calories,
+                timestamp: r.timestamp,
             });
           }
         });
