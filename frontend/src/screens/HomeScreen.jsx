@@ -1,5 +1,14 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { View, ImageBackground, Text, Pressable, Image, StyleSheet, Animated, Platform } from 'react-native'
+import {
+  View,
+  ImageBackground,
+  Text,
+  Pressable,
+  Image,
+  StyleSheet,
+  Animated,
+  Platform,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation, useFocusEffect } from '@react-navigation/native'
 import AvatarByBMI from '../components/AvatarByBMI'
@@ -9,6 +18,7 @@ import { useAuth } from '../context/AuthContext'
 import { apiGet } from '../config/api'
 import { calcBMI, classifyBMI } from '../utils/bmi'
 import { useI18n } from '../i18n/I18nContext'
+import { Shadow } from 'react-native-shadow-2'
 
 /* ===== UI CONST ===== */
 const ICON_SIZE = 72
@@ -21,57 +31,57 @@ const BOX_PAD = Platform.select({ ios: 20, android: 14 })
 function CalorieGauge({ current, target }) {
   const [width, setWidth] = useState(0)
   const greenAnim = useRef(new Animated.Value(0)).current
-  const redAnim   = useRef(new Animated.Value(0)).current
+  const redAnim = useRef(new Animated.Value(0)).current
 
   const ratio = target > 0 ? current / target : 0
 
   const nextGreen = Math.max(0, Math.min(ratio, 1)) * width
-  const nextRed   = ratio > 1 ? Math.min(ratio - 1, 1) * width : 0
+  const nextRed = ratio > 1 ? Math.min(ratio - 1, 1) * width : 0
 
   useEffect(() => {
     Animated.timing(greenAnim, { toValue: nextGreen, duration: 600, useNativeDriver: false }).start()
-    Animated.timing(redAnim,   { toValue: nextRed,   duration: 600, useNativeDriver: false }).start()
+    Animated.timing(redAnim, { toValue: nextRed, duration: 600, useNativeDriver: false }).start()
   }, [nextGreen, nextRed])
 
   return (
     <View style={styles.gaugeWrapper}>
       <Text style={styles.goalText}>GOAL.</Text>
 
-    <View style={styles.gaugeShadowWrapper}>
-      <View
-        style={styles.gaugeContainer}
-        onLayout={e => setWidth(e.nativeEvent.layout.width)}
-      >
-        {/* Green: left -> right */}
-        <Animated.View
-          style={[
-            styles.gaugeFillBase,
-            {
-              left: 0,
-              width: greenAnim,
-              backgroundColor: 'rgba(34,197,94,0.8)',
-            },
-          ]}
-        />
+      <View style={styles.gaugeShadowWrapper}>
+        <View
+          style={styles.gaugeContainer}
+          onLayout={e => setWidth(e.nativeEvent.layout.width)}
+        >
+          {/* Green: left -> right */}
+          <Animated.View
+            style={[
+              styles.gaugeFillBase,
+              {
+                left: 0,
+                width: greenAnim,
+                backgroundColor: 'rgba(34,197,94,0.8)',
+              },
+            ]}
+          />
 
-        {/* Red: right -> left */}
-        <Animated.View
-          style={[
-            styles.gaugeFillBase,
-            {
-              right: 0,
-              width: redAnim,
-              backgroundColor: 'rgba(239,68,68,0.8)',
-            },
-          ]}
-        />
+          {/* Red: right -> left */}
+          <Animated.View
+            style={[
+              styles.gaugeFillBase,
+              {
+                right: 0,
+                width: redAnim,
+                backgroundColor: 'rgba(239,68,68,0.8)',
+              },
+            ]}
+          />
 
-        <View style={styles.gaugeTextWrap}>
-          <Text style={styles.gaugeText} allowFontScaling={false}>
-            {current}/{target} kcal
-          </Text>
+          <View style={styles.gaugeTextWrap}>
+            <Text style={styles.gaugeText} allowFontScaling={false}>
+              {current}/{target} kcal
+            </Text>
+          </View>
         </View>
-      </View>
       </View>
     </View>
   )
@@ -98,15 +108,15 @@ function EvolvingAvatar({ category, size }) {
         Animated.loop(
           Animated.sequence([
             Animated.timing(fade, { toValue: 0.25, duration: 150, useNativeDriver: true }),
-            Animated.timing(fade, { toValue: 1, duration: 150, useNativeDriver: true })
+            Animated.timing(fade, { toValue: 1, duration: 150, useNativeDriver: true }),
           ]),
           { iterations: 4 }
         ),
         Animated.parallel([
           Animated.timing(scale, { toValue: 1.35, duration: 260, useNativeDriver: true }),
-          Animated.timing(fade, { toValue: 0, duration: 260, useNativeDriver: true })
-        ])
-      ])
+          Animated.timing(fade, { toValue: 0, duration: 260, useNativeDriver: true }),
+        ]),
+      ]),
     ]).start(() => {
       setDisplayCat(category)
       fade.setValue(1)
@@ -131,18 +141,20 @@ function EvolvingAvatar({ category, size }) {
             borderRadius: (size * 0.92) / 2,
             backgroundColor: '#7dd3fc',
             opacity: pulseOpacity,
-            transform: [{ scale: pulseScale }]
+            transform: [{ scale: pulseScale }],
           }}
         />
       )}
 
-      <View style={{
-        shadowColor: '#000',
-        shadowOffset: { width: 7, height: 5 },
-        shadowOpacity: 0.4,
-        shadowRadius: 2,
-        elevation: 12,
-      }}>
+      <View
+        style={{
+          shadowColor: '#000',
+          shadowOffset: { width: 7, height: 5 },
+          shadowOpacity: 0.4,
+          shadowRadius: 2,
+          elevation: 12,
+        }}
+      >
         {isEvolving ? (
           <Animated.View style={{ opacity: fade, transform: [{ scale }] }}>
             <AvatarByBMI category={displayCat} size={size} />
@@ -153,12 +165,6 @@ function EvolvingAvatar({ category, size }) {
       </View>
     </View>
   )
-}
-
-function dayKey(d = new Date()) {
-  const t = new Date(d)
-  t.setHours(0, 0, 0, 0)
-  return t.toISOString().slice(0, 10)
 }
 
 /* ===== Home ===== */
@@ -178,12 +184,6 @@ export default function HomeScreen({ route }) {
     setTarget(target)
     setCurrent(current)
   }, [user?.id])
-
-  // 칼로리만 따로 갱신 (삭제 반영용)
-  const refreshCalories = useCallback(async () => {
-    const c = await getCalories()
-    setCurrent(c)
-  }, [])
 
   const syncFromProfile = useCallback(async () => {
     try {
@@ -208,70 +208,120 @@ export default function HomeScreen({ route }) {
     await syncFromProfile()
   }, [loadLocal, syncFromProfile])
 
-  useEffect(() => { loadAll() }, [loadAll])
+  useEffect(() => {
+    loadAll()
+  }, [loadAll])
 
   useFocusEffect(
     useCallback(() => {
-    const run = async () => {
-      await loadAll()                 // 목표 칼로리, BMI, 프로필 동기화
-      const c = await getCalories()   // 항상 스토리지에서 최신 칼로리 가져오기
-      setCurrent(c)
+      const run = async () => {
+        await loadAll()
+        const c = await getCalories()
+        setCurrent(c)
 
-      if (route?.params?.addedCalories) {
-        setCurrent(prev => prev + route.params.addedCalories)
-        nav.setParams({ addedCalories: undefined })   // 초기화 (중복 반영 방지)
-      }
+        if (route?.params?.addedCalories) {
+          setCurrent(prev => prev + route.params.addedCalories)
+          nav.setParams({ addedCalories: undefined })
+        }
 
-      if (route?.params?.removedCalories) {
-        setCurrent(prev => Math.max(0, prev - route.params.removedCalories))
-        nav.setParams({ removedCalories: undefined }) // 초기화 (중복 반영 방지)
+        if (route?.params?.removedCalories) {
+          setCurrent(prev => Math.max(0, prev - route.params.removedCalories))
+          nav.setParams({ removedCalories: undefined })
+        }
       }
-    }
-    run()
-  }, [loadAll, route?.params?.addedCalories, route?.params?.removedCalories])
-)
+      run()
+    }, [loadAll, route?.params?.addedCalories, route?.params?.removedCalories])
+  )
 
   if (!fontsLoaded) return null
 
   const IconLabeled = ({ iconSrc, label, to }) => (
-    <Pressable onPress={() => nav.navigate(to)}  style={styles.iconWrapper}>
+    <Pressable onPress={() => nav.navigate(to)} style={styles.iconWrapper}>
       <Image source={iconSrc} style={styles.iconImage} />
-      <Text style={styles.labelText} numberOfLines={1} allowFontScaling={false}>{label}</Text>
+      <Text style={styles.labelText} numberOfLines={1} allowFontScaling={false}>
+        {label}
+      </Text>
     </Pressable>
   )
 
   return (
-    <ImageBackground source={require('../../assets/background/home.png')} style={{ flex: 1 }} resizeMode="cover">
-      {/* 상단: 상점 배지 */}
+    <ImageBackground
+      source={require('../../assets/background/home.png')}
+      style={{ flex: 1 }}
+      resizeMode="cover"
+    >
+      {/* 상점 */}
       <Pressable
         onPress={() => nav.navigate('Store')}
-        style={[
-          styles.storeBadge,
-          { top: insets.top + 8 }
-        ]}
+        style={[styles.storeBadge, { top: insets.top + 8 }]}
         hitSlop={8}
       >
         <Text style={styles.storeBadgeEmoji}>💰</Text>
         <Text style={styles.storeBadgeText}>상점</Text>
       </Pressable>
 
+      {/* 상단 두 박스 */}
       <View style={[styles.topContainer, { marginTop: insets.top + 56 }]}>
-        <Pressable style={styles.box} onPress={() => nav.navigate('DietLog')}>
-          <Text style={styles.boxText} allowFontScaling={false}>{t('HOME_MEAL')}</Text>
+        <Pressable style={styles.cardPress} onPress={() => nav.navigate('DietLog')}>
+          <Shadow
+            distance={12}
+            startColor={'#0003'}
+            finalColor={'#0000'}
+            offset={[4, 6]}
+            radius={30}
+             style={styles.cardShadow} 
+          >
+            <View style={styles.cardBox}>
+              <Text style={styles.cardText} numberOfLines={1} allowFontScaling={false}>
+                 {t('HOME_MEAL')}
+              </Text>
+            </View>
+          </Shadow>
         </Pressable>
-        <Pressable style={styles.box} onPress={() => nav.navigate('Data')}>
-          <Text style={styles.boxText} allowFontScaling={false}>{t('HOME_DATA')}</Text>
+
+        <Pressable style={styles.cardPress} onPress={() => nav.navigate('Data')}>
+          <Shadow
+            distance={12}
+            startColor={'#0003'}
+            finalColor={'#0000'}
+            offset={[4, 6]}
+            radius={30}
+            style={styles.cardShadow} 
+          >
+            <View style={styles.cardBox}>
+              <Text style={styles.cardText} numberOfLines={1} allowFontScaling={false}>
+                {t('HOME_DATA')}
+              </Text>
+            </View>
+          </Shadow>
         </Pressable>
       </View>
 
+      {/* 본문 */}
       <View style={{ flex: 1 }}>
         {/* 게이지 */}
-        <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 150 + 260, alignItems: 'center' }}>
+        <View
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: insets.bottom + 150 + 260,
+            alignItems: 'center',
+          }}
+        >
           <CalorieGauge current={current} target={target} />
         </View>
 
         {/* 캐릭터 */}
-        <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 150, alignItems: 'center' }}>
+        <View
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: insets.bottom + 150,
+            alignItems: 'center',
+          }}
+        >
           <EvolvingAvatar category={category} size={260} />
         </View>
 
@@ -287,15 +337,21 @@ export default function HomeScreen({ route }) {
               return n
             })
           }}
-          style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 150, height: 260 }}
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: insets.bottom + 150,
+            height: 260,
+          }}
         />
 
         {/* 하단 네비 */}
         <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 24 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center' }}>
             <IconLabeled iconSrc={require('../../assets/icons/profile.png')} label={t('PROFILE')} to="Profile" />
-            <IconLabeled iconSrc={require('../../assets/icons/quest.png')}   label={t('BURNING')} to="Burning" />
-            <IconLabeled iconSrc={require('../../assets/icons/quest.png')}   label={t('RANKING')} to="Ranking" />
+            <IconLabeled iconSrc={require('../../assets/icons/quest.png')} label={t('BURNING')} to="Burning" />
+            <IconLabeled iconSrc={require('../../assets/icons/quest.png')} label={t('RANKING')} to="Ranking" />
             <IconLabeled iconSrc={require('../../assets/icons/setting.png')} label={t('SETTINGS')} to="Settings" />
           </View>
         </View>
@@ -308,38 +364,41 @@ const styles = StyleSheet.create({
   topContainer: {
     flexDirection: 'row',
     paddingHorizontal: 11,
-    gap: 12
+    gap: 12,
+    alignItems: 'stretch',
   },
-  box: {
+  cardPress: {
     flex: 1,
+    minWidth: 0,
+    flexBasis: 0,
+  },
+  cardShadow: {
+width: '100%',            // ✅ Shadow 자체도 부모 폭으로
+},
+  cardBox: {
     height: BOX_HEIGHT,
-    backgroundColor: 'rgba(255,255,255,0.8)',
     borderRadius: 30,
     borderWidth: 3,
     borderColor: '#333',
-    padding: BOX_PAD,
-    justifyContent: 'flex-start',
-    alignItems: 'flex-start',
-    // ios
-    shadowColor: '#000',
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 1,
-    // Android
-    elevation: 10
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    paddingHorizontal: BOX_PAD,
+     justifyContent: 'flex-start',
+ alignItems: 'flex-start',  paddingTop: BOX_PAD,
+ paddingBottom: 8,
+ width: '100%',  
   },
-  boxText: {
+  cardText: {
     fontSize: BOX_FONT,
-    height: BOX_HEIGHT,
     color: '#111827',
     fontFamily: FONT,
-    includeFontPadding: false
+    includeFontPadding: false,
+     textAlignVertical: 'top', // (Android에서 상단 고정)
   },
 
   /* Gauge */
   gaugeWrapper: {
     flexDirection: 'row',
-    gap: 5
+    gap: 5,
   },
   gaugeContainer: {
     height: 20,
@@ -349,7 +408,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.7)',
-    overflow: 'hidden'
+    overflow: 'hidden',
   },
   gaugeShadowWrapper: {
     width: '50%',
@@ -363,18 +422,18 @@ const styles = StyleSheet.create({
   gaugeFillBase: {
     position: 'absolute',
     top: 0,
-    bottom: 0
+    bottom: 0,
   },
   gaugeTextWrap: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
   gaugeText: {
     color: 'grey',
     fontSize: 15,
     fontFamily: FONT,
-    includeFontPadding: false
+    includeFontPadding: false,
   },
   goalText: {
     fontSize: 22,
@@ -382,7 +441,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     textShadowColor: 'rgba(0,0,0,0.9)',
     textShadowOffset: { width: 5, height: 5 },
-    textShadowRadius: 3
+    textShadowRadius: 3,
   },
 
   /* Bottom labels */
@@ -392,31 +451,32 @@ const styles = StyleSheet.create({
     fontFamily: FONT,
     color: 'tomato',
     includeFontPadding: false,
-    textAlign: 'center'
+    textAlign: 'center',
   },
 
   iconWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: ICON_SIZE +4,
+    width: ICON_SIZE + 4,
     paddingVertical: 4,
     shadowColor: '#000',
     shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 1,
-    elevation: 6
+    elevation: 6,
   },
 
   iconImage: {
     width: ICON_SIZE,
     height: ICON_SIZE,
-    resizeMode: 'contain'
+    resizeMode: 'contain',
   },
 
   /* Store badge */
   storeBadge: {
     position: 'absolute',
-    left: -20, right: 0,
+    left: -20,
+    right: 0,
     alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
@@ -436,12 +496,12 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   storeBadgeEmoji: {
-    fontSize: 17
+    fontSize: 17,
   },
   storeBadgeText: {
     fontFamily: FONT,
     fontSize: 18,
     color: '#fff',
-    includeFontPadding: false
-  }
+    includeFontPadding: false,
+  },
 })
