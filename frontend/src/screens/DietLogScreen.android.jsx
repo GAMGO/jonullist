@@ -48,6 +48,10 @@ export default function DietLogScreen() {
       .reduce((sum, m) => sum + (m.calories || 0), 0);
   }, [dayMeals]);
 
+  // 끼니별 칼로리 합계
+  const calcMealCalories = (meals) =>
+    meals.reduce((sum, m) => sum + (m.calories || 0), 0);
+
   // 하루치 데이터 로드
   const fetchDay = useCallback(async (dk) => {
     try {
@@ -148,23 +152,35 @@ export default function DietLogScreen() {
       }
     };
 
+    // 확인 모달 동작
+  const onConfirmCancel = () => {
+    setConfirmVisible(false);
+    setDeleteTarget(null);
+  };
+  const onConfirmOK = async () => {
+    if (deleteTarget) {
+      await handleDelete(deleteTarget.type, deleteTarget.index, deleteTarget.item);
+    }
+    setConfirmVisible(false);
+    setDeleteTarget(null);
+  };
+
 
   // 섹션 컴포넌트
-  const MealSection = ({ label, type }) => {
-    const calcMealCalories = (meals) =>
-      meals.reduce((sum, m) => sum + (m.calories || 0), 0);
-
-    const calories = calcMealCalories(dayMeals[type] || []);
-
-    return (
-      <Pressable style={styles.section} onPress={() => { setSelectedType(type); setModalVisible(true); }}>
+   const MealSection = ({ label, type, calories }) => (
+      <Pressable style={styles.section} onPress={() => {
+        setSelectedType(type);
+        setModalVisible(true);
+      }}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>
-            {label}
-            <Text style={{ fontSize: 18, color: '#333' }}> [{calories} {t('CALORIES')}]</Text>
+            {label} <Text style={{ fontSize: 18, color: '#333' }}>[{calories} {t('CALORIES')}]</Text>
           </Text>
           <View style={styles.headerActions}>
-            <Pressable style={styles.primaryBtn} onPress={() => navigation.navigate('Camera', { type })}>
+            <Pressable
+              style={styles.primaryBtn}
+              onPress={() => navigation.navigate('Camera', { type })}
+            >
               <Text style={styles.primaryBtnText}>📷</Text>
             </Pressable>
             <Pressable
@@ -173,7 +189,7 @@ export default function DietLogScreen() {
                 navigation.navigate('DirectInput', {
                   dateKey,
                   mealType: type,
-                  onAdd: (entry) => handleAddMeal(entry, type),
+                  onAdd: entry => handleAddMeal(entry, type),
                 })
               }
             >
@@ -181,7 +197,7 @@ export default function DietLogScreen() {
             </Pressable>
           </View>
         </View>
-
+  
         <FlatList
           data={dayMeals[type]}
           keyExtractor={(_, i) => `${type}-${i}`}
@@ -200,7 +216,8 @@ export default function DietLogScreen() {
         />
       </Pressable>
     );
-  };
+    
+
 
   return (
     <ImageBackground
@@ -313,33 +330,32 @@ export default function DietLogScreen() {
         </View>
       </Modal>
 
-      {/* ✅ 삭제 확인 모달 */}
-      <Modal
-        transparent
-        visible={confirmVisible}
-        animationType="fade"
-        onRequestClose={confirmDeleteCancel}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.confirmContent}>
-            {deleteTarget?.item ? (
-              <Text style={styles.confirmDesc}>
-                [ {deleteTarget.item.food} ] · {deleteTarget.item.calories} kcal
-              </Text>
-            ) : null}
-            <Text style={styles.confirmTitle}>삭제하시겠습니까?</Text>
-
-            <View style={styles.confirmActions}>
-              <Pressable style={[styles.confirmBtn, styles.cancelBtn]} onPress={confirmDeleteCancel}>
-                <Text style={styles.confirmBtnText}>Cancel</Text>
-              </Pressable>
-              <Pressable style={[styles.confirmBtn, styles.okBtn]} onPress={confirmDeleteOK}>
-                <Text style={styles.confirmBtnText}>OK</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {/* 삭제 확인 모달 */}
+            <Modal
+              transparent
+              visible={confirmVisible}
+              animationType="fade"
+              onRequestClose={onConfirmCancel}
+            >
+              <View style={styles.modalOverlay}>
+                <View style={styles.confirmContent}>
+                  {deleteTarget?.item ? (
+                    <Text style={styles.confirmDesc}>
+                      [ {deleteTarget.item.food} ] · {deleteTarget.item.calories} kcal
+                    </Text>
+                  ) : null}
+                  <Text style={styles.confirmTitle}>삭제하시겠습니까?</Text>
+                  <View style={styles.confirmActions}>
+                    <Pressable style={[styles.confirmBtn, styles.cancelBtn]} onPress={onConfirmCancel}>
+                      <Text style={styles.confirmBtnText}>취소</Text>
+                    </Pressable>
+                    <Pressable style={[styles.confirmBtn, styles.okBtn]} onPress={onConfirmOK}>
+                      <Text style={styles.confirmBtnText}>삭제하기</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+            </Modal>
     </ImageBackground>
   );
 }
@@ -469,26 +485,26 @@ const styles = StyleSheet.create({
     fontFamily: 'DungGeunMo'
   },
 
-  // ✅ 삭제 확인 모달 스타일
+  // 삭제 확인 모달 스타일
   confirmContent: {
     backgroundColor: '#fff',
-    paddingVertical: 24,
-    paddingHorizontal: 20,
+    paddingVertical: 20,
+    paddingHorizontal: 15,
     borderRadius: 16,
     width: '80%',
     alignItems: 'center'
   },
   confirmTitle: {
-    fontSize: 20,
+    fontSize: 15,
     fontFamily: 'DungGeunMo',
     color: '#222',
-    marginBottom: 8,
+    marginBottom: 15,
   },
   confirmDesc: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: 'DungGeunMo',
     color: '#444',
-    marginBottom: 20,
+    marginBottom: 15,
     textAlign: 'center'
   },
   confirmActions: {
@@ -496,12 +512,12 @@ const styles = StyleSheet.create({
     gap: 12
   },
   confirmBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 18,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#ddd',
-    minWidth: 110,
+    minWidth: 100,
     alignItems: 'center'
   },
   cancelBtn: {
@@ -513,7 +529,7 @@ const styles = StyleSheet.create({
   },
   confirmBtnText: {
     color: '#000',
-    fontSize: 16,
+    fontSize: 13,
     fontFamily: 'DungGeunMo'
   },
 
