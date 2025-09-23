@@ -14,6 +14,10 @@ export default function DietLogScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedType, setSelectedType] = useState(null);
 
+  // ✅ 삭제 확인 모달 상태
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  // { type: 'morning'|'lunch'|'dinner', index: number, item: { food, calories, timestamp } }
 
   // 날짜 상태
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -42,7 +46,7 @@ export default function DietLogScreen() {
       .reduce((sum, m) => sum + (m.calories || 0), 0);
   }, [dayMeals]);
 
-  // 끼니별 칼로리 합계 함수
+  // 끼니별 칼로리 합계
   const calcMealCalories = (meals) =>
     meals.reduce((sum, m) => sum + (m.calories || 0), 0);
 
@@ -55,17 +59,18 @@ export default function DietLogScreen() {
         const grouped = { morning: [], lunch: [], dinner: [] };
         rec.forEach(r => {
           const key = r.mealType || r.type;
-            if (key && grouped[key]) {
-              grouped[key].push({
-                food: r.food,
-                calories: r.calories,
-                timestamp: r.timestamp,
+          if (key && grouped[key]) {
+            grouped[key].push({
+              food: r.food,
+              calories: r.calories,
+              timestamp: r.timestamp,
             });
           }
         });
         setDayMeals(grouped);
         return;
       }
+
       const details = typeof rec?.mealDetails === 'string'
         ? JSON.parse(rec.mealDetails || '{}')
         : rec?.mealDetails || {};
@@ -77,6 +82,7 @@ export default function DietLogScreen() {
       };
 
       setDayMeals(normalized);
+
   } catch (err) {
     const msg = err?.message || '';
 
@@ -92,11 +98,10 @@ export default function DietLogScreen() {
       // 일반 네트워크/서버 에러
       console.warn(`❌ ${t('FAIL_DIET_LOG_LOADING')}`, msg);
       showToast(t('FAIL_DIET_LOG_LOADING'));
-    }
-  }
-}, []);
 
-  
+    }
+  }, []);
+
   // 화면 다시 열릴 때 새로고침
   useFocusEffect(
     useCallback(() => {
@@ -104,7 +109,7 @@ export default function DietLogScreen() {
     }, [fetchDay, dateKey])
   );
 
-  // 식단 추가 핸들러
+  // 식단 추가
   const handleAddMeal = async (entry, type) => {
     const payload = { ...entry, timestamp: entry.timestamp ?? Date.now() };
 
@@ -132,7 +137,7 @@ export default function DietLogScreen() {
     }
   };
 
-  // 삭제 핸들러
+  // 실제 삭제 실행
   const handleDelete = async (type, index, item) => {
     // UI 먼저 반영
     setDayMeals(prev => {
@@ -143,11 +148,11 @@ export default function DietLogScreen() {
 
     // 서버 삭제 요청
     try {
-      const ts = Number(item.timestamp); // Long으로 변환
+      const ts = Number(item.timestamp);
       await apiDelete(`/api/diet/delete?date=${dateKey}&type=${type}&timestamp=${ts}`);
       console.log('✅ 서버 삭제 성공');
 
-       // 스토리지에서 바로 칼로리 차감
+      // 스토리지에서 칼로리 차감
       if (item.calories) {
         await subtractCalories(item.calories);
         // 홈스크린 갱신 트리거
@@ -156,6 +161,19 @@ export default function DietLogScreen() {
     } catch (err) {
       console.error('❌ 서버 삭제 실패:', err?.message || err);
     }
+  };
+
+  // 확인 모달 동작
+  const onConfirmCancel = () => {
+    setConfirmVisible(false);
+    setDeleteTarget(null);
+  };
+  const onConfirmOK = async () => {
+    if (deleteTarget) {
+      await handleDelete(deleteTarget.type, deleteTarget.index, deleteTarget.item);
+    }
+    setConfirmVisible(false);
+    setDeleteTarget(null);
   };
 
   // 섹션 컴포넌트
@@ -212,7 +230,7 @@ export default function DietLogScreen() {
   return (
     <ImageBackground
       source={require('../../assets/background/dietLog.png')}
-      style={ {flex: 1 }}
+      style={{ flex: 1 }}
       resizeMode="cover"
     >
       <SafeAreaView style={styles.safeArea}>
@@ -284,32 +302,64 @@ export default function DietLogScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            
             <Text style={styles.modalTitle}>
               {selectedType === 'morning' ? t('MORNING') 
                 : selectedType === 'lunch' ? t('LUNCH') 
                 : t('DINNER')}
             </Text>
             <ScrollView style={{width: '100%'}}>
-            {(dayMeals[selectedType] || []).length > 0 ? (
-              dayMeals[selectedType].map((m, i) => (
-                <View key={i} style={styles.modalItemRow}>
-                  <Text style={styles.modalItem}>
-                    [ {m.food} ] · {m.calories} kcal
-                  </Text>
-                  <Pressable onPress={() => handleDelete(selectedType, i, m)}>
-                    <Text style={styles.deleteBtn}>{t('DELETE')}</Text>
-                  </Pressable>
-                </View>
-              ))
-            ) : (
-              <Text style={styles.modalItem}>{t('NO_REC')}</Text>
-            )}
+
+              {(dayMeals[selectedType] || []).length > 0 ? (
+                dayMeals[selectedType].map((m, i) => (
+                  <View key={i} style={styles.modalItemRow}>
+                    <Text style={styles.modalItem}>
+                      [ {m.food} ] · {m.calories} kcal
+                    </Text>
+                    <Pressable
+                      onPress={() => {
+                        setDeleteTarget({ type: selectedType, index: i, item: m });
+                        setConfirmVisible(true);
+                      }}
+                    >
+                      <Text style={styles.deleteBtn}>삭제</Text>
+                    </Pressable>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.modalItem}>{t('NO_REC')}</Text>
+              )}
 
             </ScrollView>
             <Pressable style={styles.closeBtn} onPress={() => setModalVisible(false)}>
               <Text style={styles.closeBtnText}>{t('CLOSE')}</Text>
             </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ✅ 삭제 확인 모달 */}
+      <Modal
+        transparent
+        visible={confirmVisible}
+        animationType="fade"
+        onRequestClose={onConfirmCancel}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.confirmContent}>
+            {deleteTarget?.item ? (
+              <Text style={styles.confirmDesc}>
+                [ {deleteTarget.item.food} ] · {deleteTarget.item.calories} kcal
+              </Text>
+            ) : null}
+            <Text style={styles.confirmTitle}>삭제하시겠습니까?</Text>
+            <View style={styles.confirmActions}>
+              <Pressable style={[styles.confirmBtn, styles.cancelBtn]} onPress={onConfirmCancel}>
+                <Text style={styles.confirmBtnText}>취소</Text>
+              </Pressable>
+              <Pressable style={[styles.confirmBtn, styles.okBtn]} onPress={onConfirmOK}>
+                <Text style={styles.confirmBtnText}>삭제하기</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
@@ -388,13 +438,15 @@ const styles = StyleSheet.create({
     fontFamily: 'DungGeunMo' 
   },
 
-  // 모달 스타일
+  // 모달 공통
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center'
   },
+
+  // 상세 모달
   modalContent: {
     backgroundColor: '#eee',
     padding: 40,
@@ -442,7 +494,55 @@ const styles = StyleSheet.create({
     fontFamily: 'DungGeunMo'
   },
 
-  // 식단
+  // ✅ 삭제 확인 모달 스타일
+  confirmContent: {
+    backgroundColor: '#fff',
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    width: '80%',
+    alignItems: 'center'
+  },
+  confirmTitle: {
+    fontSize: 20,
+    fontFamily: 'DungGeunMo',
+    color: '#222',
+    marginBottom: 8,
+  },
+  confirmDesc: {
+    fontSize: 16,
+    fontFamily: 'DungGeunMo',
+    color: '#444',
+    marginBottom: 20,
+    textAlign: 'center'
+  },
+  confirmActions: {
+    flexDirection: 'row',
+    gap: 12
+  },
+  confirmBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    minWidth: 110,
+    alignItems: 'center'
+  },
+  cancelBtn: {
+    backgroundColor: '#f2f2f2',
+  },
+  okBtn: {
+    backgroundColor: 'tomato',
+    borderColor: 'tomato'
+  },
+  confirmBtnText: {
+    color: '#000',
+    fontSize: 16,
+    fontFamily: 'DungGeunMo'
+  },
+
+  // 섹션/리스트
   mealBlock: { 
     padding: 6, 
     alignItems: 'flex-start' 
@@ -502,7 +602,6 @@ const styles = StyleSheet.create({
     fontFamily: 'DungGeunMo' 
   },
 
-  // 리스트/텍스트
   item: { 
     fontSize: 16, 
     marginVertical: 6, 
