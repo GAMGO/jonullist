@@ -5,7 +5,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Constants from 'expo-constants';
 import { Calendar } from 'react-native-calendars';
 import { useI18n } from '../i18n/I18nContext'
-import { addCalories } from '../utils/calorieStorage';
+import { addCalories, subtractCalories } from '../utils/calorieStorage';
 
 const EMPTY_DAY = { morning: [], lunch: [], dinner: [] };
 
@@ -123,37 +123,31 @@ export default function DietLogScreen() {
 
   // 실제 삭제 실행
   const handleDelete = async (type, index, item) => {
-    // UI 먼저 반영
-    setDayMeals(prev => {
-      const next = { ...prev };
-      next[type] = prev[type].filter((_, i) => i !== index);
-      return next;
-    });
 
-    // 서버 삭제 요청
-    try {
-      const ts = Number(item.timestamp);
-      await apiDelete(`/api/diet/delete?date=${dateKey}&type=${type}&timestamp=${ts}`);
-      console.log('✅ 서버 삭제 성공');
-    } catch (err) {
-      console.error('❌ 서버 삭제 실패:', err?.message || err);
-    }
-  };
+      // UI 먼저 반영
+      setDayMeals(prev => {
+        const next = { ...prev };
+        next[type] = prev[type].filter((_, i) => i !== index);
+        return next;
+      });
+  
+      // 서버 삭제 요청
+      try {
+        const ts = Number(item.timestamp); // Long으로 변환
+        await apiDelete(`/api/diet/delete?date=${dateKey}&type=${type}&timestamp=${ts}`);
+        console.log('✅ 서버 삭제 성공');
 
-  // 확인 모달 OK
-  const confirmDeleteOK = async () => {
-    if (deleteTarget) {
-      await handleDelete(deleteTarget.type, deleteTarget.index, deleteTarget.item);
-    }
-    setConfirmVisible(false);
-    setDeleteTarget(null);
-  };
+        // 스토리지에서 바로 칼로리 차감
+        if (item.calories) {
+          await subtractCalories(item.calories);
+          // 홈스크린 갱신 트리거
+          navigation.setParams({ removedCalories: item.calories });
+        }
+      } catch (err) {
+        console.error('❌ 서버 삭제 실패:', err?.message || err);
+      }
+    };
 
-  // 확인 모달 Cancel
-  const confirmDeleteCancel = () => {
-    setConfirmVisible(false);
-    setDeleteTarget(null);
-  };
 
   // 섹션 컴포넌트
   const MealSection = ({ label, type }) => {
@@ -264,15 +258,16 @@ export default function DietLogScreen() {
             </View>
           )}
 
-          {/* 섹션 3개 */}
-          <MealSection label={t('MORNING')} type="morning"/>
-          <MealSection label={t('LUNCH')} type="lunch" />
-          <MealSection label={t('DINNER')} type="dinner" />
+        {/* 섹션 3개 */}
+        <MealSection label={t('MORNING')} type="morning" calories={calcMealCalories(dayMeals.morning)} />
+        <MealSection label={t('LUNCH')} type="lunch" calories={calcMealCalories(dayMeals.lunch)} />
+        <MealSection label={t('DINNER')} type="dinner" calories={calcMealCalories(dayMeals.dinner)} />
+        
+        {/* 총 칼로리 */}
+        <Text style={styles.total}>Total : {totalCalories} {t('CALORIES')}</Text>
+      </View>
+    </SafeAreaView>
 
-          {/* 총 칼로리 */}
-          <Text style={styles.total}>Total : {totalCalories} {t('CALORIES')}</Text>
-        </View>
-      </SafeAreaView>
 
       {/* 중앙 식단 상세 모달 */}
       <Modal
