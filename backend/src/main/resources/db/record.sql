@@ -10,5 +10,3 @@ CREATE TABLE RECORD (
     meal_details CLOB,
     FOREIGN KEY (customer_id) REFERENCES customers(idx) ON DELETE CASCADE
 );
-
-DROP TABLE RECORD;

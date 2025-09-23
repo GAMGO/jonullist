@@ -41,3 +41,5 @@ ALTER TABLE customers
 ADD (email_verified NUMBER(1) DEFAULT 0,
      email_verification_token VARCHAR2(255),
      email_verification_expires TIMESTAMP);
+
+drop table customers;

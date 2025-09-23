@@ -39,6 +39,7 @@ npx expo install expo-linear-gradient
 npx expo install expo-notifications
 npx expo install @react-native-picker/picker
 npm i @react-native-community/datetimepicker
+npm install react-native-shadow-2
 - npx expo start
 
 
