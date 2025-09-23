@@ -1,4 +1,4 @@
-import React, { useState, useLayoutEffect, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useLayoutEffect, useMemo, useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet, Pressable, SafeAreaView, Platform, ImageBackground, Modal, ScrollView } from 'react-native';
 import { apiPost, apiGet, apiDelete } from '../config/api';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -12,8 +12,14 @@ const EMPTY_DAY = { morning: [], lunch: [], dinner: [] };
 export default function DietLogScreen() {
   const navigation = useNavigation();
   const { t } = useI18n();
+
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedType, setSelectedType] = useState(null);
+
+  // ✅ 삭제 확인 모달 상태
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null); 
+  // { type: 'morning'|'lunch'|'dinner', index: number, item: { food, calories, timestamp } }
 
   // 헤더 설정
   useLayoutEffect(() => {
@@ -22,7 +28,7 @@ export default function DietLogScreen() {
       headerTitleAlign: 'center',
       headerTintColor: '#fff',
     });
-  }, [navigation], t);
+  }, [navigation, t]);
 
   // 날짜 상태
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -41,10 +47,6 @@ export default function DietLogScreen() {
     return [...dayMeals.morning, ...dayMeals.lunch, ...dayMeals.dinner]
       .reduce((sum, m) => sum + (m.calories || 0), 0);
   }, [dayMeals]);
-
-  // 끼니별 칼로리 합계 함수
-  const calcMealCalories = (meals) =>
-    meals.reduce((sum, m) => sum + (m.calories || 0), 0);
 
   // 하루치 데이터 로드
   const fetchDay = useCallback(async (dk) => {
@@ -77,24 +79,12 @@ export default function DietLogScreen() {
       };
 
       setDayMeals(normalized);
-  } catch (err) {
-    const msg = err?.message || '';
-
-    if (msg.includes('403')) {
-      // 권한 문제 (토큰 만료 등)
-      showToast('로그인이 필요합니다');
-      navigate('/login');
-    } else if (msg.includes('401')) {
-      // 인증 실패
-      showToast('인증이 필요합니다');
-      navigate('/login');
-    } else {
-      // 일반 네트워크/서버 에러
-      console.warn('❌ 식단 로드 실패:', msg);
-      showToast('식단 로드 실패');
+    } catch (err) {
+      const msg = err?.message || '';
+      console.warn(`❌ ${t('FAIL_DIET_LOG_LOADING')}:`, msg);
+      // 필요시 로그인 이동 처리 추가 가능
     }
-  }
-}, []);
+  }, [t]);
 
   // 화면 다시 열릴 때 새로고침
   useFocusEffect(
@@ -131,8 +121,9 @@ export default function DietLogScreen() {
     }
   };
 
-  // 삭제 핸들러
+  // 실제 삭제 실행
   const handleDelete = async (type, index, item) => {
+
       // UI 먼저 반영
       setDayMeals(prev => {
         const next = { ...prev };
@@ -157,113 +148,115 @@ export default function DietLogScreen() {
       }
     };
 
-  // 섹션 컴포넌트
-  const MealSection = ({ label, type, calories }) => (
-    <Pressable style={styles.section} onPress={() => {
-      setSelectedType(type);
-      setModalVisible(true);
-    }}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
-          {label}<Text style={{ fontSize: 18, color: '#333' }}>[{calories} {t('CALORIES')}]</Text>
-          </Text>
-        <View style={styles.headerActions}>
-          <Pressable
-            style={styles.primaryBtn}
-            onPress={() => navigation.navigate('Camera', { type })}
-          >
-            <Text style={styles.primaryBtnText}>📷</Text>
-          </Pressable>
-          <Pressable
-            style={styles.secondaryBtn}
-            onPress={() =>
-              navigation.navigate('DirectInput', {
-                dateKey,
-                mealType: type,
-                onAdd: (entry) => handleAddMeal(entry, type),
-              })
-            }
-          >
-            <Text style={styles.secondaryBtnText}>➕ {t('DIRECT_INPUT')}</Text>
-          </Pressable>
-        </View>
-      </View>
 
-      <FlatList
-        data={dayMeals[type]}
-        keyExtractor={(_, i) => `${type}-${i}`}
-        renderItem={({ item }) => (
-          <View style={styles.mealBlock}>
-            <Text style={styles.item} numberOfLines={1}>
-              {item.food},
-            </Text>
+  // 섹션 컴포넌트
+  const MealSection = ({ label, type }) => {
+    const calcMealCalories = (meals) =>
+      meals.reduce((sum, m) => sum + (m.calories || 0), 0);
+
+    const calories = calcMealCalories(dayMeals[type] || []);
+
+    return (
+      <Pressable style={styles.section} onPress={() => { setSelectedType(type); setModalVisible(true); }}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            {label}
+            <Text style={{ fontSize: 18, color: '#333' }}> [{calories} {t('CALORIES')}]</Text>
+          </Text>
+          <View style={styles.headerActions}>
+            <Pressable style={styles.primaryBtn} onPress={() => navigation.navigate('Camera', { type })}>
+              <Text style={styles.primaryBtnText}>📷</Text>
+            </Pressable>
+            <Pressable
+              style={styles.secondaryBtn}
+              onPress={() =>
+                navigation.navigate('DirectInput', {
+                  dateKey,
+                  mealType: type,
+                  onAdd: (entry) => handleAddMeal(entry, type),
+                })
+              }
+            >
+              <Text style={styles.secondaryBtnText}>➕ {t('DIRECT_INPUT')}</Text>
+            </Pressable>
           </View>
-        )}
-        ListEmptyComponent={<Text style={styles.empty}>{t('NO_REC')}</Text>}
-        scrollEnabled
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        ItemSeparatorComponent={() => <View style={{ width: 1 }} />}
-      />
-    </Pressable>
-  );
+        </View>
+
+        <FlatList
+          data={dayMeals[type]}
+          keyExtractor={(_, i) => `${type}-${i}`}
+          renderItem={({ item }) => (
+            <View style={styles.mealBlock}>
+              <Text style={styles.item} numberOfLines={1}>
+                {item.food},
+              </Text>
+            </View>
+          )}
+          ListEmptyComponent={<Text style={styles.empty}>{t('NO_REC')}</Text>}
+          scrollEnabled
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          ItemSeparatorComponent={() => <View style={{ width: 1 }} />}
+        />
+      </Pressable>
+    );
+  };
 
   return (
     <ImageBackground
-      source={require('../../assets/background/dietLog.png')} 
+      source={require('../../assets/background/dietLog.png')}
       style={{flex:1}}
-      resizeMode="cover">
-    
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
+      resizeMode="cover"
+    >
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
 
-        {/* 날짜 선탣 */}
-        <Pressable style={styles.dateButton} onPress={() => setShowPicker(true)}>
-          <Text style={styles.dateText}>Date: [{dateKey}]</Text>
-        </Pressable>
+          {/* 날짜 선택 */}
+          <Pressable style={styles.dateButton} onPress={() => setShowPicker(true)}>
+            <Text style={styles.dateText}>Date: [{dateKey}]</Text>
+          </Pressable>
 
-        {showPicker && (
-          <View style={styles.pickerOverlay}>
-            <Pressable style={styles.pickerBackdrop} onPress={() => setShowPicker(false)} />
-            <View style={styles.pickerSheet}>
-              <View style={styles.pickerToolbar}>
-                <Pressable onPress={() => setShowPicker(false)}>
-                  <Text style={styles.toolbarBtn}>{t('CANCEL')}</Text>
-                </Pressable>
-                <Text style={styles.toolbarTitle}>{t('DATE')}</Text>
-                <Pressable onPress={() => setShowPicker(false)}>
-                  <Text style={styles.toolbarBtn}>{t('DONE')}</Text>
-                </Pressable>
+          {showPicker && (
+            <View style={styles.pickerOverlay}>
+              <Pressable style={styles.pickerBackdrop} onPress={() => setShowPicker(false)} />
+              <View style={styles.pickerSheet}>
+                <View style={styles.pickerToolbar}>
+                  <Pressable onPress={() => setShowPicker(false)}>
+                    <Text style={styles.toolbarBtn}>{t('CANCEL')}</Text>
+                  </Pressable>
+                  <Text style={styles.toolbarTitle}>{t('DATE')}</Text>
+                  <Pressable onPress={() => setShowPicker(false)}>
+                    <Text style={styles.toolbarBtn}>{t('DONE')}</Text>
+                  </Pressable>
+                </View>
+                <View style={styles.pickerBody}>
+                  <Calendar
+                    initialDate={dateKey}
+                    enableSwipeMonths
+                    onDayPress={(d) => {
+                      setSelectedDate(new Date(d.dateString))
+                    }}
+                    markedDates={{
+                      [dateKey]: { selected: true }
+                    }}
+                    style={{ alignSelf: 'center', width: '100%' }}
+                    theme={{
+                      textDayFontFamily: 'DungGeunMo',
+                      textMonthFontFamily: 'DungGeunMo',
+                      textDayHeaderFontFamily: 'DungGeunMo',
+                      textDayFontSize: 16,
+                      textMonthFontSize: 18,
+                      textDayHeaderFontSize: 12,
+                      selectedDayBackgroundColor: 'tomato',
+                      selectedDayTextColor: '#fff',
+                      todayTextColor: 'tomato',
+                      arrowColor: 'tomato',
+                    }}
+                  />
+                </View>
               </View>
-              <View style={styles.pickerBody}>
-                <Calendar
-                  initialDate={dateKey}
-                  enableSwipeMonths
-                  onDayPress={(d) => {
-                    setSelectedDate(new Date(d.dateString))
-                  }}
-                  markedDates={{ 
-                    [dateKey]: { 
-                      selected: true
-                     } }}
-                  style={{ alignSelf: 'center', width: '100%' }}
-                  theme={{
-                    textDayFontFamily: 'DungGeunMo',
-                    textMonthFontFamily: 'DungGeunMo',
-                    textDayHeaderFontFamily: 'DungGeunMo',
-                    textDayFontSize: 16,
-                    textMonthFontSize: 18,
-                    textDayHeaderFontSize: 12,
-                    selectedDayBackgroundColor: 'tomato',
-                    selectedDayTextColor: '#fff',
-                     todayTextColor: 'tomato',
-                    arrowColor: 'tomato',
-                  }}
-                 />
             </View>
-          </View>
-        </View>
-      )}
+          )}
 
         {/* 섹션 3개 */}
         <MealSection label={t('MORNING')} type="morning" calories={calcMealCalories(dayMeals.morning)} />
@@ -275,44 +268,78 @@ export default function DietLogScreen() {
       </View>
     </SafeAreaView>
 
+
       {/* 중앙 식단 상세 모달 */}
-            <Modal
-              transparent
-              visible={modalVisible}
-              animationType="fade"
-              onRequestClose={() => setModalVisible(false)}
-            >
-              <View style={styles.modalOverlay}>
-                <View style={styles.modalContent}>
-                  
-                  <Text style={styles.modalTitle}>
-                    {selectedType === 'morning' ? t('MORNING') 
-                      : selectedType === 'lunch' ? t('LUNCH') 
-                      : t('DINNER')}
-                  </Text>
-                  <ScrollView style={{width: '100%'}}>
-                  {(dayMeals[selectedType] || []).length > 0 ? (
-                    dayMeals[selectedType].map((m, i) => (
-                      <View key={i} style={styles.modalItemRow}>
-                        <Text style={styles.modalItem}>
-                          [ {m.food} ] · {m.calories} kcal
-                        </Text>
-                        <Pressable onPress={() => handleDelete(selectedType, i, m)}>
-                          <Text style={styles.deleteBtn}>삭제</Text>
-                        </Pressable>
-                      </View>
-                    ))
-                  ) : (
-                    <Text style={styles.modalItem}>{t('NO_REC')}</Text>
-                  )}
-      
-                  </ScrollView>
-                  <Pressable style={styles.closeBtn} onPress={() => setModalVisible(false)}>
-                    <Text style={styles.closeBtnText}>{t('CLOSE')}</Text>
-                  </Pressable>
-                </View>
-              </View>
-            </Modal>
+      <Modal
+        transparent
+        visible={modalVisible}
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              {selectedType === 'morning' ? t('MORNING') 
+                : selectedType === 'lunch' ? t('LUNCH') 
+                : t('DINNER')}
+            </Text>
+
+            <ScrollView style={{width: '100%'}}>
+              {(dayMeals[selectedType] || []).length > 0 ? (
+                dayMeals[selectedType].map((m, i) => (
+                  <View key={i} style={styles.modalItemRow}>
+                    <Text style={styles.modalItem}>
+                      [ {m.food} ] · {m.calories} kcal
+                    </Text>
+                    <Pressable
+                      onPress={() => {
+                        setDeleteTarget({ type: selectedType, index: i, item: m });
+                        setConfirmVisible(true);
+                      }}
+                    >
+                      <Text style={styles.deleteBtn}>삭제</Text>
+                    </Pressable>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.modalItem}>{t('NO_REC')}</Text>
+              )}
+            </ScrollView>
+
+            <Pressable style={styles.closeBtn} onPress={() => setModalVisible(false)}>
+              <Text style={styles.closeBtnText}>{t('CLOSE')}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ✅ 삭제 확인 모달 */}
+      <Modal
+        transparent
+        visible={confirmVisible}
+        animationType="fade"
+        onRequestClose={confirmDeleteCancel}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.confirmContent}>
+            {deleteTarget?.item ? (
+              <Text style={styles.confirmDesc}>
+                [ {deleteTarget.item.food} ] · {deleteTarget.item.calories} kcal
+              </Text>
+            ) : null}
+            <Text style={styles.confirmTitle}>삭제하시겠습니까?</Text>
+
+            <View style={styles.confirmActions}>
+              <Pressable style={[styles.confirmBtn, styles.cancelBtn]} onPress={confirmDeleteCancel}>
+                <Text style={styles.confirmBtnText}>Cancel</Text>
+              </Pressable>
+              <Pressable style={[styles.confirmBtn, styles.okBtn]} onPress={confirmDeleteOK}>
+                <Text style={styles.confirmBtnText}>OK</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ImageBackground>
   );
 }
@@ -388,7 +415,7 @@ const styles = StyleSheet.create({
     color: '#333' 
   },
 
-  // 모달 스타일
+  // 모달 공통
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -441,6 +468,55 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'DungGeunMo'
   },
+
+  // ✅ 삭제 확인 모달 스타일
+  confirmContent: {
+    backgroundColor: '#fff',
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    width: '80%',
+    alignItems: 'center'
+  },
+  confirmTitle: {
+    fontSize: 20,
+    fontFamily: 'DungGeunMo',
+    color: '#222',
+    marginBottom: 8,
+  },
+  confirmDesc: {
+    fontSize: 16,
+    fontFamily: 'DungGeunMo',
+    color: '#444',
+    marginBottom: 20,
+    textAlign: 'center'
+  },
+  confirmActions: {
+    flexDirection: 'row',
+    gap: 12
+  },
+  confirmBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    minWidth: 110,
+    alignItems: 'center'
+  },
+  cancelBtn: {
+    backgroundColor: '#f2f2f2',
+  },
+  okBtn: {
+    backgroundColor: 'tomato',
+    borderColor: 'tomato'
+  },
+  confirmBtnText: {
+    color: '#000',
+    fontSize: 16,
+    fontFamily: 'DungGeunMo'
+  },
+
   // 식단
   mealBlock: {
     padding: 6,

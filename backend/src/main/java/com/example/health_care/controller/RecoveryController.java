@@ -20,16 +20,16 @@ import java.util.stream.Collectors;
 * 비밀번호 복구 모듈 (모든 구성요소를 한 파일로 통합)
 *
 * - [로그인 필요] PUT /api/profile/security-questions
-*   본인 계정에 질문 3개/답(확인 포함) 등록 또는 수정
+* 본인 계정에 질문 3개/답(확인 포함) 등록 또는 수정
 *
 * - [공개]    POST /api/recover/start
-*   { id } → 등록된 4개 중 임의의 2개 질문 code 반환
+* { id } → 등록된 4개 중 임의의 2개 질문 code 반환
 *
 * - [공개]    POST /api/recover/verify
-*   { id, answers:[{code, answer}, ...](2개) } → 정답이면 recoveryToken 발급
+* { id, answers:[{code, answer}, ...](2개) } → 정답이면 recoveryToken 발급
 *
 * - [공개]    POST /api/recover/reset
-*   { recoveryToken, newPassword } → 비밀번호 재설정
+* { recoveryToken, newPassword } → 비밀번호 재설정
 */
 @RestController
 @RequestMapping("/api")
@@ -79,21 +79,19 @@ public class RecoveryController {
     return ResponseEntity.ok(Map.of("message", "비밀번호가 변경되었습니다."));
   }
 
-  // ✅ 수정: 아이디 찾기 로직 - 이메일과 질문을 함께 반환
-  @PostMapping("/recover/find-id")
-  public ResponseEntity<?> findId(@Valid @RequestBody FindIdRequest req) {
-    try {
-      // findIdWithEmail 메서드로 이메일과 질문을 함께 조회
-      var result = service.findIdWithEmail(req.getName(), req.getBirth(), req.getGender());
-      // FindIdResponse에 이메일과 질문을 모두 포함하여 반환
-      return ResponseEntity.ok(new FindIdResponse(result.id(), result.questions()));
-    } catch (IllegalArgumentException e) {
-      return ResponseEntity.badRequest().body(Map.of("message", "일치하는 사용자 정보가 없습니다."));
+    // ✅ 수정: 아이디 찾기 로직 - 이메일과 질문을 함께 반환
+   @PostMapping("/recover/find-id")
+    public ResponseEntity<?> findId(@Valid @RequestBody FindIdRequest req) {
+        try {
+            // findIdWithEmail 메서드로 이메일과 질문을 함께 조회
+            var result = service.findIdWithEmail(req.getName(), req.getBirth(), req.getGender());
+            // FindIdResponse에 이메일과 질문을 모두 포함하여 반환
+            return ResponseEntity.ok(new FindIdResponse(result.id(), result.questions()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "일치하는 사용자 정보가 없습니다."));
+        }
     }
-  }
-
-  // ✅ 추가
-  // 1. 이메일 인증 코드 발송
+  // 📧이모지로 표시: 이메일로 인증 코드 발송 엔드포인트 추가
   @PostMapping("/recover/send-code")
   public ResponseEntity<?> sendRecoveryCode(@RequestBody Map<String, String> req) {
     final String id = String.valueOf(req.get("id")).trim();
@@ -102,14 +100,15 @@ public class RecoveryController {
     return ResponseEntity.ok(Map.of("message", "코드를 전송했습니다."));
   }
 
-  // 2. 이메일 인증 코드 검증
-  @PostMapping("/recover/verify-code")
+  // 📧이모지로 표시: 이메일 인증 코드 검증 및 복구 토큰 발급 엔드포인트 추가
+  // ✅ 수정: 엔드포인트 경로를 변경하여 EmailController와 충돌을 해결했습니다.
+  @PostMapping("/recover/verify-email") 
   public ResponseEntity<?> verifyEmailCode(@RequestBody Map<String, String> req) {
+    final String id = String.valueOf(req.get("id")).trim();
     final String token = String.valueOf(req.get("token")).trim();
     final String purpose = String.valueOf(req.getOrDefault("purpose", "RECOVERY"));
-    var result = service.verifyEmailCodeAndIssueRecoveryToken(token, purpose);
-    if (result == null)
-      return ResponseEntity.badRequest().body(Map.of("success", false));
+    var result = service.verifyEmailCodeAndIssueRecoveryToken(id, token, purpose); 
+    if (result == null) return ResponseEntity.badRequest().body(Map.of("success", false));
     return ResponseEntity.ok(Map.of("success", true, "recoveryToken", result.recoveryToken()));
   }
 }

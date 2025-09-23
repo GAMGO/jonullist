@@ -88,7 +88,7 @@ function StartScreen({ t, loginId, setLoginId, onCodeSent, goFind }) {
       if (!res) throw new Error();
       onCodeSent(); // 상위에서 타이머 시작 및 화면 전환
     } catch (e) {
-      Alert.alert(t('ALERT_ERROR'), t('ALERT_INVALID_ID') || '해당 이메일을 찾을 수 없습니다.');
+      Alert.alert(t('ALERT_ERROR'), t('INVALID_ID') || '해당 이메일을 찾을 수 없습니다.');
     } finally {
       setLoading(false);
     }
@@ -99,13 +99,24 @@ function StartScreen({ t, loginId, setLoginId, onCodeSent, goFind }) {
       Alert.alert(t('ALERT_WARNING'), t('INPUT_REQUIRED'));
       return;
     }
-    await sendCode(loginId);
+    try {
+      const res = await apiPost(API.start, { id: loginId.trim() });
+      const picked = res?.data?.questions || [];
+      if (!picked.length) {
+        Alert.alert(t('ERR'), t('INVALID_ID'));
+        return;
+      }
+      setQuestionsToAnswer(picked);
+      setCurrentScreen('verify');
+    } catch {
+      Alert.alert(t('ERR'), t('INVALID_ID'));
+    }
   };
 
   return (
     <View style={styles.screenContainer}>
       <Text style={styles.title}>{t('TITLE_RECOVERY') || '비밀번호 복구'}</Text>
-      <Text style={styles.label}>{t('ENTER_EMAIL') || '이메일 입력'}</Text>
+      <Text style={styles.label}>{t('EMAIL_ID') || '이메일 입력'}</Text>
       <TextInput
         style={styles.input}
         value={loginId}
@@ -115,15 +126,16 @@ function StartScreen({ t, loginId, setLoginId, onCodeSent, goFind }) {
         autoCapitalize="none"
         keyboardType="email-address"
       />
-      <Pressable onPress={handleStart} style={styles.primaryBtn} disabled={loading}>
-        <Text style={styles.primaryBtnText}>
-          {loading ? (t('PROCESSING') || '처리 중...') : (t('SEND_VERIFICATION_CODE') || '인증코드 보내기')}
-        </Text>
+      <Pressable onPress={handleStart} style={styles.primaryBtn}>
+        <Text style={styles.primaryBtnText}>{t('RECOVERY_START') || '질문 받기'}</Text>
       </Pressable>
 
-      {/* 아이디 모르면 이름/월/일/성별로 찾기 */}
-      <Pressable onPress={goFind} style={[styles.primaryBtn, { backgroundColor: '#10B981' }]}>
-        <Text style={styles.primaryBtnText}>{t('BTN_FIND_ID') || '아이디 찾기'}</Text>
+      <Pressable onPress={() => setCurrentScreen('findId')} style={[styles.primaryBtn, { backgroundColor: '#10B981' }]}>
+        <Text style={styles.primaryBtnText}>{t('FIND_ID') || '아이디 찾기'}</Text>
+      </Pressable>
+
+      <Pressable onPress={() => setCurrentScreen('setQuestions')} style={[styles.primaryBtn, { backgroundColor: '#6B7280' }]}>
+        <Text style={styles.primaryBtnText}>{t('RECOVERY_SETUP') || '보안질문 설정'}</Text>
       </Pressable>
     </View>
   );
@@ -150,36 +162,34 @@ function FindIdScreen({ t, setLoginId, onFoundAndSent, goBack }) {
       const dd = String(birthDay).padStart(2, '0');
       const res = await apiPost(API.findId, { name: name.trim(), birth: `${mm}-${dd}`, gender });
       const foundId = res?.data?.id;
-      if (!foundId) throw new Error('NO_ID');
+      const qs = res?.data?.questions || [];
+      if (!foundId || !qs.length) {
+        Alert.alert(t('ERR'), t('INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
+        return;
+      }
 
-      // 아이디(=이메일) 저장
-      setLoginId(foundId);
-
-      // 찾은 이메일로 코드 발송
-      await apiPost(API.sendCode, { id: foundId, purpose: 'RECOVERY' });
-
-      onFoundAndSent(); // 상위에서 타이머 시작 + 화면 전환
-    } catch (e) {
-      Alert.alert(t('ALERT_ERROR'), t('ALERT_INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
-    } finally {
-      setLoading(false);
+      setLoginId(foundId);          // verify에서 필요
+      setQuestionsToAnswer(qs);     // 2개 코드
+      setCurrentScreen('verify');   // 바로 검증으로
+    } catch {
+      Alert.alert(t('ERR'), t('INVALID_ID') || '일치하는 사용자 정보가 없습니다.');
     }
   };
 
   return (
     <View style={styles.screenContainer}>
-      <Text style={styles.title}>{t('TITLE_FIND_ID') || '아이디 찾기'}</Text>
+      <Text style={styles.title}>{t('FIND_ID') || '아이디 찾기'}</Text>
 
-      <Text style={styles.label}>{t('LABEL_NAME') || '이름'}</Text>
+      <Text style={styles.label}>{t('NAME') || '이름'}</Text>
       <TextInput
         style={styles.input}
         value={name}
         onChangeText={setName}
-        placeholder={t('PLACEHOLDER_NAME') || '이름'}
+        placeholder={t('NAME') || '이름'}
         placeholderTextColor="rgba(0,0,0,0.35)"
       />
 
-      <Text style={[styles.label, { marginTop: 8 }]}>{t('LABEL_BIRTH_MONTH') || '월'}</Text>
+      <Text style={[styles.label, { marginTop: 8 }]}>{t('LABEL_MONTH') || '월'}</Text>
       <Dropdown
         value={birthMonth}
         onChange={setBirthMonth}
@@ -187,7 +197,7 @@ function FindIdScreen({ t, setLoginId, onFoundAndSent, goBack }) {
         labelRenderer={(opt) => String(opt.value)}
       />
 
-      <Text style={[styles.label, { marginTop: 8 }]}>{t('LABEL_BIRTH_DAY') || '일'}</Text>
+      <Text style={[styles.label, { marginTop: 8 }]}>{t('LABEL_DAY') || '일'}</Text>
       <Dropdown
         value={birthDay}
         onChange={setBirthDay}
@@ -195,12 +205,12 @@ function FindIdScreen({ t, setLoginId, onFoundAndSent, goBack }) {
         labelRenderer={(opt) => String(opt.value)}
       />
 
-      <Text style={[styles.label, { marginTop: 8 }]}>{t('LABEL_GENDER') || '성별'}</Text>
+      <Text style={[styles.label, { marginTop: 8 }]}>{t('GENDER') || '성별'}</Text>
       <Dropdown
         value={gender}
         onChange={setGender}
         options={[{ value: 'F' }, { value: 'M' }]}
-        labelRenderer={(opt) => (opt.value === 'F' ? (t('GENDER_FEMALE') || '여') : (t('GENDER_MALE') || '남'))}
+        labelRenderer={(opt) => (opt.value === 'F' ? (t('FEMALE') || '여') : (t('MALE') || '남'))}
       />
 
       <Pressable onPress={submit} style={[styles.primaryBtn, { marginTop: 10 }]} disabled={loading}>
@@ -262,35 +272,27 @@ function VerifyCodeScreen({ t, leftSec, startTimer, setRecoveryToken, goReset, l
       await apiPost(API.sendCode, { id: loginId.trim(), purpose: 'RECOVERY' });
       startTimer(300);
     } catch {
-      Alert.alert(t('SERVER_ERROR') || '서버 오류', t('TRY_AGAIN') || '다시 시도해 주세요.');
-    } finally {
-      setResending(false);
+      Alert.alert(t('ERR'), t('INCORRECT_ANSWER'));
     }
   };
 
   return (
     <View style={styles.screenContainer}>
-      <Text style={styles.title}>{t('TITLE_VERIFY_EMAIL') || '이메일 인증'}</Text>
-      <Text style={[styles.label, { color: '#16a34a', marginBottom: 8 }]}>
-        {t('VERIFICATION_SENT_MSG') || '인증코드를 이메일로 보냈습니다.'}
-      </Text>
-      <Text style={[styles.label, { color: '#6b7280', marginBottom: 10 }]}>
-        {leftSec > 0 ? (t('RESEND_WAIT', { time: mmss(leftSec) }) || `재전송 대기: ${mmss(leftSec)}`) : (t('RESEND_HINT') || '재전송이 가능합니다.')}
-      </Text>
-
-      <TextInput
-        value={code}
-        onChangeText={(text) => setCode(onlyDigits(text))}
-        placeholder={t('VERIFICATION_CODE') || '인증코드 6자리'}
-        keyboardType="number-pad"
-        maxLength={6}
-        style={{ ...styles.input, textAlign: 'center', letterSpacing: 6, fontSize: 20 }}
-      />
-
-      <Pressable onPress={verify} style={[styles.primaryBtn, { marginTop: 10 }]} disabled={verifying || code.length !== 6}>
-        <Text style={styles.primaryBtnText}>
-          {verifying ? (t('CONFIRMING') || '확인 중...') : (t('CONFIRM') || '확인')}
-        </Text>
+      <Text style={styles.title}>{t('VERIFY_ANSWERS') || '질문 답변'}</Text>
+      {questionsToAnswer.map((code) => (
+        <View key={code} style={styles.questionBlock}>
+          <Text style={styles.label}>{t(QUESTIONS.find((q) => q.code === code)?.labelKey || 'TEXT_QUESTION_NOT_FOUND')}</Text>
+          <TextInput
+            style={styles.input}
+            onChangeText={(text) => setAnswers({ ...answers, [code]: text })}
+            value={answers[code] || ''}
+            placeholder={t('RECOVERY_ANSWER') || '정답 입력'}
+            placeholderTextColor="rgba(0,0,0,0.35)"
+          />
+        </View>
+      ))}
+      <Pressable onPress={handleVerify} style={styles.primaryBtn}>
+        <Text style={styles.primaryBtnText}>{t('CONFIRM') || '확인'}</Text>
       </Pressable>
 
       <TouchableOpacity onPress={resend} disabled={leftSec > 0 || resending} style={{ marginTop: 8, alignSelf: 'center' }}>
@@ -316,28 +318,26 @@ function ResetScreen({ t, recoveryToken, goStart }) {
       return;
     }
     if (newPassword !== confirmPassword) {
-      Alert.alert(t('ALERT_ERROR'), t('ALERT_PW_MISMATCH') || '비밀번호가 일치하지 않습니다.');
+      Alert.alert(t('ERR'), t('ERR_WRONG_PW') || '비밀번호가 일치하지 않습니다.');
       return;
     }
     if (newPassword.length < 8) {
-      Alert.alert(t('ALERT_ERROR'), t('ALERT_PW_MIN_LENGTH') || '8자리 이상 입력하세요.');
+      Alert.alert(t('ERR'), t('PW_MIN_8') || '8자리 이상 입력하세요.');
       return;
     }
     try {
       setSaving(true);
       await apiPost(API.reset, { recoveryToken, newPassword });
-      Alert.alert(t('ALERT_SUCCESS'), t('ALERT_PW_RESET_SUCCESS') || '비밀번호가 변경되었습니다.');
-      goStart();
+      Alert.alert(t('SUCCESS'), t('PW_RESET_SUCCESS') || '비밀번호가 변경되었습니다.');
+      setCurrentScreen('start');
     } catch {
-      Alert.alert(t('ALERT_ERROR'), t('ALERT_PW_RESET_FAIL') || '변경 실패');
-    } finally {
-      setSaving(false);
+      Alert.alert(t('ERR'), t('PW_RESET_FAIL') || '변경 실패');
     }
   };
 
   return (
     <View style={styles.screenContainer}>
-      <Text style={styles.title}>{t('TITLE_RESET_PW') || '비밀번호 재설정'}</Text>
+      <Text style={styles.title}>{t('RECOVERY_RESET') || '비밀번호 재설정'}</Text>
       <Text style={styles.label}>{t('LABEL_NEW_PW') || '새 비밀번호'}</Text>
       <TextInput
         style={styles.input}
@@ -356,8 +356,154 @@ function ResetScreen({ t, recoveryToken, goStart }) {
         placeholderTextColor="rgba(0,0,0,0.35)"
         secureTextEntry
       />
-      <Pressable onPress={handleReset} style={styles.primaryBtn} disabled={saving}>
-        <Text style={styles.primaryBtnText}>{saving ? (t('PROCESSING') || '처리 중...') : (t('BTN_RESET_PW') || '변경')}</Text>
+      <Pressable onPress={handleReset} style={styles.primaryBtn}>
+        <Text style={styles.primaryBtnText}>{t('BTN_RESET_PW') || '변경'}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+/* ======================
+ * 5) 보안질문 설정 + 이름/월/일 저장
+ * ====================== */
+function SetQuestionsScreen({ t }) {
+  // 이름/월/일
+  const [name, setName] = useState('');
+  const [birthMonth, setBirthMonth] = useState(1);
+  const [birthDay, setBirthDay] = useState(1);
+
+  // 질문 2개
+  const [qna, setQna] = useState([
+    { code: QUESTIONS[0].code, answer: '' },
+    { code: QUESTIONS[1].code, answer: '' },
+  ]);
+  const usedCodes = useMemo(() => new Set(qna.map((x) => x.code)), [qna]);
+
+  const getAvailable = (idx) => {
+    const self = qna[idx].code;
+    return QUESTIONS
+      .filter((q) => q.code === self || !usedCodes.has(q.code))
+      .map((q) => ({ value: q.code, labelKey: q.labelKey }));
+  };
+
+  const setCodeAt = (idx, code) => {
+    setQna((prev) => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], code };
+      return next;
+    });
+  };
+
+  const setAnswerAt = (idx, text) => {
+    setQna((prev) => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], answer: text };
+      return next;
+    });
+  };
+
+  const handleSave = async () => {
+    if (!name.trim()) {
+      Alert.alert(t('ALERT_WARNING'), t('INPUT_REQUIRED_NAME') || '이름을 입력하세요.');
+      return;
+    }
+    if (!birthMonth || !birthDay) {
+      Alert.alert(t('ALERT_WARNING'), t('INPUT_REQUIRED_BIRTH') || '생월/생일을 선택하세요.');
+      return;
+    }
+
+    const codes = qna.map((x) => x.code);
+    const unique = new Set(codes);
+    if (unique.size !== qna.length) {
+      Alert.alert(t('ERR'), t('ALERT_DUPLICATE_QUESTIONS') || '같은 질문은 선택할 수 없습니다.');
+      return;
+    }
+
+    const answers = qna
+      .map(({ code, answer }) => {
+        const a = (answer || '').trim();
+        if (!a) return null;
+        return { code, answer: a };
+      })
+      .filter(Boolean);
+
+    if (answers.length !== qna.length) {
+      Alert.alert(t('ERR'), t('ALERT_ANSWER_ALL_QUESTIONS') || '모든 답을 입력하세요.');
+      return;
+    }
+
+    const mm = String(birthMonth).padStart(2, '0');
+    const dd = String(birthDay).padStart(2, '0');
+
+    try {
+      await apiPut(API.set, {
+        name: name.trim(),
+        birth: `${mm}-${dd}`, // 서버가 YYYY-MM-DD를 기대하면 여기만 바꿔줘
+        answers,
+      });
+      Alert.alert(t('SUCCESS'), t('ALERT_QUESTIONS_SAVE_SUCCESS') || '저장되었습니다.');
+    } catch {
+      Alert.alert(t('ERR'), t('ALERT_SAVE_QUESTIONS_FAIL') || '저장 실패');
+    }
+  };
+
+  return (
+    <View style={styles.screenContainer}>
+      <Text style={styles.title}>{t('RECOVERY_SETUP') || '보안질문 설정'}</Text>
+
+      {/* 이름 */}
+      <Text style={styles.label}>{t('NAME') || '이름'}</Text>
+      <TextInput
+        style={styles.input}
+        value={name}
+        onChangeText={setName}
+        placeholder={t('PLACEHOLDER_NAME') || '이름'}
+        placeholderTextColor="rgba(0,0,0,0.35)"
+      />
+
+      {/* 생월/생일 */}
+      <Text style={[styles.label, { marginTop: 8 }]}>{t('LABEL_BIRTH_MONTH') || '월'}</Text>
+      <Dropdown
+        value={birthMonth}
+        onChange={setBirthMonth}
+        options={MONTHS.map((m) => ({ value: m }))}
+        labelRenderer={(opt) => String(opt.value)}
+      />
+
+      <Text style={[styles.label, { marginTop: 8 }]}>{t('LABEL_BIRTH_DAY') || '일'}</Text>
+      <Dropdown
+        value={birthDay}
+        onChange={setBirthDay}
+        options={DAYS.map((d) => ({ value: d }))}
+        labelRenderer={(opt) => String(opt.value)}
+      />
+
+      {/* 질문 2개 */}
+      {qna.map((row, idx) => {
+        const options = getAvailable(idx);
+        return (
+          <View key={`slot-${idx}`} style={styles.questionBlock}>
+            <Text style={styles.label}>{t('SELECT_QUESTION') || '질문 선택'}</Text>
+            <Dropdown
+              value={row.code}
+              onChange={(val) => setCodeAt(idx, val)}
+              options={options}
+              labelRenderer={(opt) => t(opt.labelKey)}
+            />
+            <Text style={[styles.label, { marginTop: 10 }]}>{t('RECOVERY_ANSWER') || '답 입력'}</Text>
+            <TextInput
+              style={styles.input}
+              value={row.answer}
+              onChangeText={(text) => setAnswerAt(idx, text)}
+              placeholder={t('RECOVERY_ANSWER') || '답 입력'}
+              placeholderTextColor="rgba(0,0,0,0.35)"
+            />
+          </View>
+        );
+      })}
+
+      <Pressable onPress={handleSave} style={[styles.primaryBtn, { marginTop: 6 }]}>
+        <Text style={styles.primaryBtnText}>{t('SAVE') || '저장'}</Text>
       </Pressable>
     </View>
   );
