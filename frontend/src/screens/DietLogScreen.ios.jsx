@@ -82,10 +82,23 @@ export default function DietLogScreen() {
       };
 
       setDayMeals(normalized);
-    } catch (err) {
-      const msg = err?.message || '';
-      console.warn('❌ 식단 로드 실패:', msg);
-      // 필요시 로그인 이동 처리 가능
+
+  } catch (err) {
+    const msg = err?.message || '';
+
+    if (msg.includes('403')) {
+      // 권한 문제 (토큰 만료 등)
+      showToast(t('NEED_LOGIN'));
+      navigate('/login');
+    } else if (msg.includes('401')) {
+      // 인증 실패
+      showToast(t('VERIFICATION_NEED'));
+      navigate('/login');
+    } else {
+      // 일반 네트워크/서버 에러
+      console.warn(`❌ ${t('FAIL_DIET_LOG_LOADING')}`, msg);
+      showToast(t('FAIL_DIET_LOG_LOADING'));
+
     }
   }, []);
 
@@ -295,6 +308,7 @@ export default function DietLogScreen() {
                 : t('DINNER')}
             </Text>
             <ScrollView style={{width: '100%'}}>
+
               {(dayMeals[selectedType] || []).length > 0 ? (
                 dayMeals[selectedType].map((m, i) => (
                   <View key={i} style={styles.modalItemRow}>
@@ -314,6 +328,7 @@ export default function DietLogScreen() {
               ) : (
                 <Text style={styles.modalItem}>{t('NO_REC')}</Text>
               )}
+
             </ScrollView>
             <Pressable style={styles.closeBtn} onPress={() => setModalVisible(false)}>
               <Text style={styles.closeBtnText}>{t('CLOSE')}</Text>

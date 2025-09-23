@@ -87,6 +87,7 @@ const DICT = {
     RESEND_WAIT: "재발송까지 대기 ${time}",
     RESEND_HINT: "스팸메일함 확인 후 필요하면 코드 재발송이 가능합니다.",
     VERIFICATION_CODE: "인증코드 6자리",
+    VERIFICATION_CODE_PH: "인증코드는 6자리숫자 입니다.",
     CONFIRMING: "확인 중…",
     VERIFICATION_NEED: "인증이 필요합니다",
     VERIFICATION_DONE: "인증 완료",
