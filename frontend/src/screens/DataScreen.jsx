@@ -313,7 +313,7 @@ const chartConfigBlue = {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  container: { flex: 1, backgroundColor: 'transparent' },
   title: { fontSize: 22, fontWeight: '800', padding: 16, color: '#111827' },
 
   pickersRow: {
