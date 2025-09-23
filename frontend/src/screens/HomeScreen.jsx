@@ -3,7 +3,7 @@ import { View, ImageBackground, Text, Pressable, Image, StyleSheet, Animated, Pl
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation, useFocusEffect } from '@react-navigation/native'
 import AvatarByBMI from '../components/AvatarByBMI'
-import { initCalorieData, setTargetCalories } from '../utils/calorieStorage'
+import { initCalorieData, setTargetCalories, getCalories } from '../utils/calorieStorage'
 import { useFonts } from 'expo-font'
 import { useAuth } from '../context/AuthContext'
 import { apiGet } from '../config/api'
@@ -179,6 +179,12 @@ export default function HomeScreen({ route }) {
     setCurrent(current)
   }, [user?.id])
 
+  // 칼로리만 따로 갱신 (삭제 반영용)
+  const refreshCalories = useCallback(async () => {
+    const c = await getCalories()
+    setCurrent(c)
+  }, [])
+
   const syncFromProfile = useCallback(async () => {
     try {
       const prof = await apiGet('/api/profile')
@@ -206,12 +212,24 @@ export default function HomeScreen({ route }) {
 
   useFocusEffect(
     useCallback(() => {
-      loadAll()
+    const run = async () => {
+      await loadAll()                 // 목표 칼로리, BMI, 프로필 동기화
+      const c = await getCalories()   // 항상 스토리지에서 최신 칼로리 가져오기
+      setCurrent(c)
+
       if (route?.params?.addedCalories) {
         setCurrent(prev => prev + route.params.addedCalories)
+        nav.setParams({ addedCalories: undefined })   // 초기화 (중복 반영 방지)
       }
-    }, [loadAll, route?.params?.addedCalories])
-  )
+
+      if (route?.params?.removedCalories) {
+        setCurrent(prev => Math.max(0, prev - route.params.removedCalories))
+        nav.setParams({ removedCalories: undefined }) // 초기화 (중복 반영 방지)
+      }
+    }
+    run()
+  }, [loadAll, route?.params?.addedCalories, route?.params?.removedCalories])
+)
 
   if (!fontsLoaded) return null
 

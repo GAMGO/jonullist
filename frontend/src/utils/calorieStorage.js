@@ -68,3 +68,29 @@ export async function setTargetCalories(value, userId) {
   const k = keysFor(uid)
   await AsyncStorage.setItem(k.target, String(value))
 }
+
+
+// 칼로리 차감 함수
+export async function subtractCalories(value, userId) {
+  const uid = await resolveUid(userId)
+  const k = keysFor(uid)
+  const today = todayKey()
+  const storedDate = await AsyncStorage.getItem(k.date)
+  if (storedDate !== today) {
+    await AsyncStorage.setItem(k.date, today)
+    await AsyncStorage.setItem(k.current, '0')
+  }
+  const stored = await AsyncStorage.getItem(k.current)
+  const current = stored ? Number(stored) : 0
+  const updated = Math.max(0, current - Number(value)) // 음수 방지
+  await AsyncStorage.setItem(k.current, String(updated))
+  return updated
+}
+
+// 현재 칼로리 값 불러오기
+export async function getCalories(userId) {
+  const uid = await resolveUid(userId)
+  const k = keysFor(uid)
+  const stored = await AsyncStorage.getItem(k.current)
+  return stored ? Number(stored) : 0
+}
