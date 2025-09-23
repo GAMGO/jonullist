@@ -235,25 +235,36 @@ function VerifyCodeScreen({ t, leftSec, startTimer, setRecoveryToken, goReset, l
   const mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
   const verify = async () => {
-    if (code.length !== 6) {
-      Alert.alert(t('FORMAT_ERROR'), t('VERIFICATION_CODE_PH') || '인증코드는 6자리 숫자입니다.');
-      return;
-    }
-    try {
-      const answersArray = questionsToAnswer.map((code) => ({ code, answer: answers[code] }));
-      const res = await apiPost(API.verify, { id: loginId, answers: answersArray });
-      const token = res?.data?.recoveryToken;
-      if (!token) {
-        Alert.alert(t('ERR'), t('INCORRECT_ANSWER'));
-        return;
-      }
-    } catch (e) {
-      Alert.alert(t('SERVER_ERROR') || '서버 오류', e?.message ?? (t('TRY_AGAIN') || '다시 시도해 주세요.'));
-    } finally {
-      setVerifying(false);
-    }
-  };
+  if (code.length !== 6) {
+    Alert.alert(t('FORMAT_ERROR'), t('VERIFICATION_CODE_PH') || '인증코드는 6자리 숫자입니다.');
+    return;
+  }
+  try {
+    setVerifying(true);
+    const res = await apiPost(API.verifyEmail, { token: code, purpose: 'RECOVERY' });
+    
+    // ✅ 수정: data 래퍼 제거
+    const ok = res?.success ?? false;
+    const rtk = res?.recoveryToken;
 
+    if (rtk) {
+      setRecoveryToken(rtk);
+      goReset();
+    } else if (오케이) {
+      Alert.alert(t('VERIFICATION_DONE') || '인증 완료', t('VERIFICATION_DONE_ALERT') || '다음 단계로 진행합니다.');
+      goReset();
+    } else {
+      Alert.alert(
+        t('VERIFICATION_FAIL') || '인증 실패',
+        res?.message ?? (t('VERIFICATION_FAIL_MSG') || '인증코드를 확인해 주세요.')
+      );
+    }
+  } catch (e) {
+    Alert.alert(t('SERVER_ERROR') || '서버 오류', e?.message ?? (t('TRY_AGAIN') || '다시 시도해 주세요.'));
+  } finally {
+    setVerifying(false);
+  }
+};
   const resend = async () => {
     try {
       if (leftSec > 0) return;
