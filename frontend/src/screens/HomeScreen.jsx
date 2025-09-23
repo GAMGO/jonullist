@@ -1,14 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
-import {
-  View,
-  ImageBackground,
-  Text,
-  Pressable,
-  Image,
-  StyleSheet,
-  Animated,
-  Platform,
-} from 'react-native'
+import { View, ImageBackground, Text, Pressable, Image, StyleSheet, Animated, Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation, useFocusEffect } from '@react-navigation/native'
 import AvatarByBMI from '../components/AvatarByBMI'
@@ -179,6 +170,9 @@ export default function HomeScreen({ route }) {
   const [eggCount, setEggCount] = useState(0)
   const [fontsLoaded] = useFonts({ [FONT]: require('../../assets/fonts/DungGeunMo.otf') })
 
+  // 식단 요약 state
+  const [dietSummary, setDietSummary] = useState([])
+
   const loadLocal = useCallback(async () => {
     const { target, current } = await initCalorieData(user?.id)
     setTarget(target)
@@ -203,10 +197,45 @@ export default function HomeScreen({ route }) {
     } catch {}
   }, [user?.id])
 
+  // 식단 요약 불러오기
+  const loadDietSummary = useCallback(async () => {
+    try {
+    // 오늘 날짜 YYYY-MM-DD 로 포맷
+    const today = new Date().toISOString().split("T")[0]
+
+    const meals = await apiGet(`/api/diet/get?date=${today}`) // date 파라미터 추가
+    console.log("📌 meals data:", meals)
+
+    if (!meals || meals.length === 0) {
+      setDietSummary([
+        { mealType: "아침", kcal: 350 },
+        { mealType: "점심", kcal: 600 },
+        { mealType: "저녁", kcal: 450 },
+      ])
+      return
+    }
+
+    const summaryMap = meals.reduce((acc, meal) => {
+      if (!meal.mealType) return acc
+      acc[meal.mealType] = (acc[meal.mealType] || 0) + (meal.calories || 0)
+      return acc
+    }, {})
+
+    const summaryArr = Object.entries(summaryMap).map(([mealType, kcal]) => ({
+      mealType,
+      kcal,
+    }))
+    setDietSummary(summaryArr)
+  } catch (e) {
+    console.log('diet summary load failed', e)
+  }
+}, [])
+
   const loadAll = useCallback(async () => {
     await loadLocal()
     await syncFromProfile()
-  }, [loadLocal, syncFromProfile])
+    await loadDietSummary()
+  }, [loadLocal, syncFromProfile, loadDietSummary])
 
   useEffect(() => {
     loadAll()
@@ -275,6 +304,16 @@ export default function HomeScreen({ route }) {
               <Text style={styles.cardText} numberOfLines={1} allowFontScaling={false}>
                  {t('HOME_MEAL')}
               </Text>
+              {/* 식단 요약 표시 */}
+              {dietSummary.length > 0 && (
+                <View style={{ marginTop: 10 }}>
+                  {dietSummary.map((item, idx) => (
+                    <Text key={idx} style={styles.cardSubText}>
+                      {item.mealType}: {item.kcal} kcal
+                    </Text>
+                  ))}
+                </View>
+              )}
             </View>
           </Shadow>
         </Pressable>
@@ -373,7 +412,7 @@ const styles = StyleSheet.create({
     flexBasis: 0,
   },
   cardShadow: {
-width: '100%',            // ✅ Shadow 자체도 부모 폭으로
+    width: '100%',            //  Shadow 자체도 부모 폭으로
 },
   cardBox: {
     height: BOX_HEIGHT,
@@ -382,17 +421,25 @@ width: '100%',            // ✅ Shadow 자체도 부모 폭으로
     borderColor: '#333',
     backgroundColor: 'rgba(255,255,255,0.9)',
     paddingHorizontal: BOX_PAD,
-     justifyContent: 'flex-start',
- alignItems: 'flex-start',  paddingTop: BOX_PAD,
- paddingBottom: 8,
- width: '100%',  
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',  
+    paddingTop: BOX_PAD,
+    paddingBottom: 8,
+    width: '100%',  
   },
   cardText: {
     fontSize: BOX_FONT,
     color: '#111827',
     fontFamily: FONT,
     includeFontPadding: false,
-     textAlignVertical: 'top', // (Android에서 상단 고정)
+    textAlignVertical: 'top', // (Android에서 상단 고정)
+  },
+  // 식단 요약 텍스트
+  cardSubText: {
+    fontSize: 14,
+    color: '#333',
+    fontFamily: FONT,
+    marginTop: 2,
   },
 
   /* Gauge */

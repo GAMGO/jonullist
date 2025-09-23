@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Dimensions, Pressable, Modal } from 'react-native'
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Dimensions, Pressable, Modal, ImageBackground } from 'react-native'
 import { Calendar } from 'react-native-calendars'
 import { LineChart } from 'react-native-chart-kit'
 import { apiGet } from '../config/api'
@@ -153,6 +153,12 @@ export default function DataScreen() {
   }
 
   return (
+    <ImageBackground
+      source={require('../../assets/background/data.png')}
+      style={{ flex: 1 }}
+      resizeMode="cover"
+    >
+    
     <ScrollView style={s.container} contentContainerStyle={{ paddingBottom: 24 }}>
       <Text style={s.title}>{t('HOME_DATA')}</Text>
 
@@ -268,6 +274,7 @@ export default function DataScreen() {
         </View>
       </Modal>
     </ScrollView>
+    </ImageBackground>
   )
 }
 
